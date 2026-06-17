@@ -80,6 +80,21 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        "coin-float": {
+          "0%": { transform: "translate(-50%, 0) scale(0.8)", opacity: "0" },
+          "15%": { opacity: "1" },
+          "100%": { transform: "translate(-50%, -56px) scale(1.1)", opacity: "0" },
+        },
+        "level-pop": {
+          "0%": { transform: "scale(0.6)", opacity: "0" },
+          "25%": { transform: "scale(1.08)", opacity: "1" },
+          "70%": { transform: "scale(1)", opacity: "1" },
+          "100%": { transform: "scale(1)", opacity: "0" },
+        },
+        "ring-burst": {
+          "0%": { transform: "scale(0.6)", opacity: "0.6" },
+          "100%": { transform: "scale(2.2)", opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -87,6 +102,9 @@ export default {
         "pulse-gold": "pulse-gold 2s ease-in-out infinite",
         "count-pop": "count-pop 0.4s ease-out",
         shimmer: "shimmer 3s linear infinite",
+        "coin-float": "coin-float 1s ease-out forwards",
+        "level-pop": "level-pop 1.8s ease-out forwards",
+        "ring-burst": "ring-burst 1.6s ease-out forwards",
       },
     },
   },
