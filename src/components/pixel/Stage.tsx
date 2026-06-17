@@ -5,6 +5,7 @@ import {
   CLOUD,
   CROWN,
   FLOWER,
+  getBuiltinCharacter,
   HERO_FRAMES,
   monsterForLevel,
   ROCK,
@@ -213,10 +214,12 @@ export function Stage({ walking, level, nowTs, coins, buffed, characterSrc }: St
       {/* 勇者（左寄り・歩行アニメ） */}
       <div className="absolute bottom-[42px] left-[22%]">
         <div className={cn(walking ? "anim-hero-work" : "anim-hero-bob")}>
-          {characterSrc ? (
-            <PixelImage src={characterSrc} style={{ height: 80, width: "auto" }} />
-          ) : (
+          {!characterSrc ? (
             <PixelAnim frames={HERO_FRAMES} fps={7} playing={walking} scale={5} />
+          ) : getBuiltinCharacter(characterSrc) ? (
+            <PixelSprite sprite={getBuiltinCharacter(characterSrc)!} scale={5} />
+          ) : (
+            <PixelImage src={characterSrc} style={{ height: 80, width: "auto" }} />
           )}
         </div>
         {/* 影 */}

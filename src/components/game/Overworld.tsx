@@ -1,7 +1,7 @@
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
-import { FLOWER, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
+import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
 import { HOUSE, MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
 import { useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
@@ -330,10 +330,12 @@ export function Overworld({
                 transform: snap.dir === "right" ? "translateX(-50%) scaleX(-1)" : "translateX(-50%)",
               }}
             >
-              {character ? (
-                <PixelImage src={character} style={{ width: TILE + 4, height: "auto" }} />
-              ) : (
+              {!character ? (
                 <PixelSprite sprite={heroSprite} scale={2} />
+              ) : getBuiltinCharacter(character) ? (
+                <PixelSprite sprite={getBuiltinCharacter(character)!} scale={2} />
+              ) : (
+                <PixelImage src={character} style={{ width: TILE + 4, height: "auto" }} />
               )}
             </div>
           </div>

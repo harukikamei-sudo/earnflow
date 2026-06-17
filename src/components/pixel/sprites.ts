@@ -160,6 +160,51 @@ export const HERO_TOPDOWN: Record<"down" | "up" | "side", Sprite[]> = {
   side: [HERO_SIDE_A, HERO_SIDE_B],
 };
 
+/* ---------------- 魔法使い（着せ替え・5色） ---------------- */
+
+const WIZARD_GRID = [
+  ".......oo.......",
+  "......occo......",
+  "......occo......",
+  ".....occcco.....",
+  ".....occdco.....",
+  "....occcccco....",
+  "...oooooooooo...",
+  "....oSSSSSSo....",
+  "....oSKSSKSo....",
+  "....oSWWWWSo....",
+  "...oWWWWWWWWo...",
+  "...occccccco....",
+  "..occccccccco...",
+  "..occccccccco...",
+  "..oddddddddddo..",
+];
+
+function wizard(c: string, d: string): Sprite {
+  return {
+    grid: WIZARD_GRID,
+    palette: { o: "#1a1026", c, d, S: "#f3c98b", K: "#1a1026", W: "#eef0f4" },
+  };
+}
+
+/** 魔法使いの色バリエーション（着せ替えの組み込みキャラ） */
+export const WIZARDS: { id: string; name: string; sprite: Sprite }[] = [
+  { id: "wizard:red", name: "赤の魔法使い", sprite: wizard("#e0382f", "#a12219") },
+  { id: "wizard:blue", name: "青の魔法使い", sprite: wizard("#2f6fd0", "#1d4a99") },
+  { id: "wizard:green", name: "緑の魔法使い", sprite: wizard("#2f9e44", "#1f7a33") },
+  { id: "wizard:purple", name: "紫の魔法使い", sprite: wizard("#8a4fd0", "#5f30a0") },
+  { id: "wizard:yellow", name: "黄の魔法使い", sprite: wizard("#f2c037", "#c2901a") },
+];
+
+const BUILTIN_CHARACTERS: Record<string, Sprite> = Object.fromEntries(
+  WIZARDS.map((w) => [w.id, w.sprite]),
+);
+
+/** 組み込みキャラID（"wizard:red" 等）からスプライトを返す。画像srcの場合は null */
+export function getBuiltinCharacter(id: string): Sprite | null {
+  return BUILTIN_CHARACTERS[id] ?? null;
+}
+
 /* ---------------- 店主（どうぐ屋のNPC） ---------------- */
 
 export const SHOPKEEPER: Sprite = {
