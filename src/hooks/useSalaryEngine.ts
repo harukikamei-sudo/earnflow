@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Workplace } from "@/lib/types";
 import { currentEarnings, finalizeSession, sumEarnings } from "@/lib/earnings";
 import { addSession, getSessions, getWorkplaces } from "@/lib/store";
+import { getEarningBoost } from "@/game/playerStore";
 
 export type EngineStatus = "idle" | "running" | "stopped";
 
@@ -101,7 +102,7 @@ export function useSalaryEngine(): SalaryEngine {
     status === "stopped"
       ? stoppedEarnings
       : status === "running" && runningWorkplace
-        ? currentEarnings(runningWorkplace, startMs, now)
+        ? currentEarnings(runningWorkplace, startMs, now) * getEarningBoost()
         : 0;
 
   const elapsedSec =
@@ -124,7 +125,8 @@ export function useSalaryEngine(): SalaryEngine {
   const stop = useCallback(() => {
     if (status !== "running" || !runningWorkplace) return;
     const endMs = Date.now();
-    const session = finalizeSession(runningWorkplace, startMs, endMs);
+    const base = finalizeSession(runningWorkplace, startMs, endMs);
+    const session = { ...base, earnings: Math.round(base.earnings * getEarningBoost()) };
     if (session.durationSec > 0 && session.earnings > 0) {
       addSession(session);
       setLifetimeGold((g) => g + session.earnings);

@@ -3,7 +3,7 @@ import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { HERO_DOWN_A } from "@/components/pixel/sprites";
 import { DQWindow } from "@/components/pixel/DQWindow";
 import { setCharacter, useAssets, useCharacter } from "@/game/mapStore";
-import { buyCostume, isOwned, useOwned, useWallet } from "@/game/playerStore";
+import { buy, isOwned, useOwned, useWallet } from "@/game/playerStore";
 import { cn } from "@/lib/utils";
 
 /** コスチューム1着の値段（ゴールド） */
@@ -64,7 +64,7 @@ export function CostumeShop({ onClose }: { onClose: () => void }) {
                       type="button"
                       disabled={wallet < PRICE}
                       onClick={() => {
-                        if (buyCostume(c.src, PRICE)) setCharacter(c.src);
+                        if (buy(c.src, PRICE)) setCharacter(c.src);
                       }}
                       className={cn(
                         "font-pixel rounded px-2 py-1 text-[11px] font-bold",

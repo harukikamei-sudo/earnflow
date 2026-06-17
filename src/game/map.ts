@@ -29,6 +29,10 @@ export const SHOP = { x: 10, y: 3, w: 3, h: 2 } as const;
 export const DOOR = { x: 11, y: 5 } as const;
 /** 城（街のランドマーク。イラストを上に重ねて描画） */
 export const CASTLE = { x: 19, y: 1, w: 7, h: 5 } as const;
+/** どうぐ屋（街のランドマーク。近づくとアイテム購入）。タイルではなく重ね描画 */
+export const MARKET = { x: 15, y: 8, w: 3, h: 2 } as const;
+/** どうぐ屋の入口（接近判定の中心） */
+export const MARKET_DOOR = { x: 16, y: 10 } as const;
 /** 看板（近づくと説明が出る） */
 export const SIGN_POS = { x: 12, y: 14 } as const;
 /** 勇者の初期位置 */

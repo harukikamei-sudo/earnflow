@@ -7,11 +7,12 @@ import { TouchControls } from "@/components/game/TouchControls";
 import { WorkMenu } from "@/components/game/WorkMenu";
 import { MapEditor, type Brush } from "@/components/game/MapEditor";
 import { CostumeShop } from "@/components/game/CostumeShop";
+import { ItemShop } from "@/components/game/ItemShop";
 import type { HeroDir } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
-import { DOOR, MAP_H, MAP_W, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
+import { DOOR, MAP_H, MAP_W, MARKET_DOOR, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
 import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
-import { addGold, useWallet } from "@/game/playerStore";
+import { addGold, useEarningBoost, useWallet } from "@/game/playerStore";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
@@ -40,7 +41,9 @@ export default function Home() {
   const isTown = activeId === TOWN_ID;
   const character = useCharacter();
   const wallet = useWallet();
+  const boost = useEarningBoost();
   const [showCostume, setShowCostume] = useState(false);
+  const [showItemShop, setShowItemShop] = useState(false);
 
   // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
   const [editMode, setEditMode] = useState(false);
@@ -129,7 +132,7 @@ export default function Home() {
   const multiplier = activeWp ? multiplierAt(new Date(nowTs), activeWp.timeRules) : 1;
   const perSecond =
     activeWp && activeWp.payType === "hourly"
-      ? (activeWp.hourlyRate / 3600) * multiplier
+      ? (activeWp.hourlyRate / 3600) * multiplier * boost
       : 0;
 
   const level = useMemo(() => levelInfo(totalGold), [totalGold]);
@@ -141,7 +144,9 @@ export default function Home() {
   const settled = !snap.moving;
   const man = (ax: number, ay: number) => Math.abs(hx - ax) + Math.abs(hy - ay);
   const nearShop = isTown && !working && !editMode && settled && man(DOOR.x, DOOR.y) <= 1;
-  const nearSign = isTown && !working && !editMode && settled && !nearShop && man(SIGN_POS.x, SIGN_POS.y) <= 1;
+  const nearMarket = isTown && !working && !editMode && settled && !nearShop && man(MARKET_DOOR.x, MARKET_DOOR.y) <= 1;
+  const nearSign =
+    isTown && !working && !editMode && settled && !nearShop && !nearMarket && man(SIGN_POS.x, SIGN_POS.y) <= 1;
 
   /* ---- コイン演出 ---- */
   const [coins, setCoins] = useState<StageCoin[]>([]);
@@ -320,6 +325,16 @@ export default function Home() {
             </div>
           )}
 
+          {/* どうぐ屋に接近 → 入店 */}
+          {nearMarket && (
+            <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
+              <DQWindow title="どうぐ屋" className="anim-dq-pop">
+                <p className="font-pixel mb-2 text-sm text-white">ゴールドで どうぐを 買えるよ！</p>
+                <DQCommand label="店に入る" active accent="gold" onClick={() => setShowItemShop(true)} />
+              </DQWindow>
+            </div>
+          )}
+
           {/* 看板に接近 → 説明 */}
           {nearSign && (
             <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
@@ -367,6 +382,9 @@ export default function Home() {
 
       {/* コスチュームショップ */}
       {showCostume && <CostumeShop onClose={() => setShowCostume(false)} />}
+
+      {/* どうぐ屋 */}
+      {showItemShop && <ItemShop onClose={() => setShowItemShop(false)} />}
     </div>
   );
 }

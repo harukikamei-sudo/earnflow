@@ -6,6 +6,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { SHOP_ITEMS } from "./items";
 
 const KEYS = {
   wallet: "earnflow.wallet",
@@ -60,14 +61,27 @@ export function isOwned(src: string): boolean {
   return src === "" || owned.includes(src);
 }
 
-/** コスチュームを購入（所持金が足りれば true） */
-export function buyCostume(src: string, price: number): boolean {
-  if (isOwned(src)) return true;
+/** コスチューム/アイテムを購入（所持金が足りれば true）。id/src を所持リストに追加 */
+export function buy(idOrSrc: string, price: number): boolean {
+  if (isOwned(idOrSrc)) return true;
   if (wallet < price) return false;
   wallet -= price;
-  owned = [...owned, src];
+  owned = [...owned, idOrSrc];
   save(KEYS.wallet, wallet);
   save(KEYS.owned, owned);
   emit();
   return true;
+}
+
+/** 所持アイテムによる収入倍率（1.0 = 等倍）。非リアクティブ読み取り（エンジン用） */
+export function getEarningBoost(): number {
+  let boost = 1;
+  for (const item of SHOP_ITEMS) {
+    if (owned.includes(item.id)) boost += item.boost;
+  }
+  return boost;
+}
+/** リアクティブ版（表示用） */
+export function useEarningBoost(): number {
+  return useSyncExternalStore(subscribe, getEarningBoost, getEarningBoost);
 }

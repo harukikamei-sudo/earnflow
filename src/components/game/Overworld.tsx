@@ -2,7 +2,7 @@ import { memo, useLayoutEffect, useRef, useState } from "react";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
-import { MAP_H, MAP_W, SHOP, TILE } from "@/game/map";
+import { MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
 import { useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
@@ -111,6 +111,48 @@ function ShopBuilding() {
   );
 }
 
+/** どうぐ屋：shop.png があれば画像、無ければCSSのドット風ショップ */
+function MarketBuilding() {
+  const [imgOk, setImgOk] = useState(true);
+  const left = MARKET.x * TILE;
+  const width = MARKET.w * TILE;
+  if (imgOk) {
+    return (
+      <PixelImage
+        src="/illust/shop.png"
+        onError={() => setImgOk(false)}
+        className="pointer-events-none absolute"
+        style={{ left, top: (MARKET.y - 1) * TILE, width, height: "auto" }}
+      />
+    );
+  }
+  const h = (MARKET.h + 1) * TILE;
+  return (
+    <div className="pointer-events-none absolute" style={{ left, top: MARKET.y * TILE - TILE, width, height: h }}>
+      {/* 屋根（縞のひさし） */}
+      <div
+        className="absolute left-0 top-0 w-full"
+        style={{
+          height: TILE * 0.7,
+          background: "repeating-linear-gradient(90deg,#c0392b 0 12px,#f4f4f4 12px 24px)",
+          borderRadius: "4px 4px 0 0",
+        }}
+      />
+      {/* 壁 */}
+      <div
+        className="absolute inset-x-0 bottom-0 flex items-end justify-center"
+        style={{ top: TILE * 0.7, background: "#e3c9a0", border: "3px solid #6b4423" }}
+      >
+        <div className="font-pixel absolute -top-2 rounded-sm bg-[#2a2f4a] px-1 text-[10px] font-bold text-white">
+          どうぐ屋
+        </div>
+        {/* カウンター窓 */}
+        <div className="mb-2 h-[20px] w-[60%] rounded-sm" style={{ background: "#3a2f24", boxShadow: "inset 0 0 0 2px #2a190c" }} />
+      </div>
+    </div>
+  );
+}
+
 interface OverworldProps {
   snap: OverworldSnap;
   className?: string;
@@ -198,7 +240,12 @@ export function Overworld({
       >
         <TileLayer rows={rows} />
 
-        {showLandmarks && <ShopBuilding />}
+        {showLandmarks && (
+          <>
+            <ShopBuilding />
+            <MarketBuilding />
+          </>
+        )}
 
         {/* 配置された画像プロップ */}
         {props.map((p) => (
