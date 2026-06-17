@@ -1,0 +1,99 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 20% 6%;
+    --foreground: 45 80% 90%;
+    --card: 240 18% 10%;
+    --card-foreground: 45 80% 90%;
+    --popover: 240 18% 10%;
+    --popover-foreground: 45 80% 90%;
+    --primary: 45 90% 58%;
+    --primary-foreground: 240 20% 6%;
+    --secondary: 240 15% 16%;
+    --secondary-foreground: 45 60% 80%;
+    --muted: 240 15% 14%;
+    --muted-foreground: 240 10% 55%;
+    --accent: 45 90% 58%;
+    --accent-foreground: 240 20% 6%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 15% 18%;
+    --input: 240 15% 16%;
+    --ring: 45 90% 58%;
+    --gold: 45 90% 58%;
+    --gold-light: 45 95% 75%;
+    --gold-dark: 38 80% 38%;
+    --radius: 1rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .text-gold-gradient {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--gold-light)) 0%,
+      hsl(var(--gold)) 50%,
+      hsl(var(--gold-dark)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .bg-app-radial {
+    background-image: radial-gradient(
+        120% 80% at 50% -10%,
+        hsl(45 90% 58% / 0.1) 0%,
+        transparent 55%
+      ),
+      radial-gradient(80% 60% at 50% 110%, hsl(45 90% 58% / 0.05) 0%, transparent 60%);
+  }
+
+  .gold-glow {
+    box-shadow: 0 0 0 1px hsl(var(--gold) / 0.25), 0 8px 40px -8px hsl(var(--gold) / 0.35);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
