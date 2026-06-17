@@ -1,7 +1,8 @@
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
+import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
-import { MAP, MAP_H, MAP_W, SHOP, TILE } from "@/game/map";
+import { CASTLE, MAP, MAP_H, MAP_W, SHOP, TILE } from "@/game/map";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
 
@@ -160,6 +161,19 @@ export function Overworld({ snap, className }: OverworldProps) {
         }}
       >
         <TileLayer />
+
+        {/* 城（ランドマーク・イラスト） */}
+        <PixelImage
+          src="/illust/castle.jpeg"
+          className="pointer-events-none absolute"
+          style={{
+            left: CASTLE.x * TILE,
+            top: CASTLE.y * TILE - 10,
+            width: CASTLE.w * TILE,
+            height: "auto",
+          }}
+        />
+
         <Shop />
 
         {/* 勇者 */}

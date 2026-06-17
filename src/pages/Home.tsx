@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { Stage, type StageCoin } from "@/components/pixel/Stage";
 import { DQCommand, DQWindow } from "@/components/pixel/DQWindow";
 import { Overworld } from "@/components/game/Overworld";
 import { TouchControls } from "@/components/game/TouchControls";
+import { WorkMenu } from "@/components/game/WorkMenu";
 import { useOverworld } from "@/game/useOverworld";
 import { DOOR, SIGN_POS } from "@/game/map";
+import { createWorkplace } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
-import { upsertWorkplace } from "@/lib/store";
+import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
 import { cn, formatDuration, formatYen, formatYenPrecise } from "@/lib/utils";
-
-const QUICK_ID = "earnflow.quick";
 
 type Scene = "roam" | "work";
 
@@ -22,20 +21,28 @@ type Scene = "roam" | "work";
  * 給料クエスト（ホーム）— ドラクエ風トップダウンRPG。
  *
  * 草原を自由に歩き、バイト先（¥バイトの建物）に近づくと選択肢が出る。
- * 「はたらく」を選ぶと労働モードへ。労働中は横スクロールの仕事シーンで
- * 収入＝ゴールド＝経験値が増えていく。
+ * 複数のバイトを登録・選択でき、「はたらく」を選ぶと労働モードへ。
+ * 労働中は横スクロールの仕事シーンで収入＝ゴールド＝経験値が増えていく。
  */
 export default function Home() {
   const engine = useSalaryEngine();
   const { sessionEarnings, totalGold, elapsedSec } = engine;
 
   const [scene, setScene] = useState<Scene>("roam");
-  const [hourlyInput, setHourlyInput] = useState("1100");
-  const [nightBonus, setNightBonus] = useState(true);
+  const working = scene === "work";
+
+  // バイト先（無ければ既定を1件作って保存）
+  const [workplaces, setWorkplaces] = useState<Workplace[]>(() => {
+    const ws = getWorkplaces();
+    if (ws.length > 0) return ws;
+    const def = createWorkplace("マイバイト", 1100, true);
+    upsertWorkplace(def);
+    return [def];
+  });
+  const refresh = () => setWorkplaces(getWorkplaces());
 
   const overworld = useOverworld({ enabled: scene === "roam" });
   const { snap } = overworld;
-  const working = scene === "work";
 
   // 時刻（時間帯・バフ用）
   const [nowTs, setNowTs] = useState(() => Date.now());
@@ -44,13 +51,7 @@ export default function Home() {
     return () => window.clearInterval(id);
   }, []);
 
-  const previewWp = useMemo(() => {
-    const rate = Number(hourlyInput);
-    if (!Number.isFinite(rate) || rate <= 0) return null;
-    return buildQuickWorkplace(rate, nightBonus);
-  }, [hourlyInput, nightBonus]);
-
-  const activeWp = working ? engine.runningWorkplace : previewWp;
+  const activeWp = working ? engine.runningWorkplace : null;
   const multiplier = activeWp ? multiplierAt(new Date(nowTs), activeWp.timeRules) : 1;
   const perSecond =
     activeWp && activeWp.payType === "hourly"
@@ -99,18 +100,24 @@ export default function Home() {
   }, [level.level, working]);
 
   /* ---- 操作 ---- */
-  function startWork() {
-    if (!previewWp) return;
-    upsertWorkplace(previewWp);
+  function startWork(wp: Workplace) {
     lastIntRef.current = 0;
     prevLevelRef.current = levelInfo(totalGold).level;
-    engine.start(previewWp);
+    engine.start(wp);
     setScene("work");
   }
   function stopWork() {
     engine.stop();
     engine.reset();
     setScene("roam");
+  }
+  function addWorkplace(wp: Workplace) {
+    upsertWorkplace(wp);
+    refresh();
+  }
+  function removeWorkplace(id: string) {
+    deleteWorkplace(id);
+    refresh();
   }
 
   return (
@@ -184,40 +191,15 @@ export default function Home() {
             </div>
           </div>
 
-          {/* バイト先に接近 → 選択肢 */}
+          {/* バイト先に接近 → 選択肢（複数選択・追加・削除） */}
           {nearShop && (
-            <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
-              <DQWindow title="¥バイト" className="anim-dq-pop">
-                <p className="font-pixel mb-2 text-sm text-white">ここで はたらきますか？</p>
-                <div className="mb-2 flex items-center gap-2">
-                  <label className="font-pixel text-sm">時給</label>
-                  <div className="relative flex-1">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">¥</span>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      value={hourlyInput}
-                      onChange={(e) => setHourlyInput(e.target.value)}
-                      className="tabular h-10 pl-7 text-right font-bold"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={nightBonus}
-                    onClick={() => setNightBonus((v) => !v)}
-                    title="深夜割増 ×1.25"
-                    className={cn(
-                      "font-pixel shrink-0 rounded px-2 py-1 text-xs",
-                      nightBonus ? "bg-gold text-black" : "bg-white/15 text-white",
-                    )}
-                  >
-                    🌙
-                  </button>
-                </div>
-                <DQCommand label="はたらく！" active accent="gold" disabled={!previewWp} onClick={startWork} />
-              </DQWindow>
+            <div className="absolute left-1/2 top-16 w-full max-w-xs -translate-x-1/2 px-4">
+              <WorkMenu
+                workplaces={workplaces}
+                onStart={startWork}
+                onAdd={addWorkplace}
+                onDelete={removeWorkplace}
+              />
             </div>
           )}
 
@@ -283,19 +265,4 @@ function ExpBar({ progress, thin }: { progress: number; thin?: boolean }) {
       />
     </div>
   );
-}
-
-/** クイック入力から既定バイト先を組み立てる */
-function buildQuickWorkplace(hourlyRate: number, nightBonus: boolean): Workplace {
-  return {
-    id: QUICK_ID,
-    name: "マイバイト",
-    payType: "hourly",
-    hourlyRate,
-    dailyRate: 0,
-    timeRules: nightBonus
-      ? [{ id: "quick-night", label: "深夜割増", startHour: 22, endHour: 5, multiplier: 1.25 }]
-      : [],
-    createdAt: Date.now(),
-  };
 }

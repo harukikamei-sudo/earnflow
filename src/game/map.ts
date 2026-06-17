@@ -9,7 +9,7 @@
  * マップは手打ちミスを避けるためコードで生成する。
  */
 
-export type TileChar = "T" | "W" | "G" | "P" | "F" | "S" | "R" | "B" | "D";
+export type TileChar = "T" | "W" | "G" | "P" | "F" | "S" | "R" | "B" | "D" | "C";
 
 export const TILE = 32; // 1タイルの表示ピクセル
 export const MAP_W = 28;
@@ -19,6 +19,8 @@ export const MAP_H = 20;
 export const SHOP = { x: 10, y: 3, w: 3, h: 2 } as const;
 /** バイト先のドア（ここに近づくと労働の選択肢が出る） */
 export const DOOR = { x: 11, y: 5 } as const;
+/** 城（街のランドマーク。イラストを上に重ねて描画） */
+export const CASTLE = { x: 19, y: 1, w: 7, h: 5 } as const;
 /** 看板（近づくと説明が出る） */
 export const SIGN_POS = { x: 12, y: 14 } as const;
 /** 勇者の初期位置 */
@@ -55,6 +57,10 @@ function buildMap(): string[] {
   for (let y = 9; y <= 12; y++) for (let x = 3; x <= 7; x++) set(x, y, "W");
   for (let y = 6; y <= 8; y++) for (let x = 22; x <= 25; x++) set(x, y, "W");
 
+  // 城（足元タイルを通行不可に。見た目はイラストを重ねる）
+  for (let y = CASTLE.y; y < CASTLE.y + CASTLE.h; y++)
+    for (let x = CASTLE.x; x < CASTLE.x + CASTLE.w; x++) set(x, y, "C");
+
   // バイト先（建物）とドア
   for (let y = SHOP.y; y < SHOP.y + SHOP.h; y++)
     for (let x = SHOP.x; x < SHOP.x + SHOP.w; x++) set(x, y, "B");
@@ -81,7 +87,7 @@ function buildMap(): string[] {
 
 export const MAP: string[] = buildMap();
 
-const BLOCKING = new Set<string>(["T", "W", "R", "B", "S"]);
+const BLOCKING = new Set<string>(["T", "W", "R", "B", "S", "C"]);
 
 export function tileAt(x: number, y: number): TileChar | null {
   if (y < 0 || y >= MAP_H || x < 0 || x >= MAP_W) return null;
