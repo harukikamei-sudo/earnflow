@@ -18,6 +18,7 @@ import {
   TOWN_ID,
   type TileChar,
 } from "./map";
+import { getBuiltinCharacter } from "@/components/pixel/sprites";
 import { uid } from "@/lib/utils";
 
 export interface MapProp {
@@ -38,14 +39,11 @@ export interface Stage {
 
 const KEYS = {
   stages: "earnflow.stages.v2",
-  assets: "earnflow.assets",
+  assets: "earnflow.assets.v2", // v1（ユーザー追加画像）は破棄
 } as const;
 
-const DEFAULT_ASSETS = [
-  "/illust/castle.jpeg",
-  "/illust/cave.png",
-  "/illust/character_yusha_01_green.png",
-];
+// 既定の配置用画像は持たない（ユーザーがD&D等で追加する）
+const DEFAULT_ASSETS: string[] = [];
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -95,8 +93,10 @@ const persisted = loadStages();
 let stages: Stage[] = persisted.stages;
 let activeId: string = persisted.activeId;
 let assets: string[] = dedupe([...DEFAULT_ASSETS, ...load<string[]>(KEYS.assets, [])]);
-/** 操作キャラの画像src（空文字＝既定のドット勇者） */
+/** 操作キャラ（空文字＝既定の勇者 / "char:..."＝組み込み）。
+ *  以前に画像srcを装備していた場合は、画像を一掃したので既定に戻す。 */
 let character: string = load<string>("earnflow.character", "");
+if (character !== "" && !getBuiltinCharacter(character)) character = "";
 
 const listeners = new Set<() => void>();
 function emit() {

@@ -160,48 +160,105 @@ export const HERO_TOPDOWN: Record<"down" | "up" | "side", Sprite[]> = {
   side: [HERO_SIDE_A, HERO_SIDE_B],
 };
 
-/* ---------------- 魔法使い（着せ替え・5色） ---------------- */
+/* ---------------- 着せ替え（組み込みキャラ・歩行2コマ） ---------------- */
 
-const WIZARD_GRID = [
-  ".......oo.......",
-  "......occo......",
-  "......occo......",
-  ".....occcco.....",
-  ".....occdco.....",
-  "....occcccco....",
-  "...oooooooooo...",
-  "....oSSSSSSo....",
-  "....oSKSSKSo....",
-  "....oSWWWWSo....",
-  "...oWWWWWWWWo...",
-  "...occccccco....",
-  "..occccccccco...",
-  "..occccccccco...",
-  "..oddddddddddo..",
-];
-
-function wizard(c: string, d: string): Sprite {
-  return {
-    grid: WIZARD_GRID,
-    palette: { o: "#1a1026", c, d, S: "#f3c98b", K: "#1a1026", W: "#eef0f4" },
-  };
+export interface CharacterDef {
+  id: string;
+  name: string;
+  /** 歩行フレーム（2コマ＝歩いて見える / 1コマ＝静止） */
+  frames: Sprite[];
 }
 
-/** 魔法使いの色バリエーション（着せ替えの組み込みキャラ） */
-export const WIZARDS: { id: string; name: string; sprite: Sprite }[] = [
-  { id: "wizard:red", name: "赤の魔法使い", sprite: wizard("#e0382f", "#a12219") },
-  { id: "wizard:blue", name: "青の魔法使い", sprite: wizard("#2f6fd0", "#1d4a99") },
-  { id: "wizard:green", name: "緑の魔法使い", sprite: wizard("#2f9e44", "#1f7a33") },
-  { id: "wizard:purple", name: "紫の魔法使い", sprite: wizard("#8a4fd0", "#5f30a0") },
-  { id: "wizard:yellow", name: "黄の魔法使い", sprite: wizard("#f2c037", "#c2901a") },
+/** 共通の顔（肌＋目） */
+const FACE = ["....oSSSSSSo....", "....oSKSSKSo....", "....oSssssSo...."];
+
+/** 頭+胴(11行) に脚の2コマを付けて歩行スプライトにする */
+function walker(headBody: string[], palette: Sprite["palette"]): Sprite[] {
+  return [
+    { grid: [...headBody, ...HD_LEGS_A], palette },
+    { grid: [...headBody, ...HD_LEGS_B], palette },
+  ];
+}
+
+const HERO_TORSO = [
+  "......oooo......",
+  ".....oHHHHo.....",
+  "....oHHHHHHo....",
+  "....oYYYYYYo....",
+  ...FACE,
+  "...oCCCCCCCCo...",
+  "..oSCCYYYYCCSo..",
+  "..oSCCCCCCCCSo..",
+  "...oCCCCCCCCo...",
+];
+const WARRIOR_TORSO = [
+  "......oooo......",
+  ".....oHHHHo.....",
+  "....oHHHHHHo....",
+  "....oHHHHHHo....",
+  ...FACE,
+  "...oCCCCCCCCo...",
+  "..oSCCCCCCCCSo..",
+  "..oSCCCCCCCCSo..",
+  "...oCCCCCCCCo...",
+];
+const PRIEST_TORSO = [
+  "......oooo......",
+  ".....oWWWWo.....",
+  "....oWWWWWWo....",
+  "....oWWWWWWo....",
+  ...FACE,
+  "...oCCCCCCCCo...",
+  "..oSCCCCCCCCSo..",
+  "..oSCCCCCCCCSo..",
+  "...oCCCCCCCCo...",
+];
+const SUIT_TORSO = [
+  "......oooo......",
+  ".....oHHHHo.....",
+  "....oHHHHHHo....",
+  "....oHHHHHHo....",
+  ...FACE,
+  "...oCCCCCCCCo...",
+  "..oSCCWWWWCCSo..",
+  "..oSCCWRRWCCSo..",
+  "...oCCCCCCCCo...",
 ];
 
-const BUILTIN_CHARACTERS: Record<string, Sprite> = Object.fromEntries(
-  WIZARDS.map((w) => [w.id, w.sprite]),
+export const CHARACTERS: CharacterDef[] = [
+  {
+    id: "char:warrior",
+    name: "戦士",
+    frames: walker(WARRIOR_TORSO, { o: "#1a1026", H: "#b9bec9", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#8a8f9e", B: "#5a5f6a", g: "#3a3f4a" }),
+  },
+  {
+    id: "char:priest",
+    name: "僧侶",
+    frames: walker(PRIEST_TORSO, { o: "#1a1026", W: "#efe9d6", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#efe9d6", B: "#e0d8bf", g: "#6b4423" }),
+  },
+  {
+    id: "char:hero",
+    name: "勇者",
+    frames: walker(HERO_TORSO, { o: "#1a1026", H: "#d3d7e2", Y: "#f6c945", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#3a6ee0", B: "#3a6ee0", g: "#6b4423" }),
+  },
+  {
+    id: "char:salaryman",
+    name: "社会人",
+    frames: walker(SUIT_TORSO, { o: "#1a1026", H: "#2a2a2a", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#313a4a", W: "#ececec", R: "#c0392b", B: "#313a4a", g: "#1a1a1a" }),
+  },
+  {
+    id: "char:student",
+    name: "学生",
+    frames: walker(SUIT_TORSO, { o: "#1a1026", H: "#5a3a22", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#2f3a6a", W: "#ffffff", R: "#c0392b", B: "#3a3f4a", g: "#2a2a2a" }),
+  },
+];
+
+const BUILTIN_CHARACTERS: Record<string, CharacterDef> = Object.fromEntries(
+  CHARACTERS.map((c) => [c.id, c]),
 );
 
-/** 組み込みキャラID（"wizard:red" 等）からスプライトを返す。画像srcの場合は null */
-export function getBuiltinCharacter(id: string): Sprite | null {
+/** 組み込みキャラID（"char:warrior" 等）から定義を返す。画像srcの場合は null */
+export function getBuiltinCharacter(id: string): CharacterDef | null {
   return BUILTIN_CHARACTERS[id] ?? null;
 }
 

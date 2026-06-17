@@ -217,7 +217,7 @@ export function Stage({ walking, level, nowTs, coins, buffed, characterSrc }: St
           {!characterSrc ? (
             <PixelAnim frames={HERO_FRAMES} fps={7} playing={walking} scale={5} />
           ) : getBuiltinCharacter(characterSrc) ? (
-            <PixelSprite sprite={getBuiltinCharacter(characterSrc)!} scale={5} />
+            <PixelAnim frames={getBuiltinCharacter(characterSrc)!.frames} fps={7} playing={walking} scale={5} />
           ) : (
             <PixelImage src={characterSrc} style={{ height: 80, width: "auto" }} />
           )}

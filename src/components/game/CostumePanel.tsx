@@ -1,6 +1,6 @@
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
-import { getBuiltinCharacter, HERO_DOWN_A, WIZARDS } from "@/components/pixel/sprites";
+import { CHARACTERS, getBuiltinCharacter, HERO_DOWN_A } from "@/components/pixel/sprites";
 import { DQWindow } from "@/components/pixel/DQWindow";
 import { setCharacter, useAssets, useCharacter } from "@/game/mapStore";
 import { buy, isOwned, useOwned, useWallet } from "@/game/playerStore";
@@ -17,7 +17,7 @@ function basename(src: string): string {
 function CostumeThumb({ id }: { id: string }) {
   if (id === "") return <PixelSprite sprite={HERO_DOWN_A} scale={2} />;
   const builtin = getBuiltinCharacter(id);
-  if (builtin) return <PixelSprite sprite={builtin} scale={2} />;
+  if (builtin) return <PixelSprite sprite={builtin.frames[0]} scale={2} />;
   return <PixelImage src={id} style={{ width: 36, height: 36, objectFit: "contain" }} />;
 }
 
@@ -33,7 +33,7 @@ export function CostumePanel() {
 
   const costumes = [
     { src: "", name: "もとの すがた" },
-    ...WIZARDS.map((w) => ({ src: w.id, name: w.name })),
+    ...CHARACTERS.map((c) => ({ src: c.id, name: c.name })),
     ...assets.map((s) => ({ src: s, name: basename(s) })),
   ];
 

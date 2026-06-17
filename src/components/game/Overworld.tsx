@@ -1,5 +1,5 @@
 import { memo, useLayoutEffect, useRef, useState } from "react";
-import { PixelSprite } from "@/components/pixel/PixelSprite";
+import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
 import { HOUSE, MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
@@ -333,7 +333,7 @@ export function Overworld({
               {!character ? (
                 <PixelSprite sprite={heroSprite} scale={2} />
               ) : getBuiltinCharacter(character) ? (
-                <PixelSprite sprite={getBuiltinCharacter(character)!} scale={2} />
+                <PixelAnim frames={getBuiltinCharacter(character)!.frames} fps={7} playing={snap.moving} scale={2} />
               ) : (
                 <PixelImage src={character} style={{ width: TILE + 4, height: "auto" }} />
               )}
