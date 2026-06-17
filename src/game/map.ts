@@ -33,6 +33,10 @@ export const CASTLE = { x: 19, y: 1, w: 7, h: 5 } as const;
 export const MARKET = { x: 15, y: 8, w: 3, h: 2 } as const;
 /** どうぐ屋の入口（接近判定の中心） */
 export const MARKET_DOOR = { x: 16, y: 10 } as const;
+/** わが家（近づくと中に入れる＝カレンダー/ノルマ確認）。重ね描画 */
+export const HOUSE = { x: 20, y: 2, w: 3, h: 2 } as const;
+/** わが家の入口（接近判定の中心） */
+export const HOUSE_DOOR = { x: 21, y: 4 } as const;
 /** 看板（近づくと説明が出る） */
 export const SIGN_POS = { x: 12, y: 14 } as const;
 /** 勇者の初期位置 */

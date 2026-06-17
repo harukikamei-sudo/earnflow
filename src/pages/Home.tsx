@@ -8,11 +8,16 @@ import { WorkMenu } from "@/components/game/WorkMenu";
 import { MapEditor, type Brush } from "@/components/game/MapEditor";
 import { CostumeShop } from "@/components/game/CostumeShop";
 import { ItemShop } from "@/components/game/ItemShop";
-import type { HeroDir } from "@/components/pixel/sprites";
+import { CalendarBoard } from "@/components/game/CalendarBoard";
+import { PixelSprite } from "@/components/pixel/PixelSprite";
+import { PixelImage } from "@/components/pixel/PixelImage";
+import { HERO_DOWN_A, type HeroDir } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
-import { DOOR, MAP_H, MAP_W, MARKET_DOOR, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
+import { DOOR, HOUSE_DOOR, MAP_H, MAP_W, MARKET_DOOR, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
 import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
 import { addGold, useEarningBoost, useWallet } from "@/game/playerStore";
+import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
+import { getGoal, getSessions } from "@/lib/store";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
@@ -21,7 +26,7 @@ import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
 import { cn, formatDuration, formatYen, formatYenPrecise, uid } from "@/lib/utils";
 
-type Scene = "roam" | "work";
+type Scene = "roam" | "work" | "home";
 
 /**
  * 給料クエスト（ホーム）— ドラクエ風トップダウンRPG。
@@ -145,8 +150,19 @@ export default function Home() {
   const man = (ax: number, ay: number) => Math.abs(hx - ax) + Math.abs(hy - ay);
   const nearShop = isTown && !working && !editMode && settled && man(DOOR.x, DOOR.y) <= 1;
   const nearMarket = isTown && !working && !editMode && settled && !nearShop && man(MARKET_DOOR.x, MARKET_DOOR.y) <= 1;
+  const nearHouse =
+    isTown && !working && !editMode && settled && !nearShop && !nearMarket && man(HOUSE_DOOR.x, HOUSE_DOOR.y) <= 1;
   const nearSign =
-    isTown && !working && !editMode && settled && !nearShop && !nearMarket && man(SIGN_POS.x, SIGN_POS.y) <= 1;
+    isTown && !working && !editMode && settled && !nearShop && !nearMarket && !nearHouse && man(SIGN_POS.x, SIGN_POS.y) <= 1;
+
+  // 今月のノルマ進捗（家の中で確認）
+  const monthEarned = useMemo(() => {
+    const now = new Date();
+    return sumEarnings(sessionsInMonth(getSessions(), now.getFullYear(), now.getMonth()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const goal = useMemo(() => getGoal(), [scene]);
 
   /* ---- コイン演出 ---- */
   const [coins, setCoins] = useState<StageCoin[]>([]);
@@ -269,6 +285,63 @@ export default function Home() {
             <MapEditor brush={brush} setBrush={setBrush} onClose={() => setEditMode(false)} />
           </div>
         </div>
+      ) : scene === "home" ? (
+        /* ============ わが家（室内） ============ */
+        <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
+          {/* 室内シーン */}
+          <div className="pixel-frame relative flex h-36 items-end justify-center overflow-hidden rounded-md">
+            {/* 壁と床 */}
+            <div className="absolute inset-0" style={{ background: "#6b4f3a" }} />
+            <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: "repeating-linear-gradient(90deg,#caa869 0 16px,#bd9a57 16px 32px)" }} />
+            {/* 窓 */}
+            <div className="absolute left-4 top-4 h-10 w-12 rounded-sm bg-[#9ad0ff] ring-2 ring-[#3a2f24]" />
+            <div className="absolute right-4 top-4 h-10 w-12 rounded-sm bg-[#9ad0ff] ring-2 ring-[#3a2f24]" />
+            {/* キャラ */}
+            <div className="anim-hero-bob relative z-10 mb-2">
+              {character ? (
+                <PixelImage src={character} style={{ height: 64, width: "auto" }} />
+              ) : (
+                <PixelSprite sprite={HERO_DOWN_A} scale={4} />
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <h1 className="font-pixel text-lg font-bold text-gold-gradient">わが家</h1>
+            <button
+              type="button"
+              onClick={() => setScene("roam")}
+              className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white"
+            >
+              外に出る
+            </button>
+          </div>
+
+          {/* ノルマ */}
+          <DQWindow title="こんげつの ノルマ">
+            {goal.monthlyTarget > 0 ? (
+              <>
+                <div className="flex items-center justify-between font-pixel text-sm">
+                  <span>🎯 目標</span>
+                  <span className="tabular">{formatYen(monthEarned)} / {formatYen(goal.monthlyTarget)}</span>
+                </div>
+                <div className="mt-2"><ExpBar progress={Math.min(1, monthEarned / goal.monthlyTarget)} /></div>
+                <p className="font-pixel mt-1 text-right text-[11px] text-white/60">
+                  {monthEarned >= goal.monthlyTarget ? "🎉 ノルマ達成！" : `あと ${formatYen(goal.monthlyTarget - monthEarned)}`}
+                </p>
+              </>
+            ) : (
+              <p className="font-pixel text-sm text-white/70">
+                ⚙️（バイト先）で月の目標を設定すると、ここにノルマが出ます。
+              </p>
+            )}
+          </DQWindow>
+
+          {/* カレンダー */}
+          <DQWindow title="かせぎカレンダー">
+            <CalendarBoard />
+          </DQWindow>
+        </div>
       ) : (
         /* ============ 町（トップダウン） ============ */
         <>
@@ -331,6 +404,16 @@ export default function Home() {
               <DQWindow title="どうぐ屋" className="anim-dq-pop">
                 <p className="font-pixel mb-2 text-sm text-white">ゴールドで どうぐを 買えるよ！</p>
                 <DQCommand label="店に入る" active accent="gold" onClick={() => setShowItemShop(true)} />
+              </DQWindow>
+            </div>
+          )}
+
+          {/* わが家に接近 → 入る */}
+          {nearHouse && (
+            <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
+              <DQWindow title="わが家" className="anim-dq-pop">
+                <p className="font-pixel mb-2 text-sm text-white">家で カレンダーと ノルマを 確認できる。</p>
+                <DQCommand label="中に入る" active accent="gold" onClick={() => setScene("home")} />
               </DQWindow>
             </div>
           )}
