@@ -18,6 +18,7 @@ import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game
 import { addGold, useEarningBoost, useWallet } from "@/game/playerStore";
 import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
 import { getGoal, getSessions } from "@/lib/store";
+import { downloadSessionsCsv } from "@/game/exportCsv";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
@@ -348,6 +349,20 @@ export default function Home() {
           {/* カレンダー */}
           <DQWindow title="かせぎカレンダー">
             <CalendarBoard />
+          </DQWindow>
+
+          {/* データ書き出し */}
+          <DQWindow title="データ">
+            <button
+              type="button"
+              onClick={() => {
+                if (!downloadSessionsCsv()) alert("まだ収入の記録がありません。");
+              }}
+              className="font-pixel w-full rounded bg-white/15 py-2 text-sm text-white hover:bg-white/25"
+            >
+              📤 CSVで書き出す
+            </button>
+            <p className="font-pixel mt-1 text-[10px] text-white/40">勤務履歴（日付・時間・収入・バイト先）をCSV出力します。</p>
           </DQWindow>
         </div>
       ) : scene === "shop" ? (
