@@ -11,7 +11,7 @@ import { EarningsChart } from "@/components/game/EarningsChart";
 import { GoalSettings } from "@/components/game/GoalSettings";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
-import { HERO_DOWN_A, SHOPKEEPER, type HeroDir } from "@/components/pixel/sprites";
+import { getBuiltinCharacter, HERO_DOWN_A, SHOPKEEPER, type HeroDir } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
 import { DOOR, HOUSE_DOOR, MAP_H, MAP_W, MARKET_DOOR, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
 import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
@@ -20,6 +20,9 @@ import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
 import { getGoal, getSessions } from "@/lib/store";
 import { downloadSessionsCsv } from "@/game/exportCsv";
 import { resetProgress } from "@/game/resetProgress";
+import { LanguageSelect } from "@/components/game/LanguageSelect";
+import { notifyBlocked, requestNotifyPermission, setReminder, useReminder, useReminderScheduler } from "@/game/reminder";
+import { useT } from "@/i18n";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
@@ -62,6 +65,9 @@ export default function Home() {
   const character = useCharacter();
   const wallet = useWallet();
   const boost = useEarningBoost();
+  const t = useT();
+  const reminder = useReminder();
+  useReminderScheduler(t("notify.title"), t("notify.body"));
 
   // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
   const [editMode, setEditMode] = useState(false);
@@ -238,8 +244,8 @@ export default function Home() {
         <div className="bg-app-radial flex h-full flex-col items-center justify-center gap-6 px-8 text-center" style={{ background: "linear-gradient(180deg,#0a0c1c 0%,#141a48 70%,#27306a 100%)" }}>
           <div>
             <p className="font-pixel text-[11px] tracking-[0.35em] text-gold">RPG SALARY QUEST</p>
-            <h1 className="font-pixel text-3xl font-black text-gold-gradient">給料クエスト</h1>
-            <p className="font-pixel mt-1 text-xs text-white/60">〜 今いくら稼いでる？ 〜</p>
+            <h1 className="font-pixel text-3xl font-black text-gold-gradient">{t("title.name")}</h1>
+            <p className="font-pixel mt-1 text-xs text-white/60">〜 {t("title.sub")} 〜</p>
           </div>
 
           <div className="anim-hero-bob">
@@ -248,37 +254,36 @@ export default function Home() {
 
           <DQWindow className="w-full max-w-xs">
             <DQCommand
-              label="はじめから"
+              label={t("title.new")}
               active
               accent="gold"
               onClick={() => {
-                if (window.confirm("はじめから始めます。今のレベル・所持金・着せ替え・勤務履歴は消えます。よろしいですか？")) {
-                  resetProgress();
-                }
+                if (window.confirm(t("title.confirmNew"))) resetProgress();
               }}
             />
-            <DQCommand label={`つづきから（Lv.${level.level}）`} active onClick={() => setScene("roam")} />
+            <DQCommand label={`${t("title.continue")}（Lv.${level.level}）`} active onClick={() => setScene("roam")} />
           </DQWindow>
 
-          <p className="font-pixel text-[10px] text-white/40">矢印キー / WASD で移動します</p>
+          <LanguageSelect />
+          <p className="font-pixel text-[10px] text-white/40">{t("hint.move")}</p>
         </div>
       ) : working ? (
         /* ============ 労働シーン ============ */
         <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
           <div className="flex items-baseline justify-between">
-            <h1 className="font-pixel text-lg font-bold text-gold-gradient">はたらいています</h1>
+            <h1 className="font-pixel text-lg font-bold text-gold-gradient">{t("work.header")}</h1>
             <span className="font-pixel text-[11px] text-white/60">{activeWp?.name}</span>
           </div>
 
           <Stage walking level={level.level} nowTs={nowTs} coins={coins} buffed={multiplier > 1} characterSrc={character} />
 
-          <DQWindow title="しょとく">
+          <DQWindow title={t("work.income")}>
             <div className="text-center">
               <p className="font-pixel text-4xl font-bold leading-none text-gold-gradient">
                 ¥{formatYenPrecise(sessionEarnings, 2)}
               </p>
               <p className="font-pixel mt-1 text-xs text-white/70">
-                {formatYen(totalGold, false)} G ためた
+                {t("work.saved", { n: formatYen(totalGold, false) })}
               </p>
             </div>
             <div className="mt-3 flex flex-col gap-1">
@@ -288,7 +293,7 @@ export default function Home() {
               </div>
               <ExpBar progress={level.progress} />
               <p className="font-pixel text-right text-[11px] text-white/60">
-                つぎのレベルまで あと {formatYen(level.remaining)}
+                {t("work.nextLevel", { n: formatYen(level.remaining) })}
               </p>
             </div>
             <div className="mt-2 flex items-center justify-center gap-3 font-pixel text-[11px] text-white/70">
@@ -302,7 +307,7 @@ export default function Home() {
           </DQWindow>
 
           <DQWindow title="コマンド">
-            <DQCommand label="しごとを やめて まちに もどる" active accent="red" onClick={stopWork} />
+            <DQCommand label={t("cmd.stopWork")} active accent="red" onClick={stopWork} />
           </DQWindow>
         </div>
       ) : editMode ? (
@@ -340,72 +345,107 @@ export default function Home() {
             <div className="absolute right-4 top-4 h-10 w-12 rounded-sm bg-[#9ad0ff] ring-2 ring-[#3a2f24]" />
             {/* キャラ */}
             <div className="anim-hero-bob relative z-10 mb-2">
-              {character ? (
-                <PixelImage src={character} style={{ height: 64, width: "auto" }} />
-              ) : (
+              {!character ? (
                 <PixelSprite sprite={HERO_DOWN_A} scale={4} />
+              ) : getBuiltinCharacter(character) ? (
+                <PixelSprite sprite={getBuiltinCharacter(character)!.frames[0]} scale={4} />
+              ) : (
+                <PixelImage src={character} style={{ height: 64, width: "auto" }} />
               )}
             </div>
           </div>
 
           <div className="flex items-center justify-between">
-            <h1 className="font-pixel text-lg font-bold text-gold-gradient">わが家</h1>
+            <h1 className="font-pixel text-lg font-bold text-gold-gradient">{t("house.name")}</h1>
             <button
               type="button"
               onClick={() => setScene("roam")}
               className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white"
             >
-              外に出る
+              {t("house.exit")}
             </button>
           </div>
 
           {/* ノルマ */}
-          <DQWindow title="こんげつの ノルマ">
+          <DQWindow title={t("house.norma")}>
             {goal.monthlyTarget > 0 ? (
               <>
                 <div className="flex items-center justify-between font-pixel text-sm">
-                  <span>🎯 目標</span>
+                  <span>🎯 {t("house.goal")}</span>
                   <span className="tabular">{formatYen(monthEarned)} / {formatYen(goal.monthlyTarget)}</span>
                 </div>
                 <div className="mt-2"><ExpBar progress={Math.min(1, monthEarned / goal.monthlyTarget)} /></div>
                 <p className="font-pixel mt-1 text-right text-[11px] text-white/60">
-                  {monthEarned >= goal.monthlyTarget ? "🎉 ノルマ達成！" : `あと ${formatYen(goal.monthlyTarget - monthEarned)}`}
+                  {monthEarned >= goal.monthlyTarget ? t("house.achieved") : t("house.remain", { n: formatYen(goal.monthlyTarget - monthEarned) })}
                 </p>
               </>
             ) : (
-              <p className="font-pixel text-sm text-white/70">
-                ⚙️（バイト先）で月の目標を設定すると、ここにノルマが出ます。
-              </p>
+              <p className="font-pixel text-sm text-white/70">{t("house.noGoal")}</p>
             )}
           </DQWindow>
 
           {/* ノルマ設定（逆算） */}
-          <DQWindow title="ノルマを きめる">
+          <DQWindow title={t("house.setGoal")}>
             <GoalSettings />
           </DQWindow>
 
           {/* グラフ */}
-          <DQWindow title="しゅうにゅうグラフ（6か月）">
+          <DQWindow title={t("house.graph")}>
             <EarningsChart />
           </DQWindow>
 
           {/* カレンダー */}
-          <DQWindow title="かせぎカレンダー">
+          <DQWindow title={t("house.calendar")}>
             <CalendarBoard />
           </DQWindow>
 
+          {/* リマインダー */}
+          <DQWindow title={t("rem.title")}>
+            <label className="flex cursor-pointer items-center justify-between font-pixel text-sm text-white">
+              <span>{t("rem.enable")}</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={reminder.enabled}
+                onClick={async () => {
+                  if (!reminder.enabled) {
+                    const ok = await requestNotifyPermission();
+                    if (!ok) {
+                      alert(t("rem.denied"));
+                      return;
+                    }
+                  }
+                  setReminder({ enabled: !reminder.enabled });
+                }}
+                className={cn("relative h-6 w-11 rounded-full transition-colors", reminder.enabled ? "bg-gold" : "bg-white/20")}
+              >
+                <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform", reminder.enabled ? "translate-x-[22px]" : "translate-x-0.5")} />
+              </button>
+            </label>
+            <div className="mt-2 flex items-center justify-between font-pixel text-sm text-white">
+              <span>{t("rem.time")}</span>
+              <input
+                type="time"
+                value={reminder.time}
+                onChange={(e) => setReminder({ time: e.target.value })}
+                className="font-pixel rounded bg-white/10 px-2 py-1 text-white"
+              />
+            </div>
+            <p className="font-pixel mt-1 text-[10px] text-white/40">{t("rem.note")}{notifyBlocked() ? ` / ${t("rem.denied")}` : ""}</p>
+          </DQWindow>
+
           {/* データ書き出し */}
-          <DQWindow title="データ">
+          <DQWindow title={t("house.data")}>
             <button
               type="button"
               onClick={() => {
-                if (!downloadSessionsCsv()) alert("まだ収入の記録がありません。");
+                if (!downloadSessionsCsv()) alert(t("data.noRecord"));
               }}
               className="font-pixel w-full rounded bg-white/15 py-2 text-sm text-white hover:bg-white/25"
             >
-              📤 CSVで書き出す
+              {t("data.csv")}
             </button>
-            <p className="font-pixel mt-1 text-[10px] text-white/40">勤務履歴（日付・時間・収入・バイト先）をCSV出力します。</p>
+            <div className="mt-3"><LanguageSelect /></div>
           </DQWindow>
         </div>
       ) : scene === "shop" ? (
@@ -427,17 +467,13 @@ export default function Home() {
 
           {/* 店主のセリフ */}
           <DQWindow className="anim-dq-pop">
-            <p className="font-pixel text-sm leading-relaxed text-white">
-              おつかれさまでした、
-              <br />
-              今日は 何を おかいもとめに なりますか？
-            </p>
+            <p className="font-pixel text-sm leading-relaxed text-white">{t("shop.keeper")}</p>
           </DQWindow>
 
           <div className="flex items-center justify-between">
-            <h1 className="font-pixel text-lg font-bold text-gold-gradient">どうぐ屋</h1>
+            <h1 className="font-pixel text-lg font-bold text-gold-gradient">{t("shop.name")}</h1>
             <button type="button" onClick={() => setScene("roam")} className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white">
-              店を出る
+              {t("shop.exit")}
             </button>
           </div>
 
@@ -487,9 +523,9 @@ export default function Home() {
           {/* どうぐ屋に接近 → 入店 */}
           {nearMarket && (
             <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
-              <DQWindow title="どうぐ屋" className="anim-dq-pop">
-                <p className="font-pixel mb-2 text-sm text-white">ゴールドで どうぐを 買えるよ！</p>
-                <DQCommand label="店に入る" active accent="gold" onClick={() => setScene("shop")} />
+              <DQWindow title={t("shop.name")} className="anim-dq-pop">
+                <p className="font-pixel mb-2 text-sm text-white">{t("shop.ask")}</p>
+                <DQCommand label={t("shop.enter")} active accent="gold" onClick={() => setScene("shop")} />
               </DQWindow>
             </div>
           )}
@@ -497,9 +533,9 @@ export default function Home() {
           {/* わが家に接近 → 入る */}
           {nearHouse && (
             <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
-              <DQWindow title="わが家" className="anim-dq-pop">
-                <p className="font-pixel mb-2 text-sm text-white">家で カレンダーと ノルマを 確認できる。</p>
-                <DQCommand label="中に入る" active accent="gold" onClick={() => setScene("home")} />
+              <DQWindow title={t("house.name")} className="anim-dq-pop">
+                <p className="font-pixel mb-2 text-sm text-white">{t("house.enterAsk")}</p>
+                <DQCommand label={t("house.enter")} active accent="gold" onClick={() => setScene("home")} />
               </DQWindow>
             </div>
           )}
@@ -507,16 +543,8 @@ export default function Home() {
           {/* 看板に接近 → 説明 */}
           {nearSign && (
             <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
-              <DQWindow title="たてふだ" className="anim-dq-pop">
-                <p className="font-pixel text-sm leading-relaxed text-white">
-                  やあ ぼうけんしゃ！
-                  <br />
-                  十字キーで あるいて
-                  <br />
-                  「¥バイト」に ちかづくと
-                  <br />
-                  はたらけるぞ！
-                </p>
+              <DQWindow title={t("sign.title")} className="anim-dq-pop">
+                <p className="font-pixel text-sm leading-relaxed text-white">{t("sign.text")}</p>
               </DQWindow>
             </div>
           )}
@@ -525,7 +553,7 @@ export default function Home() {
           {!nearShop && !nearMarket && !nearHouse && !nearSign && (
             <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
               <p className="font-pixel rounded bg-black/55 px-3 py-1 text-[11px] text-white/80">
-                矢印キー / WASD で移動しよう
+                {t("hint.move")}
               </p>
             </div>
           )}
@@ -537,12 +565,11 @@ export default function Home() {
         <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center px-6">
           <DQWindow className="anim-dq-pop w-full max-w-xs text-center">
             <p className="font-pixel text-sm leading-relaxed text-white">
-              ＊「ゆうしゃ」は
-              <br />
-              レベル <span className="text-gold">{levelUp.level}</span> に あがった！
+              {t("levelup.head")}{" "}
+              {t("levelup.toLevel", { n: levelUp.level })}
             </p>
-            <p className="font-pixel mt-2 text-sm text-gold">{`「${levelUp.rank}」になった！`}</p>
-            <p className="font-pixel mt-1 text-sm text-white">💰 ゴールドを {levelUp.gold}G てにいれた！</p>
+            <p className="font-pixel mt-2 text-sm text-gold">{t("levelup.gotTitle", { rank: levelUp.rank })}</p>
+            <p className="font-pixel mt-1 text-sm text-white">{t("levelup.gold", { n: levelUp.gold })}</p>
           </DQWindow>
         </div>
       )}

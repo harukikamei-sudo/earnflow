@@ -1,0 +1,24 @@
+import { LOCALE_LABELS, LOCALES, setLocale, useLocale } from "@/i18n";
+import { cn } from "@/lib/utils";
+
+/** 言語切替（横並びボタン）。タイトルや家で使う。 */
+export function LanguageSelect() {
+  const locale = useLocale();
+  return (
+    <div className="flex flex-wrap justify-center gap-1">
+      {LOCALES.map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => setLocale(l)}
+          className={cn(
+            "font-pixel rounded px-2 py-1 text-[11px] transition-colors",
+            l === locale ? "bg-gold text-black" : "bg-white/10 text-white hover:bg-white/20",
+          )}
+        >
+          {LOCALE_LABELS[l]}
+        </button>
+      ))}
+    </div>
+  );
+}
