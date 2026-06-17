@@ -230,6 +230,24 @@
     }
   }
 
+  /* レベルに応じたステージ演出：流れる霧 */
+  .anim-fog {
+    background:
+      radial-gradient(60% 42% at 20% 30%, rgba(255, 255, 255, 0.55), transparent 60%),
+      radial-gradient(52% 36% at 68% 62%, rgba(255, 255, 255, 0.5), transparent 60%),
+      radial-gradient(58% 40% at 50% 82%, rgba(255, 255, 255, 0.45), transparent 60%);
+    background-size: 200% 200%;
+    animation: fog-drift 22s linear infinite;
+  }
+  @keyframes fog-drift {
+    from {
+      background-position: 0% 0%;
+    }
+    to {
+      background-position: 200% 0%;
+    }
+  }
+
   .anim-water {
     animation: water-shimmer 2.2s ease-in-out infinite;
   }

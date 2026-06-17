@@ -45,12 +45,22 @@ export function PixelImage({ src, keyWhite = true, threshold = 236, onError, cla
         try {
           const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const d = data.data;
-          for (let i = 0; i < d.length; i += 4) {
-            if (d[i] >= threshold && d[i + 1] >= threshold && d[i + 2] >= threshold) {
-              d[i + 3] = 0;
+          // すでに透明部分を持つ画像（透過PNG等）は白抜きしない
+          let hasAlpha = false;
+          for (let i = 3; i < d.length; i += 4) {
+            if (d[i] < 250) {
+              hasAlpha = true;
+              break;
             }
           }
-          ctx.putImageData(data, 0, 0);
+          if (!hasAlpha) {
+            for (let i = 0; i < d.length; i += 4) {
+              if (d[i] >= threshold && d[i + 1] >= threshold && d[i + 2] >= threshold) {
+                d[i + 3] = 0;
+              }
+            }
+            ctx.putImageData(data, 0, 0);
+          }
         } catch {
           /* getImageData が失敗（CORS等）したらそのまま表示 */
         }

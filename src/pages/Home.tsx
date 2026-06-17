@@ -12,7 +12,7 @@ import { useOverworld } from "@/game/useOverworld";
 import { DOOR, MAP_H, MAP_W, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
 import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
 import { addGold, useWallet } from "@/game/playerStore";
-import { createWorkplace } from "@/game/workplace";
+import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
@@ -109,7 +109,7 @@ export default function Home() {
   const [workplaces, setWorkplaces] = useState<Workplace[]>(() => {
     const ws = getWorkplaces();
     if (ws.length > 0) return ws;
-    const def = createWorkplace("マイバイト", 1100, true);
+    const def = createWorkplace("マイバイト", 1100, [makeTimeRule("深夜割増", 22, 5, 1.25)]);
     upsertWorkplace(def);
     return [def];
   });
@@ -253,6 +253,7 @@ export default function Home() {
               onTileClick={handleTileClick}
               cameraCenter={editCam}
               showLandmarks={isTown}
+              level={level.level}
             />
             <TouchControls onPress={panPress} onRelease={panRelease} />
             <div className="dq-window pointer-events-none absolute left-2 top-2 px-2 py-1 font-pixel text-[11px] text-white/80">
@@ -266,7 +267,7 @@ export default function Home() {
       ) : (
         /* ============ 町（トップダウン） ============ */
         <>
-          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} />
+          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} />
 
           {/* 上部HUD */}
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-2">

@@ -41,7 +41,11 @@ const KEYS = {
   assets: "earnflow.assets",
 } as const;
 
-const DEFAULT_ASSETS = ["/illust/castle.jpeg", "/illust/cave.png"];
+const DEFAULT_ASSETS = [
+  "/illust/castle.jpeg",
+  "/illust/cave.png",
+  "/illust/character_yusha_01_green.png",
+];
 
 function load<T>(key: string, fallback: T): T {
   try {

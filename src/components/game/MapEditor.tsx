@@ -72,6 +72,17 @@ export function MapEditor({ brush, setBrush, onClose }: MapEditorProps) {
     addStage(stageInput);
     setStageInput("");
   }
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+    files.forEach((f) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") addAsset(reader.result);
+      };
+      reader.readAsDataURL(f);
+    });
+  }
 
   const chip = (active: boolean) =>
     cn(
@@ -82,7 +93,11 @@ export function MapEditor({ brush, setBrush, onClose }: MapEditorProps) {
   const section = "font-pixel mb-1 mt-1 text-[11px] font-bold text-gold/90";
 
   return (
-    <div className="flex h-full flex-col gap-2 p-3 text-white">
+    <div
+      className="flex h-full flex-col gap-2 p-3 text-white"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+    >
       <div className="flex items-center justify-between">
         <p className="font-pixel text-sm font-bold tracking-widest text-gold">🛠 編集</p>
         <button type="button" onClick={onClose} className="font-pixel rounded bg-red-500/80 px-3 py-1 text-xs text-white">
@@ -161,7 +176,9 @@ export function MapEditor({ brush, setBrush, onClose }: MapEditorProps) {
         />
         <button type="button" onClick={submitAsset} className={chip(false)}>追加</button>
       </div>
-      <p className="font-pixel text-[10px] text-white/40">※ 画像は public/illust/ に置く（PNG）</p>
+      <p className="font-pixel rounded border border-dashed border-white/30 px-2 py-1 text-[10px] text-white/50">
+        📂 ここに画像をドラッグ＆ドロップでも追加できます（PNG/JPEG）
+      </p>
 
       {/* キャラクター */}
       <p className={section}>キャラクター</p>

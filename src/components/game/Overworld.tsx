@@ -121,6 +121,8 @@ interface OverworldProps {
   cameraCenter?: { x: number; y: number };
   /** 城・バイト先などのランドマークを描画するか（まちステージのみ true） */
   showLandmarks?: boolean;
+  /** プレイヤーレベル（ステージ演出に使う） */
+  level?: number;
 }
 
 /** トップダウンのマップ描画＋カメラ追従。 */
@@ -131,6 +133,7 @@ export function Overworld({
   onTileClick,
   cameraCenter,
   showLandmarks,
+  level = 1,
 }: OverworldProps) {
   const viewRef = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(360);
@@ -243,6 +246,17 @@ export function Overworld({
           </div>
         )}
       </div>
+
+      {/* レベル演出：Lv10〜 霧 / Lv20〜 うす暗く */}
+      {level >= 20 && (
+        <div className="pointer-events-none absolute inset-0" style={{ background: "rgba(16,20,46,0.30)" }} />
+      )}
+      {level >= 10 && (
+        <div
+          className="anim-fog pointer-events-none absolute inset-0"
+          style={{ opacity: Math.min(0.5, 0.18 + (level - 10) * 0.012) }}
+        />
+      )}
     </div>
   );
 }

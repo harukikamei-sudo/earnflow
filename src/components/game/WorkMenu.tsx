@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { DQCommand, DQWindow } from "@/components/pixel/DQWindow";
-import { createWorkplace } from "@/game/workplace";
-import type { Workplace } from "@/lib/types";
+import { createWorkplace, makeTimeRule, RULE_PRESETS } from "@/game/workplace";
+import type { TimeRule, Workplace } from "@/lib/types";
 import { cn, formatYen } from "@/lib/utils";
 
 interface WorkMenuProps {
@@ -18,21 +18,40 @@ export function WorkMenu({ workplaces, onStart, onAdd, onDelete }: WorkMenuProps
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [rate, setRate] = useState("1100");
-  const [night, setNight] = useState(true);
+  const [rules, setRules] = useState<TimeRule[]>([makeTimeRule("深夜割増", 22, 5, 1.25)]);
+  // カスタム時間帯ルール入力
+  const [cStart, setCStart] = useState("22");
+  const [cEnd, setCEnd] = useState("5");
+  const [cMul, setCMul] = useState("1.25");
 
   // 選択中が消えていたら先頭にフォールバック（state は更新せず描画時に解決）
   const selected = workplaces.find((w) => w.id === selectedId) ?? workplaces[0] ?? null;
   const showAdd = adding || workplaces.length === 0;
 
+  function addPreset(p: (typeof RULE_PRESETS)[number]) {
+    setRules((rs) => [...rs, makeTimeRule(p.label, p.startHour, p.endHour, p.multiplier)]);
+  }
+  function addCustomRule() {
+    const s = Number(cStart);
+    const e = Number(cEnd);
+    const m = Number(cMul);
+    if (![s, e].every((v) => Number.isInteger(v) && v >= 0 && v <= 23) || !(m > 0)) return;
+    setRules((rs) => [...rs, makeTimeRule(`${s}時〜${e}時`, s, e, m)]);
+  }
+  function removeRule(id: string) {
+    setRules((rs) => rs.filter((r) => r.id !== id));
+  }
+
   function submitAdd() {
     const r = Number(rate);
     if (!name.trim() || !Number.isFinite(r) || r <= 0) return;
-    const wp = createWorkplace(name.trim(), r, night);
+    const wp = createWorkplace(name.trim(), r, rules);
     onAdd(wp);
     setSelectedId(wp.id);
     setAdding(false);
     setName("");
     setRate("1100");
+    setRules([makeTimeRule("深夜割増", 22, 5, 1.25)]);
   }
 
   return (
@@ -98,20 +117,43 @@ export function WorkMenu({ workplaces, onStart, onAdd, onDelete }: WorkMenuProps
                 className="tabular h-10 pl-7 text-right font-bold"
               />
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={night}
-              onClick={() => setNight((v) => !v)}
-              title="深夜割増 ×1.25"
-              className={cn(
-                "font-pixel shrink-0 rounded px-2 py-1.5 text-xs",
-                night ? "bg-gold text-black" : "bg-white/15 text-white",
-              )}
-            >
-              🌙
-            </button>
           </div>
+
+          {/* 時間帯割増ルール */}
+          <p className="font-pixel text-[11px] text-white/60">時間帯の割増（深夜・早朝など）</p>
+          {rules.length > 0 && (
+            <div className="flex flex-col gap-1">
+              {rules.map((r) => (
+                <div key={r.id} className="flex items-center gap-2 rounded bg-white/5 px-2 py-1 font-pixel text-[11px] text-white">
+                  <span className="flex-1 truncate">{r.label}</span>
+                  <span className="text-white/60">{r.startHour}時〜{r.endHour}時</span>
+                  <span className="text-gold">×{r.multiplier}</span>
+                  <button type="button" onClick={() => removeRule(r.id)} className="px-1 text-red-400">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-1">
+            {RULE_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => addPreset(p)}
+                className="font-pixel rounded bg-white/10 px-2 py-1 text-[11px] text-white hover:bg-white/20"
+              >
+                ＋{p.label} ×{p.multiplier}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 font-pixel text-[11px] text-white">
+            <Input type="number" min={0} max={23} value={cStart} onChange={(e) => setCStart(e.target.value)} className="tabular h-8 w-12 text-center" />
+            <span>時〜</span>
+            <Input type="number" min={0} max={23} value={cEnd} onChange={(e) => setCEnd(e.target.value)} className="tabular h-8 w-12 text-center" />
+            <span>時 ×</span>
+            <Input type="number" min={1} step={0.05} value={cMul} onChange={(e) => setCMul(e.target.value)} className="tabular h-8 w-14 text-center" />
+            <button type="button" onClick={addCustomRule} className="font-pixel rounded bg-white/15 px-2 py-1 hover:bg-white/25">追加</button>
+          </div>
+
           <div className="flex gap-2">
             <DQCommand label="ついかする" active accent="gold" onClick={submitAdd} />
             {workplaces.length > 0 && <DQCommand label="やめる" onClick={() => setAdding(false)} />}
