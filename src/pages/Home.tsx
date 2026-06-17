@@ -5,8 +5,7 @@ import { Overworld } from "@/components/game/Overworld";
 import { TouchControls } from "@/components/game/TouchControls";
 import { WorkMenu } from "@/components/game/WorkMenu";
 import { MapEditor, type Brush } from "@/components/game/MapEditor";
-import { CostumeShop } from "@/components/game/CostumeShop";
-import { ItemShop } from "@/components/game/ItemShop";
+import { CostumePanel } from "@/components/game/CostumePanel";
 import { CalendarBoard } from "@/components/game/CalendarBoard";
 import { EarningsChart } from "@/components/game/EarningsChart";
 import { GoalSettings } from "@/components/game/GoalSettings";
@@ -48,7 +47,6 @@ export default function Home() {
   const character = useCharacter();
   const wallet = useWallet();
   const boost = useEarningBoost();
-  const [showCostume, setShowCostume] = useState(false);
 
   // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
   const [editMode, setEditMode] = useState(false);
@@ -369,6 +367,15 @@ export default function Home() {
             <div className="absolute inset-x-0 bottom-0 h-8" style={{ background: "repeating-linear-gradient(90deg,#8a5a2b 0 14px,#754c22 14px 28px)", borderTop: "3px solid #3a2f24" }} />
           </div>
 
+          {/* 店主のセリフ */}
+          <DQWindow className="anim-dq-pop">
+            <p className="font-pixel text-sm leading-relaxed text-white">
+              おつかれさまでした、
+              <br />
+              今日は 何を おかいもとめに なりますか？
+            </p>
+          </DQWindow>
+
           <div className="flex items-center justify-between">
             <h1 className="font-pixel text-lg font-bold text-gold-gradient">どうぐ屋</h1>
             <button type="button" onClick={() => setScene("roam")} className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white">
@@ -376,7 +383,7 @@ export default function Home() {
             </button>
           </div>
 
-          <ItemShop />
+          <CostumePanel />
         </div>
       ) : (
         /* ============ 町（トップダウン） ============ */
@@ -395,15 +402,6 @@ export default function Home() {
               </div>
             </div>
             <div className="pointer-events-auto flex gap-1">
-              <button
-                type="button"
-                onClick={() => setShowCostume(true)}
-                className="dq-window grid h-9 w-9 place-items-center text-sm"
-                aria-label="コスチューム"
-                title="コスチューム"
-              >
-                👕
-              </button>
               <button
                 type="button"
                 onClick={() => setEditMode(true)}
@@ -493,8 +491,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* コスチュームショップ */}
-      {showCostume && <CostumeShop onClose={() => setShowCostume(false)} />}
     </div>
   );
 }
