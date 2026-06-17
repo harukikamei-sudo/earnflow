@@ -36,7 +36,7 @@ export interface Overworld {
   release: (dir: HeroDir) => void;
 }
 
-export function useOverworld(opts: { enabled: boolean }): Overworld {
+export function useOverworld(opts: { enabled: boolean; resetKey?: string | number }): Overworld {
   const enabledRef = useRef(opts.enabled);
   useEffect(() => {
     enabledRef.current = opts.enabled;
@@ -51,6 +51,7 @@ export function useOverworld(opts: { enabled: boolean }): Overworld {
     dir: HeroDir;
     toggle: number;
     pressed: HeroDir[];
+    pendingReset: boolean;
   }>({
     cur: { x: SPAWN.x, y: SPAWN.y },
     from: { x: SPAWN.x, y: SPAWN.y },
@@ -60,7 +61,18 @@ export function useOverworld(opts: { enabled: boolean }): Overworld {
     dir: "up",
     toggle: 0,
     pressed: [],
+    pendingReset: false,
   });
+
+  // ステージが切り替わったら次フレームで初期位置に戻す（setStateはloop内で行う）
+  const firstReset = useRef(true);
+  useEffect(() => {
+    if (firstReset.current) {
+      firstReset.current = false;
+      return;
+    }
+    game.current.pendingReset = true;
+  }, [opts.resetKey]);
 
   const [snap, setSnap] = useState<OverworldSnap>({
     px: SPAWN.x,
@@ -85,6 +97,15 @@ export function useOverworld(opts: { enabled: boolean }): Overworld {
     let raf = 0;
     const loop = (t: number) => {
       const g = game.current;
+      if (g.pendingReset) {
+        g.cur = { x: SPAWN.x, y: SPAWN.y };
+        g.from = { ...g.cur };
+        g.to = { ...g.cur };
+        g.moving = false;
+        g.pressed = [];
+        g.dir = "up";
+        g.pendingReset = false;
+      }
       let px = g.cur.x;
       let py = g.cur.y;
       let frame = 0;

@@ -1,30 +1,43 @@
 /**
- * 編集可能なマップの状態ストア。
+ * 編集可能な「ステージ（マップ）」の状態ストア。
  *
- * ゲームが参照する「現在のマップ（タイル）」「置かれた画像プロップ」「画像アセット一覧」を
- * 保持し、編集モードから書き換えられる。変更は localStorage に永続化し、
- * useSyncExternalStore でコンポーネントへ反映する。
+ * 複数ステージを保持し、各ステージはタイル(rows)と画像プロップ(props)を持つ。
+ * 既定で「まち(TOWN_ID)」が存在し、真っ白なステージを追加して新しいステージを作れる。
+ * 変更は localStorage に永続化し、useSyncExternalStore でコンポーネントへ反映する。
  *
- * 公開時はエディタUIを外すだけでよい（このストア自体は保存済みマップの読込にも使う）。
+ * 公開時はエディタUIを外すだけでよい。
  */
 
 import { useSyncExternalStore } from "react";
-import { DEFAULT_MAP, isBlocking, MAP_H, MAP_W, type TileChar } from "./map";
+import {
+  blankRows,
+  DEFAULT_MAP,
+  isBlocking,
+  MAP_H,
+  MAP_W,
+  TOWN_ID,
+  type TileChar,
+} from "./map";
+import { uid } from "@/lib/utils";
 
 export interface MapProp {
   id: string;
-  /** 画像パス（public/illust/ 配下など） */
   src: string;
-  /** 左上タイル座標 */
   x: number;
   y: number;
   /** 横幅（タイル数）。高さは画像のアスペクト比で自動 */
   w: number;
 }
 
+export interface Stage {
+  id: string;
+  name: string;
+  rows: string[];
+  props: MapProp[];
+}
+
 const KEYS = {
-  map: "earnflow.map",
-  props: "earnflow.props",
+  stages: "earnflow.stages.v2",
   assets: "earnflow.assets",
 } as const;
 
@@ -45,26 +58,39 @@ function save<T>(key: string, value: T): void {
     /* ignore */
   }
 }
-
-let mapRows: string[] = sanitizeMap(load<string[]>(KEYS.map, DEFAULT_MAP));
-let props: MapProp[] = load<MapProp[]>(KEYS.props, []);
-let assets: string[] = dedupe([...DEFAULT_ASSETS, ...load<string[]>(KEYS.assets, [])]);
-
-/** 行数・桁数が現在のマップサイズと一致しなければ既定に戻す（サイズ変更時の保険） */
-function sanitizeMap(rows: string[]): string[] {
-  if (
-    Array.isArray(rows) &&
-    rows.length === MAP_H &&
-    rows.every((r) => typeof r === "string" && r.length === MAP_W)
-  ) {
-    return rows;
-  }
-  return DEFAULT_MAP.slice();
-}
-
 function dedupe(list: string[]): string[] {
   return Array.from(new Set(list));
 }
+
+function townStage(): Stage {
+  return { id: TOWN_ID, name: "まち", rows: DEFAULT_MAP.slice(), props: [] };
+}
+
+function validRows(rows: unknown): rows is string[] {
+  return (
+    Array.isArray(rows) &&
+    rows.length === MAP_H &&
+    rows.every((r) => typeof r === "string" && r.length === MAP_W)
+  );
+}
+
+interface Persisted {
+  stages: Stage[];
+  activeId: string;
+}
+
+function loadStages(): Persisted {
+  const p = load<Partial<Persisted>>(KEYS.stages, {});
+  let stages = Array.isArray(p.stages) ? p.stages.filter((s) => validRows(s?.rows)) : [];
+  if (!stages.some((s) => s.id === TOWN_ID)) stages = [townStage(), ...stages];
+  const activeId = p.activeId && stages.some((s) => s.id === p.activeId) ? p.activeId : TOWN_ID;
+  return { stages, activeId };
+}
+
+const persisted = loadStages();
+let stages: Stage[] = persisted.stages;
+let activeId: string = persisted.activeId;
+let assets: string[] = dedupe([...DEFAULT_ASSETS, ...load<string[]>(KEYS.assets, [])]);
 
 const listeners = new Set<() => void>();
 function emit() {
@@ -74,56 +100,113 @@ function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => listeners.delete(cb);
 }
+function persist() {
+  save(KEYS.stages, { stages, activeId });
+}
+
+function active(): Stage {
+  return stages.find((s) => s.id === activeId) ?? stages[0];
+}
+
+/** active ステージを差し替えて再保存・通知する */
+function updateActive(mut: (s: Stage) => Stage) {
+  stages = stages.map((s) => (s.id === activeId ? mut(s) : s));
+  persist();
+  emit();
+}
 
 /* ---------------- 読み取り（ゲームロジック用・非リアクティブ） ---------------- */
 
 export function tileAt(x: number, y: number): TileChar | null {
   if (y < 0 || y >= MAP_H || x < 0 || x >= MAP_W) return null;
-  return mapRows[y][x] as TileChar;
+  return active().rows[y][x] as TileChar;
 }
 export function isWalkable(x: number, y: number): boolean {
   return !isBlocking(tileAt(x, y));
 }
 
-/* ---------------- React 用フック（リアクティブ） ---------------- */
+/* ---------------- React 用フック ---------------- */
 
 export function useMapRows(): string[] {
-  return useSyncExternalStore(subscribe, () => mapRows, () => mapRows);
+  return useSyncExternalStore(subscribe, () => active().rows, () => active().rows);
 }
 export function useProps(): MapProp[] {
-  return useSyncExternalStore(subscribe, () => props, () => props);
+  return useSyncExternalStore(subscribe, () => active().props, () => active().props);
+}
+export function useStages(): Stage[] {
+  return useSyncExternalStore(subscribe, () => stages, () => stages);
+}
+export function useActiveId(): string {
+  return useSyncExternalStore(subscribe, () => activeId, () => activeId);
 }
 export function useAssets(): string[] {
   return useSyncExternalStore(subscribe, () => assets, () => assets);
 }
 
-/* ---------------- 編集（ミューテーション） ---------------- */
+/* ---------------- 編集（タイル / プロップ） ---------------- */
 
 export function paintTile(x: number, y: number, ch: TileChar): void {
   if (x < 0 || x >= MAP_W || y < 0 || y >= MAP_H) return;
-  if (mapRows[y][x] === ch) return;
-  const next = mapRows.slice();
-  const row = next[y];
-  next[y] = row.slice(0, x) + ch + row.slice(x + 1);
-  mapRows = next;
-  save(KEYS.map, mapRows);
-  emit();
+  if (active().rows[y][x] === ch) return;
+  updateActive((s) => {
+    const rows = s.rows.slice();
+    rows[y] = rows[y].slice(0, x) + ch + rows[y].slice(x + 1);
+    return { ...s, rows };
+  });
 }
 
 export function addProp(p: MapProp): void {
-  props = [...props, p];
-  save(KEYS.props, props);
-  emit();
+  updateActive((s) => ({ ...s, props: [...s.props, p] }));
 }
 export function removeProp(id: string): void {
-  props = props.filter((p) => p.id !== id);
-  save(KEYS.props, props);
-  emit();
+  updateActive((s) => ({ ...s, props: s.props.filter((p) => p.id !== id) }));
 }
 export function setPropWidth(id: string, w: number): void {
-  props = props.map((p) => (p.id === id ? { ...p, w: Math.max(1, Math.min(16, w)) } : p));
-  save(KEYS.props, props);
+  const clamped = Math.max(1, Math.min(28, w));
+  updateActive((s) => ({
+    ...s,
+    props: s.props.map((p) => (p.id === id ? { ...p, w: clamped } : p)),
+  }));
+}
+
+/* ---------------- ステージ管理 ---------------- */
+
+export function addStage(name: string): string {
+  const id = uid();
+  const stage: Stage = { id, name: name.trim() || `ステージ${stages.length}`, rows: blankRows(), props: [] };
+  stages = [...stages, stage];
+  activeId = id;
+  persist();
   emit();
+  return id;
+}
+export function setActiveStage(id: string): void {
+  if (stages.some((s) => s.id === id)) {
+    activeId = id;
+    persist();
+    emit();
+  }
+}
+export function deleteStage(id: string): void {
+  if (id === TOWN_ID) return; // まちは消さない
+  stages = stages.filter((s) => s.id !== id);
+  if (activeId === id) activeId = TOWN_ID;
+  persist();
+  emit();
+}
+export function renameStage(id: string, name: string): void {
+  stages = stages.map((s) => (s.id === id ? { ...s, name: name.trim() || s.name } : s));
+  persist();
+  emit();
+}
+
+/** 現在ステージを初期化（まち=既定マップ、それ以外=真っ白） */
+export function resetActive(): void {
+  updateActive((s) => ({
+    ...s,
+    rows: s.id === TOWN_ID ? DEFAULT_MAP.slice() : blankRows(),
+    props: [],
+  }));
 }
 
 export function addAsset(src: string): void {
@@ -131,13 +214,5 @@ export function addAsset(src: string): void {
   if (!clean) return;
   assets = dedupe([...assets, clean]);
   save(KEYS.assets, assets);
-  emit();
-}
-
-export function resetMap(): void {
-  mapRows = DEFAULT_MAP.slice();
-  props = [];
-  save(KEYS.map, mapRows);
-  save(KEYS.props, props);
   emit();
 }

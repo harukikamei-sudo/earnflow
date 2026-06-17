@@ -9,7 +9,15 @@
  * ここでは既定マップ DEFAULT_MAP と、座標やサイズなどの定数だけを定義する。
  */
 
-export type TileChar = "T" | "W" | "G" | "P" | "F" | "S" | "R" | "B" | "D" | "C";
+export type TileChar = "T" | "W" | "G" | "P" | "F" | "S" | "R" | "B" | "D" | "C" | "N";
+
+/** 既定ステージ（まち）のID */
+export const TOWN_ID = "town";
+
+/** 真っ白なステージのタイル行を作る（新ステージ用） */
+export function blankRows(): string[] {
+  return Array.from({ length: MAP_H }, () => "N".repeat(MAP_W));
+}
 
 export const TILE = 32; // 1タイルの表示ピクセル
 export const MAP_W = 28;

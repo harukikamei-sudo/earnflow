@@ -6,9 +6,10 @@ import { Overworld } from "@/components/game/Overworld";
 import { TouchControls } from "@/components/game/TouchControls";
 import { WorkMenu } from "@/components/game/WorkMenu";
 import { MapEditor, type Brush } from "@/components/game/MapEditor";
+import type { HeroDir } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
-import { DOOR, SIGN_POS, type TileChar } from "@/game/map";
-import { addProp, paintTile } from "@/game/mapStore";
+import { DOOR, MAP_H, MAP_W, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
+import { addProp, paintTile, useActiveId } from "@/game/mapStore";
 import { createWorkplace } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
@@ -33,14 +34,71 @@ export default function Home() {
   const [scene, setScene] = useState<Scene>("roam");
   const working = scene === "work";
 
+  const activeId = useActiveId();
+  const isTown = activeId === TOWN_ID;
+
   // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
   const [editMode, setEditMode] = useState(false);
-  const [brush, setBrush] = useState<Brush>({ kind: "tile", ch: "G" as TileChar });
+  const [brush, setBrush] = useState<Brush>({ kind: "tile", ch: "P" as TileChar });
+  const [editCam, setEditCam] = useState({ x: MAP_W / 2, y: MAP_H / 2 });
   function handleTileClick(x: number, y: number) {
     if (brush.kind === "tile") paintTile(x, y, brush.ch);
     else if (brush.kind === "erase") paintTile(x, y, "G");
     else if (brush.kind === "prop") addProp({ id: uid(), src: brush.src, x, y, w: 3 });
   }
+
+  // 編集中のカメラ移動（D-pad / 矢印キーで視点を動かす）
+  const panRef = useRef<Set<HeroDir>>(new Set());
+  const panPress = (d: HeroDir) => panRef.current.add(d);
+  const panRelease = (d: HeroDir) => panRef.current.delete(d);
+  useEffect(() => {
+    if (!editMode) return;
+    const dirs = panRef.current;
+    let raf = 0;
+    const loop = () => {
+      if (dirs.size > 0) {
+        setEditCam((c) => {
+          const sp = 0.25;
+          let { x, y } = c;
+          if (dirs.has("left")) x -= sp;
+          if (dirs.has("right")) x += sp;
+          if (dirs.has("up")) y -= sp;
+          if (dirs.has("down")) y += sp;
+          return { x: Math.max(0, Math.min(MAP_W, x)), y: Math.max(0, Math.min(MAP_H, y)) };
+        });
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      dirs.clear();
+    };
+  }, [editMode]);
+  useEffect(() => {
+    if (!editMode) return;
+    const keyMap: Record<string, HeroDir> = {
+      ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+      w: "up", s: "down", a: "left", d: "right",
+    };
+    const kd = (e: KeyboardEvent) => {
+      const dir = keyMap[e.key];
+      if (dir) {
+        e.preventDefault();
+        panRef.current.add(dir);
+      }
+    };
+    const ku = (e: KeyboardEvent) => {
+      const dir = keyMap[e.key];
+      if (dir) panRef.current.delete(dir);
+    };
+    window.addEventListener("keydown", kd);
+    window.addEventListener("keyup", ku);
+    return () => {
+      window.removeEventListener("keydown", kd);
+      window.removeEventListener("keyup", ku);
+    };
+  }, [editMode]);
 
   // バイト先（無ければ既定を1件作って保存）
   const [workplaces, setWorkplaces] = useState<Workplace[]>(() => {
@@ -52,7 +110,7 @@ export default function Home() {
   });
   const refresh = () => setWorkplaces(getWorkplaces());
 
-  const overworld = useOverworld({ enabled: scene === "roam" && !editMode });
+  const overworld = useOverworld({ enabled: scene === "roam" && !editMode, resetKey: activeId });
   const { snap } = overworld;
 
   // 時刻（時間帯・バフ用）
@@ -77,8 +135,8 @@ export default function Home() {
   const hy = Math.round(snap.py);
   const settled = !snap.moving;
   const man = (ax: number, ay: number) => Math.abs(hx - ax) + Math.abs(hy - ay);
-  const nearShop = !working && settled && man(DOOR.x, DOOR.y) <= 1;
-  const nearSign = !working && settled && !nearShop && man(SIGN_POS.x, SIGN_POS.y) <= 1;
+  const nearShop = isTown && !working && !editMode && settled && man(DOOR.x, DOOR.y) <= 1;
+  const nearSign = isTown && !working && !editMode && settled && !nearShop && man(SIGN_POS.x, SIGN_POS.y) <= 1;
 
   /* ---- コイン演出 ---- */
   const [coins, setCoins] = useState<StageCoin[]>([]);
@@ -184,6 +242,8 @@ export default function Home() {
             className="absolute inset-0"
             editMode={editMode}
             onTileClick={editMode ? handleTileClick : undefined}
+            cameraCenter={editMode ? editCam : undefined}
+            showLandmarks={isTown}
           />
 
           {/* 上部HUD */}
@@ -251,7 +311,11 @@ export default function Home() {
             </div>
           )}
 
-          {!editMode && <TouchControls onPress={overworld.press} onRelease={overworld.release} />}
+          {editMode ? (
+            <TouchControls onPress={panPress} onRelease={panRelease} />
+          ) : (
+            <TouchControls onPress={overworld.press} onRelease={overworld.release} />
+          )}
 
           {/* ヒント */}
           {!editMode && !nearShop && !nearSign && (

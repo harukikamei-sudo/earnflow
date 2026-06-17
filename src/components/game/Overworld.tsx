@@ -16,6 +16,7 @@ const WATER = ["#2f6fd0", "#3577da"];
 
 function baseColor(ch: string, x: number, y: number): string {
   const odd = (x + y) % 2;
+  if (ch === "N") return odd ? "#ffffff" : "#f1f3f6"; // 真っ白ステージ
   if (ch === "W") return WATER[odd];
   if (ch === "P" || ch === "D") return PATH[odd];
   return GRASS[odd];
@@ -111,10 +112,21 @@ interface OverworldProps {
   /** 編集モード：勇者を隠し、タップでタイル座標を返す */
   editMode?: boolean;
   onTileClick?: (x: number, y: number) => void;
+  /** カメラ中心（タイル座標）。指定時は勇者ではなくここを中心にする（編集の視点移動用） */
+  cameraCenter?: { x: number; y: number };
+  /** 城・バイト先などのランドマークを描画するか（まちステージのみ true） */
+  showLandmarks?: boolean;
 }
 
 /** トップダウンのマップ描画＋カメラ追従。 */
-export function Overworld({ snap, className, editMode, onTileClick }: OverworldProps) {
+export function Overworld({
+  snap,
+  className,
+  editMode,
+  onTileClick,
+  cameraCenter,
+  showLandmarks,
+}: OverworldProps) {
   const viewRef = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(360);
   const [vh, setVh] = useState(420);
@@ -137,10 +149,10 @@ export function Overworld({ snap, className, editMode, onTileClick }: OverworldP
   const scale = Math.max(vw / WORLD_W, vh / WORLD_H);
   const visW = vw / scale;
   const visH = vh / scale;
-  const heroCx = (snap.px + 0.5) * TILE;
-  const heroCy = (snap.py + 0.5) * TILE;
-  const camX = clamp(heroCx - visW / 2, 0, Math.max(0, WORLD_W - visW));
-  const camY = clamp(heroCy - visH / 2, 0, Math.max(0, WORLD_H - visH));
+  const cx = cameraCenter ? cameraCenter.x * TILE : (snap.px + 0.5) * TILE;
+  const cy = cameraCenter ? cameraCenter.y * TILE : (snap.py + 0.5) * TILE;
+  const camX = clamp(cx - visW / 2, 0, Math.max(0, WORLD_W - visW));
+  const camY = clamp(cy - visH / 2, 0, Math.max(0, WORLD_H - visH));
 
   const isSide = snap.dir === "left" || snap.dir === "right";
   const frames = isSide
@@ -177,14 +189,17 @@ export function Overworld({ snap, className, editMode, onTileClick }: OverworldP
       >
         <TileLayer rows={rows} />
 
-        {/* 城（ランドマーク） */}
-        <PixelImage
-          src="/illust/castle.jpeg"
-          className="pointer-events-none absolute"
-          style={{ left: CASTLE.x * TILE, top: CASTLE.y * TILE - 10, width: CASTLE.w * TILE, height: "auto" }}
-        />
-
-        <ShopBuilding />
+        {showLandmarks && (
+          <>
+            {/* 城（ランドマーク） */}
+            <PixelImage
+              src="/illust/castle.jpeg"
+              className="pointer-events-none absolute"
+              style={{ left: CASTLE.x * TILE, top: CASTLE.y * TILE - 10, width: CASTLE.w * TILE, height: "auto" }}
+            />
+            <ShopBuilding />
+          </>
+        )}
 
         {/* 配置された画像プロップ */}
         {props.map((p) => (

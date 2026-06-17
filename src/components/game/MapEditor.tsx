@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { PixelImage } from "@/components/pixel/PixelImage";
-import type { TileChar } from "@/game/map";
+import { type TileChar, TOWN_ID } from "@/game/map";
 import {
   addAsset,
+  addStage,
+  deleteStage,
   removeProp,
-  resetMap,
+  resetActive,
+  setActiveStage,
   setPropWidth,
+  useActiveId,
   useAssets,
   useProps,
+  useStages,
 } from "@/game/mapStore";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +29,7 @@ const TILE_BRUSHES: { ch: TileChar; label: string }[] = [
   { ch: "R", label: "🪨岩" },
   { ch: "F", label: "🌸花" },
   { ch: "S", label: "🪧看板" },
+  { ch: "N", label: "⬜白" },
 ];
 
 function basename(src: string): string {
@@ -38,13 +44,16 @@ interface MapEditorProps {
 
 /**
  * マップエディタ（編集モードのダッシュボード）。
- * タイルのブラシ選択・画像プロップの選択/追加・配置済みプロップの管理・リセット。
+ * ステージの追加/切替、タイル塗り、画像プロップの配置/サイズ/削除、アセット追加。
  * 公開時はこのパネルと編集ボタンを外すだけでよい。
  */
 export function MapEditor({ brush, setBrush, onClose }: MapEditorProps) {
   const assets = useAssets();
   const props = useProps();
+  const stages = useStages();
+  const activeId = useActiveId();
   const [assetInput, setAssetInput] = useState("");
+  const [stageInput, setStageInput] = useState("");
 
   const isTile = (ch: TileChar) => brush.kind === "tile" && brush.ch === ch;
 
@@ -56,6 +65,10 @@ export function MapEditor({ brush, setBrush, onClose }: MapEditorProps) {
     setAssetInput("");
     setBrush({ kind: "prop", src: name });
   }
+  function submitStage() {
+    addStage(stageInput);
+    setStageInput("");
+  }
 
   const chip = (active: boolean) =>
     cn(
@@ -64,19 +77,45 @@ export function MapEditor({ brush, setBrush, onClose }: MapEditorProps) {
     );
 
   return (
-    <div className="dq-window pointer-events-auto absolute inset-x-2 bottom-2 z-40 max-h-[46vh] overflow-y-auto no-scrollbar px-3 py-2">
+    <div className="dq-window pointer-events-auto absolute inset-x-2 top-14 z-40 max-h-[64vh] overflow-y-auto no-scrollbar px-3 py-2">
       <div className="mb-2 flex items-center justify-between">
-        <p className="font-pixel text-xs font-bold tracking-widest text-gold">
-          🛠 マップエディタ（編集モード）
-        </p>
+        <p className="font-pixel text-xs font-bold tracking-widest text-gold">🛠 マップエディタ</p>
         <div className="flex gap-1">
-          <button type="button" onClick={resetMap} className={chip(false)}>
-            リセット
+          <button type="button" onClick={resetActive} className={chip(false)}>
+            初期化
           </button>
           <button type="button" onClick={onClose} className="font-pixel rounded bg-red-500/80 px-2 py-1 text-xs text-white">
             とじる
           </button>
         </div>
+      </div>
+
+      {/* ステージ */}
+      <p className="font-pixel mb-1 text-[11px] text-white/60">ステージ（切替/追加）</p>
+      <div className="mb-1 flex flex-wrap gap-1">
+        {stages.map((s) => (
+          <div key={s.id} className="flex items-center">
+            <button type="button" onClick={() => setActiveStage(s.id)} className={chip(s.id === activeId)}>
+              {s.name}
+            </button>
+            {s.id !== TOWN_ID && (
+              <button type="button" onClick={() => deleteStage(s.id)} className="font-pixel px-1 text-xs text-red-400">
+                ✕
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="mb-2 flex gap-1">
+        <input
+          value={stageInput}
+          onChange={(e) => setStageInput(e.target.value)}
+          placeholder="新ステージ名（真っ白で追加）"
+          className="font-pixel h-8 flex-1 rounded bg-white/10 px-2 text-xs text-white placeholder:text-white/40"
+        />
+        <button type="button" onClick={submitStage} className={chip(false)}>
+          ＋追加
+        </button>
       </div>
 
       {/* タイルブラシ */}
@@ -108,13 +147,13 @@ export function MapEditor({ brush, setBrush, onClose }: MapEditorProps) {
               )}
               title={basename(src)}
             >
-              <PixelImage src={src} className="h-9 w-9 object-contain" style={{ width: 36, height: 36, objectFit: "contain" }} />
+              <PixelImage src={src} style={{ width: 36, height: 36, objectFit: "contain" }} />
               <span className="font-pixel max-w-[64px] truncate text-[9px] text-white/70">{basename(src)}</span>
             </button>
           );
         })}
       </div>
-      <div className="mb-2 flex gap-1">
+      <div className="mb-1 flex gap-1">
         <input
           value={assetInput}
           onChange={(e) => setAssetInput(e.target.value)}
@@ -126,22 +165,24 @@ export function MapEditor({ brush, setBrush, onClose }: MapEditorProps) {
         </button>
       </div>
       <p className="font-pixel mb-2 text-[10px] text-white/40">
-        ※ 画像は public/illust/ に置いてください（dot-illust.net 等のPNG）
+        ※ 画像は public/illust/ に置く（dot-illust.net 等のPNG）
       </p>
 
-      {/* 配置済みプロップ */}
+      {/* 配置済みプロップ（サイズ変更・削除） */}
       {props.length > 0 && (
         <>
-          <p className="font-pixel mb-1 text-[11px] text-white/60">配置ずみ（{props.length}）</p>
+          <p className="font-pixel mb-1 text-[11px] text-white/60">配置ずみ・サイズ変更（{props.length}）</p>
           <div className="flex flex-col gap-1">
             {props.map((p) => (
-              <div key={p.id} className="flex items-center gap-2 rounded bg-white/5 px-2 py-1">
-                <PixelImage src={p.src} style={{ width: 24, height: 24, objectFit: "contain" }} />
+              <div key={p.id} className="flex items-center gap-1 rounded bg-white/5 px-2 py-1">
+                <PixelImage src={p.src} style={{ width: 22, height: 22, objectFit: "contain" }} />
                 <span className="font-pixel flex-1 truncate text-[11px] text-white/80">{basename(p.src)}</span>
-                <span className="font-pixel text-[10px] text-white/50">({p.x},{p.y})</span>
-                <button type="button" onClick={() => setPropWidth(p.id, p.w - 1)} className="font-pixel px-1.5 text-white">−</button>
-                <span className="font-pixel w-6 text-center text-[11px] text-white">{p.w}</span>
-                <button type="button" onClick={() => setPropWidth(p.id, p.w + 1)} className="font-pixel px-1.5 text-white">＋</button>
+                <span className="font-pixel text-[10px] text-white/40">({p.x},{p.y})</span>
+                <button type="button" onClick={() => setPropWidth(p.id, p.w - 2)} className="font-pixel rounded bg-white/10 px-2 text-white">−−</button>
+                <button type="button" onClick={() => setPropWidth(p.id, p.w - 1)} className="font-pixel rounded bg-white/10 px-1.5 text-white">−</button>
+                <span className="font-pixel w-6 text-center text-[11px] text-gold">{p.w}</span>
+                <button type="button" onClick={() => setPropWidth(p.id, p.w + 1)} className="font-pixel rounded bg-white/10 px-1.5 text-white">＋</button>
+                <button type="button" onClick={() => setPropWidth(p.id, p.w + 2)} className="font-pixel rounded bg-white/10 px-2 text-white">＋＋</button>
                 <button type="button" onClick={() => removeProp(p.id)} className="font-pixel px-1.5 text-red-400">✕</button>
               </div>
             ))}
