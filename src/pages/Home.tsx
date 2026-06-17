@@ -463,13 +463,11 @@ export default function Home() {
             </div>
           )}
 
-          <TouchControls onPress={overworld.press} onRelease={overworld.release} />
-
           {/* ヒント */}
-          {!nearShop && !nearSign && (
+          {!nearShop && !nearMarket && !nearHouse && !nearSign && (
             <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
               <p className="font-pixel rounded bg-black/55 px-3 py-1 text-[11px] text-white/80">
-                十字キーで移動・「¥バイト」に近づこう
+                矢印キー / WASD で移動しよう
               </p>
             </div>
           )}

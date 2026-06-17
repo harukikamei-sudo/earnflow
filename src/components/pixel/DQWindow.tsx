@@ -59,6 +59,9 @@ export function DQCommand({
         active ? color : disabled ? "" : "text-white",
       )}
     >
+      <span className={cn("w-3 shrink-0", active ? "dq-cursor " + color : "opacity-0")}>
+        ▶
+      </span>
       {label}
     </button>
   );
