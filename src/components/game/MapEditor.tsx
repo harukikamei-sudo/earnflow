@@ -126,7 +126,7 @@ export function MapEditor({ brush, setBrush, onClose }: MapEditorProps) {
           </button>
         ))}
         <button type="button" onClick={() => setBrush({ kind: "erase" })} className={chip(brush.kind === "erase")}>
-          🧽消す
+          🧽初期に戻す
         </button>
       </div>
 

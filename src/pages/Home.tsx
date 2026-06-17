@@ -9,7 +9,7 @@ import { MapEditor, type Brush } from "@/components/game/MapEditor";
 import type { HeroDir } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
 import { DOOR, MAP_H, MAP_W, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
-import { addProp, paintTile, useActiveId, useCharacter } from "@/game/mapStore";
+import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
 import { createWorkplace } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
@@ -44,7 +44,7 @@ export default function Home() {
   const [editCam, setEditCam] = useState({ x: MAP_W / 2, y: MAP_H / 2 });
   function handleTileClick(x: number, y: number) {
     if (brush.kind === "tile") paintTile(x, y, brush.ch);
-    else if (brush.kind === "erase") paintTile(x, y, "G");
+    else if (brush.kind === "erase") resetTile(x, y);
     else if (brush.kind === "prop") addProp({ id: uid(), src: brush.src, x, y, w: 3 });
   }
 

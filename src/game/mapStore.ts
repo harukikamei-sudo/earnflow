@@ -157,6 +157,13 @@ export function paintTile(x: number, y: number, ch: TileChar): void {
   });
 }
 
+/** そのタイルを初期状態に戻す（まち=既定マップのタイル、新ステージ=白） */
+export function resetTile(x: number, y: number): void {
+  if (x < 0 || x >= MAP_W || y < 0 || y >= MAP_H) return;
+  const base: TileChar = active().id === TOWN_ID ? (DEFAULT_MAP[y][x] as TileChar) : "N";
+  paintTile(x, y, base);
+}
+
 export function addProp(p: MapProp): void {
   updateActive((s) => ({ ...s, props: [...s.props, p] }));
 }
