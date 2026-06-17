@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { Stage, type StageCoin } from "@/components/pixel/Stage";
 import { DQCommand, DQWindow } from "@/components/pixel/DQWindow";
 import { Overworld } from "@/components/game/Overworld";
@@ -9,9 +8,11 @@ import { MapEditor, type Brush } from "@/components/game/MapEditor";
 import { CostumeShop } from "@/components/game/CostumeShop";
 import { ItemShop } from "@/components/game/ItemShop";
 import { CalendarBoard } from "@/components/game/CalendarBoard";
+import { EarningsChart } from "@/components/game/EarningsChart";
+import { GoalSettings } from "@/components/game/GoalSettings";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
-import { HERO_DOWN_A, type HeroDir } from "@/components/pixel/sprites";
+import { HERO_DOWN_A, SHOPKEEPER, type HeroDir } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
 import { DOOR, HOUSE_DOOR, MAP_H, MAP_W, MARKET_DOOR, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
 import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
@@ -26,7 +27,7 @@ import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
 import { cn, formatDuration, formatYen, formatYenPrecise, uid } from "@/lib/utils";
 
-type Scene = "roam" | "work" | "home";
+type Scene = "roam" | "work" | "home" | "shop";
 
 /**
  * 給料クエスト（ホーム）— ドラクエ風トップダウンRPG。
@@ -48,7 +49,6 @@ export default function Home() {
   const wallet = useWallet();
   const boost = useEarningBoost();
   const [showCostume, setShowCostume] = useState(false);
-  const [showItemShop, setShowItemShop] = useState(false);
 
   // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
   const [editMode, setEditMode] = useState(false);
@@ -337,10 +337,46 @@ export default function Home() {
             )}
           </DQWindow>
 
+          {/* ノルマ設定（逆算） */}
+          <DQWindow title="ノルマを きめる">
+            <GoalSettings />
+          </DQWindow>
+
+          {/* グラフ */}
+          <DQWindow title="しゅうにゅうグラフ（6か月）">
+            <EarningsChart />
+          </DQWindow>
+
           {/* カレンダー */}
           <DQWindow title="かせぎカレンダー">
             <CalendarBoard />
           </DQWindow>
+        </div>
+      ) : scene === "shop" ? (
+        /* ============ どうぐ屋（店内） ============ */
+        <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
+          {/* 店内シーン：店主とカウンター */}
+          <div className="pixel-frame relative flex h-36 items-end justify-center overflow-hidden rounded-md">
+            <div className="absolute inset-0" style={{ background: "#5a4636" }} />
+            {/* 棚 */}
+            <div className="absolute left-3 top-3 h-8 w-16 rounded-sm bg-[#7a5230] ring-2 ring-[#3a2f24]" />
+            <div className="absolute right-3 top-3 h-8 w-16 rounded-sm bg-[#7a5230] ring-2 ring-[#3a2f24]" />
+            {/* 店主 */}
+            <div className="anim-hero-bob relative z-10 mb-7">
+              <PixelSprite sprite={SHOPKEEPER} scale={4} />
+            </div>
+            {/* カウンター */}
+            <div className="absolute inset-x-0 bottom-0 h-8" style={{ background: "repeating-linear-gradient(90deg,#8a5a2b 0 14px,#754c22 14px 28px)", borderTop: "3px solid #3a2f24" }} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <h1 className="font-pixel text-lg font-bold text-gold-gradient">どうぐ屋</h1>
+            <button type="button" onClick={() => setScene("roam")} className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white">
+              店を出る
+            </button>
+          </div>
+
+          <ItemShop />
         </div>
       ) : (
         /* ============ 町（トップダウン） ============ */
@@ -377,12 +413,6 @@ export default function Home() {
               >
                 🛠
               </button>
-              <Link to="/calendar" className="dq-window grid h-9 w-9 place-items-center text-sm" aria-label="カレンダー">
-                📅
-              </Link>
-              <Link to="/presets" className="dq-window grid h-9 w-9 place-items-center text-sm" aria-label="バイト先">
-                ⚙️
-              </Link>
             </div>
           </div>
 
@@ -403,7 +433,7 @@ export default function Home() {
             <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
               <DQWindow title="どうぐ屋" className="anim-dq-pop">
                 <p className="font-pixel mb-2 text-sm text-white">ゴールドで どうぐを 買えるよ！</p>
-                <DQCommand label="店に入る" active accent="gold" onClick={() => setShowItemShop(true)} />
+                <DQCommand label="店に入る" active accent="gold" onClick={() => setScene("shop")} />
               </DQWindow>
             </div>
           )}
@@ -465,9 +495,6 @@ export default function Home() {
 
       {/* コスチュームショップ */}
       {showCostume && <CostumeShop onClose={() => setShowCostume(false)} />}
-
-      {/* どうぐ屋 */}
-      {showItemShop && <ItemShop onClose={() => setShowItemShop(false)} />}
     </div>
   );
 }

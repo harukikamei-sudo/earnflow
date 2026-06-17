@@ -160,6 +160,39 @@ export const HERO_TOPDOWN: Record<"down" | "up" | "side", Sprite[]> = {
   side: [HERO_SIDE_A, HERO_SIDE_B],
 };
 
+/* ---------------- 店主（どうぐ屋のNPC） ---------------- */
+
+export const SHOPKEEPER: Sprite = {
+  grid: [
+    "......oooo......",
+    ".....oHHHHo.....",
+    "....oHHHHHHo....",
+    "....oSSSSSSo....",
+    "....oSKSSKSo....",
+    "....oSSssSSo....",
+    "...oWWWWWWWWo...",
+    "..oSWWAAAAWWSo..",
+    "..oSWWAAAAWWSo..",
+    "...oWAAAAAAWo...",
+    "...oWAAAAAAWo...",
+    "...oWWWWWWWWo...",
+    "...oppo..oppo...",
+    "...oggo..oggo...",
+    "...ooo....ooo...",
+  ],
+  palette: {
+    o: "#1a1026",
+    H: "#5a3a22", // 髪
+    S: "#f3c98b", // 肌
+    s: "#d99a5b",
+    K: "#1a1026",
+    W: "#ececec", // シャツ
+    A: "#2f9e44", // 緑エプロン
+    p: "#3a3f4a", // ズボン
+    g: "#6b4423", // 靴
+  },
+};
+
 /* ---------------- スライム（共通シルエット・色違いで使い回す） ---------------- */
 
 const SLIME_GRID = [
