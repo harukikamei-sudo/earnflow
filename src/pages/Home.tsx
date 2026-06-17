@@ -19,6 +19,7 @@ import { addGold, useEarningBoost, useWallet } from "@/game/playerStore";
 import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
 import { getGoal, getSessions } from "@/lib/store";
 import { downloadSessionsCsv } from "@/game/exportCsv";
+import { resetProgress } from "@/game/resetProgress";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
@@ -27,7 +28,20 @@ import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
 import { cn, formatDuration, formatYen, formatYenPrecise, uid } from "@/lib/utils";
 
-type Scene = "roam" | "work" | "home" | "shop";
+type Scene = "title" | "roam" | "work" | "home" | "shop";
+
+/** リセット後はタイトルを飛ばして本編へ。それ以外は初回タイトル */
+function initialScene(): Scene {
+  try {
+    if (sessionStorage.getItem("earnflow.enter") === "1") {
+      sessionStorage.removeItem("earnflow.enter");
+      return "roam";
+    }
+  } catch {
+    /* ignore */
+  }
+  return "title";
+}
 
 /**
  * 給料クエスト（ホーム）— ドラクエ風トップダウンRPG。
@@ -40,7 +54,7 @@ export default function Home() {
   const engine = useSalaryEngine();
   const { sessionEarnings, totalGold, elapsedSec } = engine;
 
-  const [scene, setScene] = useState<Scene>("roam");
+  const [scene, setScene] = useState<Scene>(initialScene);
   const working = scene === "work";
 
   const activeId = useActiveId();
@@ -219,7 +233,36 @@ export default function Home() {
 
   return (
     <div className="fixed inset-0 z-30 overflow-hidden bg-[#3f9e44]">
-      {working ? (
+      {scene === "title" ? (
+        /* ============ タイトル ============ */
+        <div className="bg-app-radial flex h-full flex-col items-center justify-center gap-6 px-8 text-center" style={{ background: "linear-gradient(180deg,#0a0c1c 0%,#141a48 70%,#27306a 100%)" }}>
+          <div>
+            <p className="font-pixel text-[11px] tracking-[0.35em] text-gold">RPG SALARY QUEST</p>
+            <h1 className="font-pixel text-3xl font-black text-gold-gradient">給料クエスト</h1>
+            <p className="font-pixel mt-1 text-xs text-white/60">〜 今いくら稼いでる？ 〜</p>
+          </div>
+
+          <div className="anim-hero-bob">
+            <PixelSprite sprite={HERO_DOWN_A} scale={5} />
+          </div>
+
+          <DQWindow className="w-full max-w-xs">
+            <DQCommand
+              label="はじめから"
+              active
+              accent="gold"
+              onClick={() => {
+                if (window.confirm("はじめから始めます。今のレベル・所持金・着せ替え・勤務履歴は消えます。よろしいですか？")) {
+                  resetProgress();
+                }
+              }}
+            />
+            <DQCommand label={`つづきから（Lv.${level.level}）`} active onClick={() => setScene("roam")} />
+          </DQWindow>
+
+          <p className="font-pixel text-[10px] text-white/40">矢印キー / WASD で移動します</p>
+        </div>
+      ) : working ? (
         /* ============ 労働シーン ============ */
         <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
           <div className="flex items-baseline justify-between">

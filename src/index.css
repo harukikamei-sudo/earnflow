@@ -248,6 +248,46 @@
     }
   }
 
+  /* 雨 */
+  .anim-rain {
+    background-image: repeating-linear-gradient(
+      108deg,
+      rgba(190, 210, 255, 0.4) 0 1px,
+      transparent 1px 10px
+    );
+    background-size: 100% 64px;
+    animation: rain-fall 0.45s linear infinite;
+  }
+  @keyframes rain-fall {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: -28px 64px;
+    }
+  }
+
+  /* 炎（下からゆらめく） */
+  .anim-fire {
+    background: linear-gradient(
+      0deg,
+      rgba(255, 70, 0, 0.55) 0%,
+      rgba(255, 130, 0, 0.18) 35%,
+      transparent 65%
+    );
+    animation: fire-flicker 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes fire-flicker {
+    from {
+      opacity: 0.65;
+      transform: scaleY(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scaleY(1.04);
+    }
+  }
+
   .anim-water {
     animation: water-shimmer 2.2s ease-in-out infinite;
   }

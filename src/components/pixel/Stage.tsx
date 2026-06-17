@@ -13,6 +13,7 @@ import {
   TREE,
   type Sprite,
 } from "./sprites";
+import { WeatherOverlay } from "@/components/game/WeatherOverlay";
 import { cn } from "@/lib/utils";
 
 export interface StageCoin {
@@ -248,6 +249,9 @@ export function Stage({ walking, level, nowTs, coins, buffed, characterSrc }: St
       <div className="absolute bottom-1 right-2 text-[10px] font-bold text-white/80">
         {walking ? "▶ あるいている…" : "‖ きゅうけい中"}
       </div>
+
+      {/* レベル演出（天候） */}
+      <WeatherOverlay level={level} />
     </div>
   );
 }

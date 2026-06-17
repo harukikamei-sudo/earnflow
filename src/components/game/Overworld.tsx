@@ -3,6 +3,8 @@ import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
 import { HOUSE, MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
+import { WeatherOverlay } from "./WeatherOverlay";
+import { weatherTier } from "@/game/weather";
 import { useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
@@ -63,11 +65,38 @@ const TileLayer = memo(function TileLayer({ rows }: { rows: string[] }) {
   );
 });
 
-/** バイト先：洞窟イラスト（無ければCSSの家にフォールバック） */
-function ShopBuilding() {
+/** バイト先：城（高レベル時）。CSSのドット風フォートレス */
+function CastleBuilding() {
+  const left = SHOP.x * TILE;
+  const width = SHOP.w * TILE;
+  const h = (SHOP.h + 1) * TILE;
+  return (
+    <div className="pointer-events-none absolute" style={{ left, top: SHOP.y * TILE - TILE, width, height: h }}>
+      {/* 胸壁（ギザギザの上辺） */}
+      <div
+        className="absolute inset-x-0 top-0"
+        style={{
+          height: TILE * 0.5,
+          background: "#9aa0ab",
+          clipPath: "polygon(0 60%,12% 60%,12% 0,30% 0,30% 60%,44% 60%,44% 0,62% 0,62% 60%,78% 60%,78% 0,100% 0,100% 100%,0 100%)",
+        }}
+      />
+      {/* 本体 */}
+      <div className="absolute inset-x-0 bottom-0" style={{ top: TILE * 0.5, background: "linear-gradient(180deg,#8a909b,#6f757f)", border: "3px solid #4a4f59" }}>
+        <div className="font-pixel absolute left-1/2 top-1 -translate-x-1/2 rounded-sm bg-[#2a2f4a] px-1 text-[10px] font-bold text-white">¥バイト城</div>
+        {/* 門 */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2" style={{ width: "34%", height: "58%", background: "#1c1f27", borderRadius: "50% 50% 0 0 / 70% 70% 0 0" }} />
+      </div>
+    </div>
+  );
+}
+
+/** バイト先：洞窟イラスト（無ければCSSの洞窟にフォールバック） */
+function ShopBuilding({ castle }: { castle?: boolean }) {
   const [caveOk, setCaveOk] = useState(true);
   const left = SHOP.x * TILE;
   const width = SHOP.w * TILE;
+  if (castle) return <CastleBuilding />;
   if (caveOk) {
     return (
       <PixelImage
@@ -287,7 +316,7 @@ export function Overworld({
 
         {showLandmarks && (
           <>
-            <ShopBuilding />
+            <ShopBuilding castle={weatherTier(level) >= 2} />
             <MarketBuilding />
             <HouseBuilding />
           </>
@@ -342,16 +371,8 @@ export function Overworld({
         )}
       </div>
 
-      {/* レベル演出：Lv10〜 霧 / Lv20〜 うす暗く */}
-      {level >= 20 && (
-        <div className="pointer-events-none absolute inset-0" style={{ background: "rgba(16,20,46,0.30)" }} />
-      )}
-      {level >= 10 && (
-        <div
-          className="anim-fog pointer-events-none absolute inset-0"
-          style={{ opacity: Math.min(0.5, 0.18 + (level - 10) * 0.012) }}
-        />
-      )}
+      {/* レベル演出（20レベル刻み：霧→雨→炎→夜） */}
+      <WeatherOverlay level={level} />
     </div>
   );
 }
