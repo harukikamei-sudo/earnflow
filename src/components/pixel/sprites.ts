@@ -64,6 +64,102 @@ export const HERO_B: Sprite = {
 
 export const HERO_FRAMES: Sprite[] = [HERO_A, HERO_B];
 
+/* ---------------- 勇者（トップダウン・4方向 × 2コマ） ---------------- */
+
+const HD_HEAD_DOWN = [
+  "......oooo......",
+  ".....ohhhho.....",
+  "....ohhhhhho....",
+  "....oYYYYYYo....",
+  "....oSSSSSSo....",
+  "....oSKSSKSo....",
+  "....oSSssSSo....",
+];
+const HD_HEAD_UP = [
+  "......oooo......",
+  ".....ohhhho.....",
+  "....ohhhhhho....",
+  "....ohhhhhho....",
+  "....oYYYYYYo....",
+  "....ohhhhhho....",
+  "....ohhhhhho....",
+];
+const HD_BODY = [
+  "...oBBBBBBBBo...",
+  "..oSBBBBBBBBSo..",
+  "..oSBBBBBBBBSo..",
+  "...oBBBBBBBBo...",
+];
+const HD_LEGS_A = ["...oBBo..oBBo...", "...oggo..oggo...", "...ooo....ooo..."];
+const HD_LEGS_B = ["...oBBo..oBBo...", "..oggo....oggo..", "..ooo......ooo.."];
+
+export const HERO_DOWN_A: Sprite = {
+  grid: [...HD_HEAD_DOWN, ...HD_BODY, ...HD_LEGS_A],
+  palette: HERO_PALETTE,
+};
+export const HERO_DOWN_B: Sprite = {
+  grid: [...HD_HEAD_DOWN, ...HD_BODY, ...HD_LEGS_B],
+  palette: HERO_PALETTE,
+};
+export const HERO_UP_A: Sprite = {
+  grid: [...HD_HEAD_UP, ...HD_BODY, ...HD_LEGS_A],
+  palette: HERO_PALETTE,
+};
+export const HERO_UP_B: Sprite = {
+  grid: [...HD_HEAD_UP, ...HD_BODY, ...HD_LEGS_B],
+  palette: HERO_PALETTE,
+};
+
+export const HERO_SIDE_A: Sprite = {
+  grid: [
+    ".....oooo.......",
+    "....ohhhho......",
+    "...ohhhhho......",
+    "...oYYYYYo......",
+    "..oSSSSo........",
+    "..oSKSso........",
+    "..oSSSSo........",
+    "..oBBBBo........",
+    ".oBBBBBBo.......",
+    ".oSBBBBo........",
+    ".oBBBBBBo.......",
+    "..oBBBBo........",
+    "..oBo.oBo.......",
+    "..ogo.ogo.......",
+    "..oo...oo.......",
+  ],
+  palette: HERO_PALETTE,
+};
+export const HERO_SIDE_B: Sprite = {
+  grid: [
+    ".....oooo.......",
+    "....ohhhho......",
+    "...ohhhhho......",
+    "...oYYYYYo......",
+    "..oSSSSo........",
+    "..oSKSso........",
+    "..oSSSSo........",
+    "..oBBBBo........",
+    ".oBBBBBBo.......",
+    ".oSBBBBo........",
+    ".oBBBBBBo.......",
+    "..oBBBBo........",
+    "...oBoBo.......",
+    "...ogogo........",
+    "...oo.oo.......",
+  ],
+  palette: HERO_PALETTE,
+};
+
+export type HeroDir = "down" | "up" | "left" | "right";
+
+/** 方向 → 歩行2コマ（left/right は side を左右反転して使う） */
+export const HERO_TOPDOWN: Record<"down" | "up" | "side", Sprite[]> = {
+  down: [HERO_DOWN_A, HERO_DOWN_B],
+  up: [HERO_UP_A, HERO_UP_B],
+  side: [HERO_SIDE_A, HERO_SIDE_B],
+};
+
 /* ---------------- スライム（共通シルエット・色違いで使い回す） ---------------- */
 
 const SLIME_GRID = [

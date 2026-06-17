@@ -230,6 +230,18 @@
     }
   }
 
+  .anim-water {
+    animation: water-shimmer 2.2s ease-in-out infinite;
+  }
+  @keyframes water-shimmer {
+    0%, 100% {
+      filter: brightness(1);
+    }
+    50% {
+      filter: brightness(1.12);
+    }
+  }
+
   /* 横スクロール（パララックス）。同一ストリップを2枚並べ -50% で無限ループ */
   .scroller-x {
     display: flex;

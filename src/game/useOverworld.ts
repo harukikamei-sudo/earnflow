@@ -1,0 +1,211 @@
+/**
+ * トップダウン移動エンジン。
+ *
+ * ドラクエ風に1マスずつ歩く（押している間は連続歩行）。キーボード（矢印/WASD）と
+ * タッチ操作（press/release/interact）の両対応。タイルの通行判定・歩行アニメ・
+ * 「調べる(けってい)」を扱う。
+ */
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { HeroDir } from "@/components/pixel/sprites";
+import { interactionAt, isWalkable, SPAWN, type Interaction } from "./map";
+
+const STEP_MS = 170;
+type XY = { x: number; y: number };
+const VEC: Record<HeroDir, { x: number; y: number }> = {
+  down: { x: 0, y: 1 },
+  up: { x: 0, y: -1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
+
+export interface OverworldSnap {
+  /** 表示用のタイル座標（移動中は小数） */
+  px: number;
+  py: number;
+  dir: HeroDir;
+  /** 歩行アニメのコマ（0 or 1） */
+  frame: number;
+  moving: boolean;
+}
+
+export interface Overworld {
+  snap: OverworldSnap;
+  press: (dir: HeroDir) => void;
+  release: (dir: HeroDir) => void;
+  /** 正面のタイルを調べる。何かあれば種別を返す */
+  interact: () => { type: Exclude<Interaction, null>; x: number; y: number } | null;
+}
+
+export function useOverworld(opts: {
+  enabled: boolean;
+  onInteract?: (r: { type: Exclude<Interaction, null>; x: number; y: number }) => void;
+}): Overworld {
+  const enabledRef = useRef(opts.enabled);
+  const onInteractRef = useRef(opts.onInteract);
+  // ref の同期は render 中ではなく effect で行う
+  useEffect(() => {
+    enabledRef.current = opts.enabled;
+    onInteractRef.current = opts.onInteract;
+  });
+
+  const game = useRef<{
+    cur: XY;
+    from: XY;
+    to: XY;
+    stepStart: number;
+    moving: boolean;
+    dir: HeroDir;
+    toggle: number;
+    pressed: HeroDir[];
+  }>({
+    cur: { x: SPAWN.x, y: SPAWN.y },
+    from: { x: SPAWN.x, y: SPAWN.y },
+    to: { x: SPAWN.x, y: SPAWN.y },
+    stepStart: 0,
+    moving: false,
+    dir: "up",
+    toggle: 0,
+    pressed: [],
+  });
+
+  const [snap, setSnap] = useState<OverworldSnap>({
+    px: SPAWN.x,
+    py: SPAWN.y,
+    dir: "up",
+    frame: 0,
+    moving: false,
+  });
+  const lastSnap = useRef(snap);
+
+  const facingTile = useCallback(() => {
+    const g = game.current;
+    const v = VEC[g.dir];
+    return { x: g.cur.x + v.x, y: g.cur.y + v.y };
+  }, []);
+
+  const interact = useCallback(() => {
+    const g = game.current;
+    if (g.moving) return null;
+    const f = facingTile();
+    const type = interactionAt(f.x, f.y);
+    if (!type) return null;
+    const result = { type, x: f.x, y: f.y };
+    onInteractRef.current?.(result);
+    return result;
+  }, [facingTile]);
+
+  const press = useCallback((dir: HeroDir) => {
+    const g = game.current;
+    if (!g.pressed.includes(dir)) g.pressed.push(dir);
+  }, []);
+  const release = useCallback((dir: HeroDir) => {
+    const g = game.current;
+    g.pressed = g.pressed.filter((d) => d !== dir);
+  }, []);
+
+  // メインループ
+  useEffect(() => {
+    let raf = 0;
+    const loop = (t: number) => {
+      const g = game.current;
+      let { px, py } = { px: g.cur.x, py: g.cur.y };
+      let frame = 0;
+
+      if (g.moving) {
+        const p = Math.min(1, (t - g.stepStart) / STEP_MS);
+        px = g.from.x + (g.to.x - g.from.x) * p;
+        py = g.from.y + (g.to.y - g.from.y) * p;
+        const base = g.toggle % 2;
+        frame = p < 0.5 ? base : 1 - base;
+        if (p >= 1) {
+          g.cur = { ...g.to };
+          g.moving = false;
+          px = g.cur.x;
+          py = g.cur.y;
+        }
+      }
+
+      if (!g.moving && enabledRef.current && g.pressed.length > 0) {
+        const dir = g.pressed[g.pressed.length - 1];
+        g.dir = dir;
+        const v = VEC[dir];
+        const nx = g.cur.x + v.x;
+        const ny = g.cur.y + v.y;
+        if (isWalkable(nx, ny)) {
+          g.from = { ...g.cur };
+          g.to = { x: nx, y: ny };
+          g.stepStart = t;
+          g.moving = true;
+          g.toggle += 1;
+        }
+      }
+
+      const next: OverworldSnap = {
+        px,
+        py,
+        dir: g.dir,
+        frame,
+        moving: g.moving,
+      };
+      const prev = lastSnap.current;
+      if (
+        prev.px !== next.px ||
+        prev.py !== next.py ||
+        prev.dir !== next.dir ||
+        prev.frame !== next.frame ||
+        prev.moving !== next.moving
+      ) {
+        lastSnap.current = next;
+        setSnap(next);
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // キーボード操作
+  useEffect(() => {
+    const keyToDir: Record<string, HeroDir> = {
+      ArrowUp: "up",
+      ArrowDown: "down",
+      ArrowLeft: "left",
+      ArrowRight: "right",
+      w: "up",
+      s: "down",
+      a: "left",
+      d: "right",
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!enabledRef.current) return;
+      const dir = keyToDir[e.key];
+      if (dir) {
+        e.preventDefault();
+        press(dir);
+        return;
+      }
+      if (e.key === "Enter" || e.key === " " || e.key === "z") {
+        e.preventDefault();
+        interact();
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      const dir = keyToDir[e.key];
+      if (dir) release(dir);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [press, release, interact]);
+
+  // 無効化されたら入力をクリア
+  useEffect(() => {
+    if (!opts.enabled) game.current.pressed = [];
+  }, [opts.enabled]);
+
+  return { snap, press, release, interact };
+}
