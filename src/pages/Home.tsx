@@ -1,51 +1,569 @@
-import { Coins, Pause, Play, RotateCcw } from "lucide-react";
-import { PageStub } from "@/components/PageStub";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Stage, type StageCoin } from "@/components/pixel/Stage";
+import { DQCommand, DQWindow } from "@/components/pixel/DQWindow";
+import { Overworld } from "@/components/game/Overworld";
+import { TouchControls } from "@/components/game/TouchControls";
+import { WorkMenu } from "@/components/game/WorkMenu";
+import { MapEditor, type Brush } from "@/components/game/MapEditor";
+import { CostumePanel } from "@/components/game/CostumePanel";
+import { CalendarBoard } from "@/components/game/CalendarBoard";
+import { EarningsChart } from "@/components/game/EarningsChart";
+import { GoalSettings } from "@/components/game/GoalSettings";
+import { PixelSprite } from "@/components/pixel/PixelSprite";
+import { PixelImage } from "@/components/pixel/PixelImage";
+import { HERO_DOWN_A, SHOPKEEPER, type HeroDir } from "@/components/pixel/sprites";
+import { useOverworld } from "@/game/useOverworld";
+import { DOOR, HOUSE_DOOR, MAP_H, MAP_W, MARKET_DOOR, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
+import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
+import { addGold, useEarningBoost, useWallet } from "@/game/playerStore";
+import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
+import { getGoal, getSessions } from "@/lib/store";
+import { downloadSessionsCsv } from "@/game/exportCsv";
+import { resetProgress } from "@/game/resetProgress";
+import { createWorkplace, makeTimeRule } from "@/game/workplace";
+import { useSalaryEngine } from "@/hooks/useSalaryEngine";
+import { multiplierAt } from "@/lib/earnings";
+import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
+import type { Workplace } from "@/lib/types";
+import { levelInfo, rankForLevel } from "@/lib/rpg";
+import { cn, formatDuration, formatYen, formatYenPrecise, uid } from "@/lib/utils";
+
+type Scene = "title" | "roam" | "work" | "home" | "shop";
+
+/** リセット後はタイトルを飛ばして本編へ。それ以外は初回タイトル */
+function initialScene(): Scene {
+  try {
+    if (sessionStorage.getItem("earnflow.enter") === "1") {
+      sessionStorage.removeItem("earnflow.enter");
+      return "roam";
+    }
+  } catch {
+    /* ignore */
+  }
+  return "title";
+}
 
 /**
- * 給料カウンター（ホーム）。
+ * 給料クエスト（ホーム）— ドラクエ風トップダウンRPG。
  *
- * 今は静的なプレビュー表示。リアルタイム計算ロジックは
- * src/lib/earnings.ts の currentEarnings() を毎秒呼び出して接続する。
+ * 草原を自由に歩き、バイト先（¥バイトの建物）に近づくと選択肢が出る。
+ * 複数のバイトを登録・選択でき、「はたらく」を選ぶと労働モードへ。
+ * 労働中は横スクロールの仕事シーンで収入＝ゴールド＝経験値が増えていく。
  */
 export default function Home() {
-  return (
-    <PageStub
-      icon={Coins}
-      title="給料カウンター"
-      subtitle="今いくら稼いでる？"
-      todo={[
-        "バイト先を選択して「スタート」で計測開始",
-        "毎秒、時給・時間帯別倍率に応じて収入を加算表示",
-        "ストップでセッションを確定し履歴へ保存",
-        "月目標トラッカー（今月の合計・進捗・あと¥◯）",
-      ]}
-    >
-      {/* カウンター表示プレビュー */}
-      <Card className="gold-glow overflow-hidden">
-        <CardContent className="flex flex-col items-center gap-1 py-8 text-center">
-          <p className="text-xs font-medium tracking-wider text-muted-foreground">
-            今のセッション
-          </p>
-          <p className="tabular text-5xl font-black text-gold-gradient">¥0.00</p>
-          <p className="tabular mt-1 text-sm text-muted-foreground">00:00:00 ・ 待機中</p>
-        </CardContent>
-      </Card>
+  const engine = useSalaryEngine();
+  const { sessionEarnings, totalGold, elapsedSec } = engine;
 
-      <div className="grid grid-cols-3 gap-3">
-        <Button size="lg" className="col-span-2">
-          <Play className="fill-current" />
-          スタート
-        </Button>
-        <Button size="lg" variant="secondary" disabled>
-          <Pause />
-        </Button>
-        <Button size="lg" variant="outline" className="col-span-3">
-          <RotateCcw />
-          リセット
-        </Button>
-      </div>
-    </PageStub>
+  const [scene, setScene] = useState<Scene>(initialScene);
+  const working = scene === "work";
+
+  const activeId = useActiveId();
+  const isTown = activeId === TOWN_ID;
+  const character = useCharacter();
+  const wallet = useWallet();
+  const boost = useEarningBoost();
+
+  // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
+  const [editMode, setEditMode] = useState(false);
+  const [brush, setBrush] = useState<Brush>({ kind: "tile", ch: "P" as TileChar });
+  const [editCam, setEditCam] = useState({ x: MAP_W / 2, y: MAP_H / 2 });
+  function handleTileClick(x: number, y: number) {
+    if (brush.kind === "tile") paintTile(x, y, brush.ch);
+    else if (brush.kind === "erase") resetTile(x, y);
+    else if (brush.kind === "prop") addProp({ id: uid(), src: brush.src, x, y, w: 3 });
+  }
+
+  // 編集中のカメラ移動（D-pad / 矢印キーで視点を動かす）
+  const panRef = useRef<Set<HeroDir>>(new Set());
+  const panPress = (d: HeroDir) => panRef.current.add(d);
+  const panRelease = (d: HeroDir) => panRef.current.delete(d);
+  useEffect(() => {
+    if (!editMode) return;
+    const dirs = panRef.current;
+    let raf = 0;
+    const loop = () => {
+      if (dirs.size > 0) {
+        setEditCam((c) => {
+          const sp = 0.25;
+          let { x, y } = c;
+          if (dirs.has("left")) x -= sp;
+          if (dirs.has("right")) x += sp;
+          if (dirs.has("up")) y -= sp;
+          if (dirs.has("down")) y += sp;
+          return { x: Math.max(0, Math.min(MAP_W, x)), y: Math.max(0, Math.min(MAP_H, y)) };
+        });
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      dirs.clear();
+    };
+  }, [editMode]);
+  useEffect(() => {
+    if (!editMode) return;
+    const keyMap: Record<string, HeroDir> = {
+      ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+      w: "up", s: "down", a: "left", d: "right",
+    };
+    const kd = (e: KeyboardEvent) => {
+      const dir = keyMap[e.key];
+      if (dir) {
+        e.preventDefault();
+        panRef.current.add(dir);
+      }
+    };
+    const ku = (e: KeyboardEvent) => {
+      const dir = keyMap[e.key];
+      if (dir) panRef.current.delete(dir);
+    };
+    window.addEventListener("keydown", kd);
+    window.addEventListener("keyup", ku);
+    return () => {
+      window.removeEventListener("keydown", kd);
+      window.removeEventListener("keyup", ku);
+    };
+  }, [editMode]);
+
+  // バイト先（無ければ既定を1件作って保存）
+  const [workplaces, setWorkplaces] = useState<Workplace[]>(() => {
+    const ws = getWorkplaces();
+    if (ws.length > 0) return ws;
+    const def = createWorkplace("マイバイト", 1100, [makeTimeRule("深夜割増", 22, 5, 1.25)]);
+    upsertWorkplace(def);
+    return [def];
+  });
+  const refresh = () => setWorkplaces(getWorkplaces());
+
+  const overworld = useOverworld({ enabled: scene === "roam" && !editMode, resetKey: activeId });
+  const { snap } = overworld;
+
+  // 時刻（時間帯・バフ用）
+  const [nowTs, setNowTs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const activeWp = working ? engine.runningWorkplace : null;
+  const multiplier = activeWp ? multiplierAt(new Date(nowTs), activeWp.timeRules) : 1;
+  const perSecond =
+    activeWp && activeWp.payType === "hourly"
+      ? (activeWp.hourlyRate / 3600) * multiplier * boost
+      : 0;
+
+  const level = useMemo(() => levelInfo(totalGold), [totalGold]);
+  const rank = rankForLevel(level.level);
+
+  // 接近判定（バイト先 / 看板）
+  const hx = Math.round(snap.px);
+  const hy = Math.round(snap.py);
+  const settled = !snap.moving;
+  const man = (ax: number, ay: number) => Math.abs(hx - ax) + Math.abs(hy - ay);
+  const nearShop = isTown && !working && !editMode && settled && man(DOOR.x, DOOR.y) <= 1;
+  const nearMarket = isTown && !working && !editMode && settled && !nearShop && man(MARKET_DOOR.x, MARKET_DOOR.y) <= 1;
+  const nearHouse =
+    isTown && !working && !editMode && settled && !nearShop && !nearMarket && man(HOUSE_DOOR.x, HOUSE_DOOR.y) <= 1;
+  const nearSign =
+    isTown && !working && !editMode && settled && !nearShop && !nearMarket && !nearHouse && man(SIGN_POS.x, SIGN_POS.y) <= 1;
+
+  // 今月のノルマ進捗（家の中で確認）
+  const monthEarned = useMemo(() => {
+    const now = new Date();
+    return sumEarnings(sessionsInMonth(getSessions(), now.getFullYear(), now.getMonth()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const goal = useMemo(() => getGoal(), [scene]);
+
+  /* ---- コイン演出 ---- */
+  const [coins, setCoins] = useState<StageCoin[]>([]);
+  const lastIntRef = useRef(0);
+  const coinIdRef = useRef(0);
+  useEffect(() => {
+    if (!working) {
+      lastIntRef.current = Math.floor(sessionEarnings);
+      return;
+    }
+    const cur = Math.floor(sessionEarnings);
+    const delta = cur - lastIntRef.current;
+    if (delta > 0) {
+      lastIntRef.current = cur;
+      const id = ++coinIdRef.current;
+      setCoins((prev) => [...prev.slice(-5), { id, amount: delta }]);
+      window.setTimeout(() => setCoins((prev) => prev.filter((c) => c.id !== id)), 1000);
+    }
+  }, [sessionEarnings, working]);
+
+  /* ---- レベルアップ演出 ---- */
+  const [levelUp, setLevelUp] = useState<{ level: number; rank: string; gold: number } | null>(null);
+  const prevLevelRef = useRef(level.level);
+  useEffect(() => {
+    if (level.level > prevLevelRef.current && working) {
+      const gained = level.level - prevLevelRef.current;
+      const gold = gained * 100; // レベルアップ報酬ゴールド
+      addGold(gold);
+      setLevelUp({ level: level.level, rank: rankForLevel(level.level).name, gold });
+      window.setTimeout(() => setLevelUp(null), 2600);
+    }
+    prevLevelRef.current = level.level;
+  }, [level.level, working]);
+
+  /* ---- 操作 ---- */
+  function startWork(wp: Workplace) {
+    lastIntRef.current = 0;
+    prevLevelRef.current = levelInfo(totalGold).level;
+    engine.start(wp);
+    setScene("work");
+  }
+  function stopWork() {
+    engine.stop();
+    engine.reset();
+    setScene("roam");
+  }
+  function addWorkplace(wp: Workplace) {
+    upsertWorkplace(wp);
+    refresh();
+  }
+  function removeWorkplace(id: string) {
+    deleteWorkplace(id);
+    refresh();
+  }
+
+  return (
+    <div className="fixed inset-0 z-30 overflow-hidden bg-[#3f9e44]">
+      {scene === "title" ? (
+        /* ============ タイトル ============ */
+        <div className="bg-app-radial flex h-full flex-col items-center justify-center gap-6 px-8 text-center" style={{ background: "linear-gradient(180deg,#0a0c1c 0%,#141a48 70%,#27306a 100%)" }}>
+          <div>
+            <p className="font-pixel text-[11px] tracking-[0.35em] text-gold">RPG SALARY QUEST</p>
+            <h1 className="font-pixel text-3xl font-black text-gold-gradient">給料クエスト</h1>
+            <p className="font-pixel mt-1 text-xs text-white/60">〜 今いくら稼いでる？ 〜</p>
+          </div>
+
+          <div className="anim-hero-bob">
+            <PixelSprite sprite={HERO_DOWN_A} scale={5} />
+          </div>
+
+          <DQWindow className="w-full max-w-xs">
+            <DQCommand
+              label="はじめから"
+              active
+              accent="gold"
+              onClick={() => {
+                if (window.confirm("はじめから始めます。今のレベル・所持金・着せ替え・勤務履歴は消えます。よろしいですか？")) {
+                  resetProgress();
+                }
+              }}
+            />
+            <DQCommand label={`つづきから（Lv.${level.level}）`} active onClick={() => setScene("roam")} />
+          </DQWindow>
+
+          <p className="font-pixel text-[10px] text-white/40">矢印キー / WASD で移動します</p>
+        </div>
+      ) : working ? (
+        /* ============ 労働シーン ============ */
+        <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
+          <div className="flex items-baseline justify-between">
+            <h1 className="font-pixel text-lg font-bold text-gold-gradient">はたらいています</h1>
+            <span className="font-pixel text-[11px] text-white/60">{activeWp?.name}</span>
+          </div>
+
+          <Stage walking level={level.level} nowTs={nowTs} coins={coins} buffed={multiplier > 1} characterSrc={character} />
+
+          <DQWindow title="しょとく">
+            <div className="text-center">
+              <p className="font-pixel text-4xl font-bold leading-none text-gold-gradient">
+                ¥{formatYenPrecise(sessionEarnings, 2)}
+              </p>
+              <p className="font-pixel mt-1 text-xs text-white/70">
+                {formatYen(totalGold, false)} G ためた
+              </p>
+            </div>
+            <div className="mt-3 flex flex-col gap-1">
+              <div className="flex items-center justify-between font-pixel text-sm">
+                <span>{rank.emoji} {rank.name}</span>
+                <span className="text-gold">Lv.{level.level}</span>
+              </div>
+              <ExpBar progress={level.progress} />
+              <p className="font-pixel text-right text-[11px] text-white/60">
+                つぎのレベルまで あと {formatYen(level.remaining)}
+              </p>
+            </div>
+            <div className="mt-2 flex items-center justify-center gap-3 font-pixel text-[11px] text-white/70">
+              <span className="tabular">{formatDuration(elapsedSec)}</span>
+              <span className="text-white/30">／</span>
+              <span>{perSecond > 0 ? `¥${perSecond.toFixed(2)}/秒` : "—"}</span>
+              {multiplier > 1 && (
+                <span className="rounded bg-gold/20 px-1.5 py-0.5 font-bold text-gold">🌙 ×{multiplier}</span>
+              )}
+            </div>
+          </DQWindow>
+
+          <DQWindow title="コマンド">
+            <DQCommand label="しごとを やめて まちに もどる" active accent="red" onClick={stopWork} />
+          </DQWindow>
+        </div>
+      ) : editMode ? (
+        /* ============ 編集モード（左プレビュー／右パネル） ============ */
+        <div className="flex h-full">
+          <div className="relative flex-1">
+            <Overworld
+              snap={snap}
+              className="absolute inset-0"
+              editMode
+              onTileClick={handleTileClick}
+              cameraCenter={editCam}
+              showLandmarks={isTown}
+              level={level.level}
+            />
+            <TouchControls onPress={panPress} onRelease={panRelease} />
+            <div className="dq-window pointer-events-none absolute left-2 top-2 px-2 py-1 font-pixel text-[11px] text-white/80">
+              十字キーで視点移動・タップで{brush.kind === "prop" ? "画像配置" : brush.kind === "erase" ? "消す" : "タイル"}
+            </div>
+          </div>
+          <div className="dq-window no-scrollbar h-full w-[min(62%,360px)] shrink-0 overflow-y-auto rounded-none border-y-0 border-r-0">
+            <MapEditor brush={brush} setBrush={setBrush} onClose={() => setEditMode(false)} />
+          </div>
+        </div>
+      ) : scene === "home" ? (
+        /* ============ わが家（室内） ============ */
+        <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
+          {/* 室内シーン */}
+          <div className="pixel-frame relative flex h-36 items-end justify-center overflow-hidden rounded-md">
+            {/* 壁と床 */}
+            <div className="absolute inset-0" style={{ background: "#6b4f3a" }} />
+            <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: "repeating-linear-gradient(90deg,#caa869 0 16px,#bd9a57 16px 32px)" }} />
+            {/* 窓 */}
+            <div className="absolute left-4 top-4 h-10 w-12 rounded-sm bg-[#9ad0ff] ring-2 ring-[#3a2f24]" />
+            <div className="absolute right-4 top-4 h-10 w-12 rounded-sm bg-[#9ad0ff] ring-2 ring-[#3a2f24]" />
+            {/* キャラ */}
+            <div className="anim-hero-bob relative z-10 mb-2">
+              {character ? (
+                <PixelImage src={character} style={{ height: 64, width: "auto" }} />
+              ) : (
+                <PixelSprite sprite={HERO_DOWN_A} scale={4} />
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <h1 className="font-pixel text-lg font-bold text-gold-gradient">わが家</h1>
+            <button
+              type="button"
+              onClick={() => setScene("roam")}
+              className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white"
+            >
+              外に出る
+            </button>
+          </div>
+
+          {/* ノルマ */}
+          <DQWindow title="こんげつの ノルマ">
+            {goal.monthlyTarget > 0 ? (
+              <>
+                <div className="flex items-center justify-between font-pixel text-sm">
+                  <span>🎯 目標</span>
+                  <span className="tabular">{formatYen(monthEarned)} / {formatYen(goal.monthlyTarget)}</span>
+                </div>
+                <div className="mt-2"><ExpBar progress={Math.min(1, monthEarned / goal.monthlyTarget)} /></div>
+                <p className="font-pixel mt-1 text-right text-[11px] text-white/60">
+                  {monthEarned >= goal.monthlyTarget ? "🎉 ノルマ達成！" : `あと ${formatYen(goal.monthlyTarget - monthEarned)}`}
+                </p>
+              </>
+            ) : (
+              <p className="font-pixel text-sm text-white/70">
+                ⚙️（バイト先）で月の目標を設定すると、ここにノルマが出ます。
+              </p>
+            )}
+          </DQWindow>
+
+          {/* ノルマ設定（逆算） */}
+          <DQWindow title="ノルマを きめる">
+            <GoalSettings />
+          </DQWindow>
+
+          {/* グラフ */}
+          <DQWindow title="しゅうにゅうグラフ（6か月）">
+            <EarningsChart />
+          </DQWindow>
+
+          {/* カレンダー */}
+          <DQWindow title="かせぎカレンダー">
+            <CalendarBoard />
+          </DQWindow>
+
+          {/* データ書き出し */}
+          <DQWindow title="データ">
+            <button
+              type="button"
+              onClick={() => {
+                if (!downloadSessionsCsv()) alert("まだ収入の記録がありません。");
+              }}
+              className="font-pixel w-full rounded bg-white/15 py-2 text-sm text-white hover:bg-white/25"
+            >
+              📤 CSVで書き出す
+            </button>
+            <p className="font-pixel mt-1 text-[10px] text-white/40">勤務履歴（日付・時間・収入・バイト先）をCSV出力します。</p>
+          </DQWindow>
+        </div>
+      ) : scene === "shop" ? (
+        /* ============ どうぐ屋（店内） ============ */
+        <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
+          {/* 店内シーン：店主とカウンター */}
+          <div className="pixel-frame relative flex h-36 items-end justify-center overflow-hidden rounded-md">
+            <div className="absolute inset-0" style={{ background: "#5a4636" }} />
+            {/* 棚 */}
+            <div className="absolute left-3 top-3 h-8 w-16 rounded-sm bg-[#7a5230] ring-2 ring-[#3a2f24]" />
+            <div className="absolute right-3 top-3 h-8 w-16 rounded-sm bg-[#7a5230] ring-2 ring-[#3a2f24]" />
+            {/* 店主 */}
+            <div className="anim-hero-bob relative z-10 mb-7">
+              <PixelSprite sprite={SHOPKEEPER} scale={4} />
+            </div>
+            {/* カウンター */}
+            <div className="absolute inset-x-0 bottom-0 h-8" style={{ background: "repeating-linear-gradient(90deg,#8a5a2b 0 14px,#754c22 14px 28px)", borderTop: "3px solid #3a2f24" }} />
+          </div>
+
+          {/* 店主のセリフ */}
+          <DQWindow className="anim-dq-pop">
+            <p className="font-pixel text-sm leading-relaxed text-white">
+              おつかれさまでした、
+              <br />
+              今日は 何を おかいもとめに なりますか？
+            </p>
+          </DQWindow>
+
+          <div className="flex items-center justify-between">
+            <h1 className="font-pixel text-lg font-bold text-gold-gradient">どうぐ屋</h1>
+            <button type="button" onClick={() => setScene("roam")} className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white">
+              店を出る
+            </button>
+          </div>
+
+          <CostumePanel />
+        </div>
+      ) : (
+        /* ============ 町（トップダウン） ============ */
+        <>
+          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} />
+
+          {/* 上部HUD */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-2">
+            <div className="dq-window pointer-events-auto px-3 py-1.5">
+              <div className="flex items-center gap-3 font-pixel text-xs">
+                <span className="text-gold">Lv.{level.level}</span>
+                <span>💰 {wallet} G</span>
+              </div>
+              <div className="mt-1 w-28">
+                <ExpBar progress={level.progress} thin />
+              </div>
+            </div>
+            <div className="pointer-events-auto flex gap-1">
+              <button
+                type="button"
+                onClick={() => setEditMode(true)}
+                className="dq-window grid h-9 w-9 place-items-center text-sm"
+                aria-label="編集モード"
+                title="編集モード（公開時は外す）"
+              >
+                🛠
+              </button>
+            </div>
+          </div>
+
+          {/* バイト先に接近 → 選択肢（複数選択・追加・削除） */}
+          {nearShop && (
+            <div className="absolute left-1/2 top-16 w-full max-w-xs -translate-x-1/2 px-4">
+              <WorkMenu
+                workplaces={workplaces}
+                onStart={startWork}
+                onAdd={addWorkplace}
+                onDelete={removeWorkplace}
+              />
+            </div>
+          )}
+
+          {/* どうぐ屋に接近 → 入店 */}
+          {nearMarket && (
+            <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
+              <DQWindow title="どうぐ屋" className="anim-dq-pop">
+                <p className="font-pixel mb-2 text-sm text-white">ゴールドで どうぐを 買えるよ！</p>
+                <DQCommand label="店に入る" active accent="gold" onClick={() => setScene("shop")} />
+              </DQWindow>
+            </div>
+          )}
+
+          {/* わが家に接近 → 入る */}
+          {nearHouse && (
+            <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
+              <DQWindow title="わが家" className="anim-dq-pop">
+                <p className="font-pixel mb-2 text-sm text-white">家で カレンダーと ノルマを 確認できる。</p>
+                <DQCommand label="中に入る" active accent="gold" onClick={() => setScene("home")} />
+              </DQWindow>
+            </div>
+          )}
+
+          {/* 看板に接近 → 説明 */}
+          {nearSign && (
+            <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
+              <DQWindow title="たてふだ" className="anim-dq-pop">
+                <p className="font-pixel text-sm leading-relaxed text-white">
+                  やあ ぼうけんしゃ！
+                  <br />
+                  十字キーで あるいて
+                  <br />
+                  「¥バイト」に ちかづくと
+                  <br />
+                  はたらけるぞ！
+                </p>
+              </DQWindow>
+            </div>
+          )}
+
+          {/* ヒント */}
+          {!nearShop && !nearMarket && !nearHouse && !nearSign && (
+            <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
+              <p className="font-pixel rounded bg-black/55 px-3 py-1 text-[11px] text-white/80">
+                矢印キー / WASD で移動しよう
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* レベルアップ メッセージ */}
+      {levelUp && (
+        <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center px-6">
+          <DQWindow className="anim-dq-pop w-full max-w-xs text-center">
+            <p className="font-pixel text-sm leading-relaxed text-white">
+              ＊「ゆうしゃ」は
+              <br />
+              レベル <span className="text-gold">{levelUp.level}</span> に あがった！
+            </p>
+            <p className="font-pixel mt-2 text-sm text-gold">{`「${levelUp.rank}」になった！`}</p>
+            <p className="font-pixel mt-1 text-sm text-white">💰 ゴールドを {levelUp.gold}G てにいれた！</p>
+          </DQWindow>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+/** 経験値バー（ドラクエ風） */
+function ExpBar({ progress, thin }: { progress: number; thin?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "w-full overflow-hidden rounded-sm bg-black ring-1 ring-white/40",
+        thin ? "h-2" : "h-3",
+      )}
+    >
+      <div
+        className="h-full bg-gradient-to-r from-gold-dark via-gold to-gold-light transition-[width] duration-300"
+        style={{ width: `${Math.round(progress * 100)}%` }}
+      />
+    </div>
   );
 }
