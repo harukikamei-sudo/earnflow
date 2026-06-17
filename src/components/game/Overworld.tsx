@@ -2,7 +2,7 @@ import { memo, useLayoutEffect, useRef, useState } from "react";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
-import { CASTLE, MAP_H, MAP_W, SHOP, TILE } from "@/game/map";
+import { MAP_H, MAP_W, SHOP, TILE } from "@/game/map";
 import { useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
@@ -79,28 +79,33 @@ function ShopBuilding() {
       />
     );
   }
-  // フォールバック：CSSのドット風ハウス
+  // フォールバック：CSSの洞窟（cave.png 未配置時）
+  const h = (SHOP.h + 1) * TILE;
   return (
-    <div
-      className="pointer-events-none absolute"
-      style={{ left, top: (SHOP.y - 1) * TILE, width, height: (SHOP.h + 1) * TILE }}
-    >
+    <div className="pointer-events-none absolute" style={{ left, top: SHOP.y * TILE - TILE, width, height: h }}>
+      {/* 岩山 */}
       <div
-        className="absolute left-0 top-0 w-full"
+        className="absolute inset-x-0 bottom-0"
         style={{
-          height: TILE,
-          background: "#c0392b",
-          clipPath: "polygon(12% 100%, 0 100%, 18% 0, 82% 0, 100% 100%, 88% 100%)",
+          height: h - 6,
+          background: "linear-gradient(180deg,#9aa0ab 0%,#6f757f 60%,#565b64 100%)",
+          borderRadius: "48% 48% 12% 12% / 70% 70% 12% 12%",
+          boxShadow: "inset 0 -6px 0 rgba(0,0,0,0.25)",
         }}
       />
+      {/* 洞窟の入口 */}
       <div
-        className="absolute left-1 top-[28px] flex w-[calc(100%-8px)] items-end justify-center"
-        style={{ height: TILE * SHOP.h - 4, background: "#e3c9a0", border: "3px solid #6b4423" }}
-      >
-        <div className="font-pixel absolute -top-1 rounded-sm bg-[#2a2f4a] px-1 text-[10px] font-bold text-white">
-          ¥バイト
-        </div>
-        <div className="mb-0 h-[26px] w-[22px] rounded-t bg-[#4a2f17]" />
+        className="absolute bottom-0 left-1/2 -translate-x-1/2"
+        style={{
+          width: "44%",
+          height: "60%",
+          background: "radial-gradient(120% 100% at 50% 100%, #000 60%, #1c1f27 100%)",
+          borderRadius: "50% 50% 0 0 / 80% 80% 0 0",
+        }}
+      />
+      {/* 看板 */}
+      <div className="font-pixel absolute left-1/2 top-1 -translate-x-1/2 rounded-sm bg-[#2a2f4a] px-1 text-[10px] font-bold text-white">
+        ¥バイト
       </div>
     </div>
   );
@@ -190,17 +195,7 @@ export function Overworld({
       >
         <TileLayer rows={rows} />
 
-        {showLandmarks && (
-          <>
-            {/* 城（ランドマーク） */}
-            <PixelImage
-              src="/illust/castle.jpeg"
-              className="pointer-events-none absolute"
-              style={{ left: CASTLE.x * TILE, top: CASTLE.y * TILE - 10, width: CASTLE.w * TILE, height: "auto" }}
-            />
-            <ShopBuilding />
-          </>
-        )}
+        {showLandmarks && <ShopBuilding />}
 
         {/* 配置された画像プロップ */}
         {props.map((p) => (

@@ -62,9 +62,6 @@ function buildMap(): string[] {
   for (let y = 9; y <= 12; y++) for (let x = 3; x <= 7; x++) set(x, y, "W");
   for (let y = 6; y <= 8; y++) for (let x = 22; x <= 25; x++) set(x, y, "W");
 
-  for (let y = CASTLE.y; y < CASTLE.y + CASTLE.h; y++)
-    for (let x = CASTLE.x; x < CASTLE.x + CASTLE.w; x++) set(x, y, "C");
-
   for (let y = SHOP.y; y < SHOP.y + SHOP.h; y++)
     for (let x = SHOP.x; x < SHOP.x + SHOP.w; x++) set(x, y, "B");
   set(DOOR.x, DOOR.y, "D");
@@ -87,7 +84,7 @@ function buildMap(): string[] {
 
 export const DEFAULT_MAP: string[] = buildMap();
 
-const BLOCKING = new Set<string>(["T", "W", "R", "B", "S", "C"]);
+const BLOCKING = new Set<string>(["T", "W", "R", "B", "S"]);
 
 /** そのタイル文字が通行不可か */
 export function isBlocking(ch: string | null): boolean {

@@ -6,10 +6,12 @@ import { Overworld } from "@/components/game/Overworld";
 import { TouchControls } from "@/components/game/TouchControls";
 import { WorkMenu } from "@/components/game/WorkMenu";
 import { MapEditor, type Brush } from "@/components/game/MapEditor";
+import { CostumeShop } from "@/components/game/CostumeShop";
 import type { HeroDir } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
 import { DOOR, MAP_H, MAP_W, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
 import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
+import { addGold, useWallet } from "@/game/playerStore";
 import { createWorkplace } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
@@ -37,6 +39,8 @@ export default function Home() {
   const activeId = useActiveId();
   const isTown = activeId === TOWN_ID;
   const character = useCharacter();
+  const wallet = useWallet();
+  const [showCostume, setShowCostume] = useState(false);
 
   // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
   const [editMode, setEditMode] = useState(false);
@@ -159,11 +163,14 @@ export default function Home() {
   }, [sessionEarnings, working]);
 
   /* ---- レベルアップ演出 ---- */
-  const [levelUp, setLevelUp] = useState<{ level: number; rank: string } | null>(null);
+  const [levelUp, setLevelUp] = useState<{ level: number; rank: string; gold: number } | null>(null);
   const prevLevelRef = useRef(level.level);
   useEffect(() => {
     if (level.level > prevLevelRef.current && working) {
-      setLevelUp({ level: level.level, rank: rankForLevel(level.level).name });
+      const gained = level.level - prevLevelRef.current;
+      const gold = gained * 100; // レベルアップ報酬ゴールド
+      addGold(gold);
+      setLevelUp({ level: level.level, rank: rankForLevel(level.level).name, gold });
       window.setTimeout(() => setLevelUp(null), 2600);
     }
     prevLevelRef.current = level.level;
@@ -266,13 +273,22 @@ export default function Home() {
             <div className="dq-window pointer-events-auto px-3 py-1.5">
               <div className="flex items-center gap-3 font-pixel text-xs">
                 <span className="text-gold">Lv.{level.level}</span>
-                <span>{formatYen(totalGold, false)} G</span>
+                <span>💰 {wallet} G</span>
               </div>
               <div className="mt-1 w-28">
                 <ExpBar progress={level.progress} thin />
               </div>
             </div>
             <div className="pointer-events-auto flex gap-1">
+              <button
+                type="button"
+                onClick={() => setShowCostume(true)}
+                className="dq-window grid h-9 w-9 place-items-center text-sm"
+                aria-label="コスチューム"
+                title="コスチューム"
+              >
+                👕
+              </button>
               <button
                 type="button"
                 onClick={() => setEditMode(true)}
@@ -343,9 +359,13 @@ export default function Home() {
               レベル <span className="text-gold">{levelUp.level}</span> に あがった！
             </p>
             <p className="font-pixel mt-2 text-sm text-gold">{`「${levelUp.rank}」になった！`}</p>
+            <p className="font-pixel mt-1 text-sm text-white">💰 ゴールドを {levelUp.gold}G てにいれた！</p>
           </DQWindow>
         </div>
       )}
+
+      {/* コスチュームショップ */}
+      {showCostume && <CostumeShop onClose={() => setShowCostume(false)} />}
     </div>
   );
 }
