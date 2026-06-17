@@ -128,10 +128,14 @@ export function Overworld({ snap, className }: OverworldProps) {
     return () => ro.disconnect();
   }, []);
 
+  // ワールドが必ずビューを覆うスケール（余白を出さず画面の角に合わせる）
+  const scale = Math.max(vw / WORLD_W, vh / WORLD_H);
+  const visW = vw / scale;
+  const visH = vh / scale;
   const heroCx = (snap.px + 0.5) * TILE;
   const heroCy = (snap.py + 0.5) * TILE;
-  const camX = clampCam(heroCx - vw / 2, WORLD_W, vw);
-  const camY = clampCam(heroCy - vh / 2, WORLD_H, vh);
+  const camX = clamp(heroCx - visW / 2, 0, Math.max(0, WORLD_W - visW));
+  const camY = clamp(heroCy - visH / 2, 0, Math.max(0, WORLD_H - visH));
 
   const isSide = snap.dir === "left" || snap.dir === "right";
   const frames = isSide
@@ -151,7 +155,8 @@ export function Overworld({ snap, className }: OverworldProps) {
         style={{
           width: WORLD_W,
           height: WORLD_H,
-          transform: `translate(${-camX}px, ${-camY}px)`,
+          transformOrigin: "0 0",
+          transform: `translate(${-camX * scale}px, ${-camY * scale}px) scale(${scale})`,
         }}
       >
         <TileLayer />
@@ -185,8 +190,6 @@ export function Overworld({ snap, className }: OverworldProps) {
   );
 }
 
-function clampCam(want: number, world: number, view: number): number {
-  const max = world - view;
-  if (max <= 0) return max / 2; // ワールドがビューより小さければ中央寄せ
-  return Math.max(0, Math.min(max, want));
+function clamp(want: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, want));
 }

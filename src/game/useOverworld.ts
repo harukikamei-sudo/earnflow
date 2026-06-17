@@ -2,17 +2,17 @@
  * トップダウン移動エンジン。
  *
  * ドラクエ風に1マスずつ歩く（押している間は連続歩行）。キーボード（矢印/WASD）と
- * タッチ操作（press/release/interact）の両対応。タイルの通行判定・歩行アニメ・
- * 「調べる(けってい)」を扱う。
+ * タッチ操作（press/release）の両対応。タイルの通行判定と歩行アニメを扱う。
+ * 「調べる」操作は持たず、バイト先への接近判定は呼び出し側が snap の座標で行う。
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HeroDir } from "@/components/pixel/sprites";
-import { interactionAt, isWalkable, SPAWN, type Interaction } from "./map";
+import { isWalkable, SPAWN } from "./map";
 
 const STEP_MS = 170;
 type XY = { x: number; y: number };
-const VEC: Record<HeroDir, { x: number; y: number }> = {
+const VEC: Record<HeroDir, XY> = {
   down: { x: 0, y: 1 },
   up: { x: 0, y: -1 },
   left: { x: -1, y: 0 },
@@ -33,20 +33,12 @@ export interface Overworld {
   snap: OverworldSnap;
   press: (dir: HeroDir) => void;
   release: (dir: HeroDir) => void;
-  /** 正面のタイルを調べる。何かあれば種別を返す */
-  interact: () => { type: Exclude<Interaction, null>; x: number; y: number } | null;
 }
 
-export function useOverworld(opts: {
-  enabled: boolean;
-  onInteract?: (r: { type: Exclude<Interaction, null>; x: number; y: number }) => void;
-}): Overworld {
+export function useOverworld(opts: { enabled: boolean }): Overworld {
   const enabledRef = useRef(opts.enabled);
-  const onInteractRef = useRef(opts.onInteract);
-  // ref の同期は render 中ではなく effect で行う
   useEffect(() => {
     enabledRef.current = opts.enabled;
-    onInteractRef.current = opts.onInteract;
   });
 
   const game = useRef<{
@@ -78,23 +70,6 @@ export function useOverworld(opts: {
   });
   const lastSnap = useRef(snap);
 
-  const facingTile = useCallback(() => {
-    const g = game.current;
-    const v = VEC[g.dir];
-    return { x: g.cur.x + v.x, y: g.cur.y + v.y };
-  }, []);
-
-  const interact = useCallback(() => {
-    const g = game.current;
-    if (g.moving) return null;
-    const f = facingTile();
-    const type = interactionAt(f.x, f.y);
-    if (!type) return null;
-    const result = { type, x: f.x, y: f.y };
-    onInteractRef.current?.(result);
-    return result;
-  }, [facingTile]);
-
   const press = useCallback((dir: HeroDir) => {
     const g = game.current;
     if (!g.pressed.includes(dir)) g.pressed.push(dir);
@@ -109,7 +84,8 @@ export function useOverworld(opts: {
     let raf = 0;
     const loop = (t: number) => {
       const g = game.current;
-      let { px, py } = { px: g.cur.x, py: g.cur.y };
+      let px = g.cur.x;
+      let py = g.cur.y;
       let frame = 0;
 
       if (g.moving) {
@@ -141,13 +117,7 @@ export function useOverworld(opts: {
         }
       }
 
-      const next: OverworldSnap = {
-        px,
-        py,
-        dir: g.dir,
-        frame,
-        moving: g.moving,
-      };
+      const next: OverworldSnap = { px, py, dir: g.dir, frame, moving: g.moving };
       const prev = lastSnap.current;
       if (
         prev.px !== next.px ||
@@ -165,7 +135,7 @@ export function useOverworld(opts: {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  // キーボード操作
+  // キーボード操作（入力欄にフォーカス中は無視）
   useEffect(() => {
     const keyToDir: Record<string, HeroDir> = {
       ArrowUp: "up",
@@ -179,15 +149,11 @@ export function useOverworld(opts: {
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (!enabledRef.current) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const dir = keyToDir[e.key];
       if (dir) {
         e.preventDefault();
         press(dir);
-        return;
-      }
-      if (e.key === "Enter" || e.key === " " || e.key === "z") {
-        e.preventDefault();
-        interact();
       }
     };
     const onKeyUp = (e: KeyboardEvent) => {
@@ -200,12 +166,12 @@ export function useOverworld(opts: {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [press, release, interact]);
+  }, [press, release]);
 
   // 無効化されたら入力をクリア
   useEffect(() => {
     if (!opts.enabled) game.current.pressed = [];
   }, [opts.enabled]);
 
-  return { snap, press, release, interact };
+  return { snap, press, release };
 }
