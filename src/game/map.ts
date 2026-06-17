@@ -1,12 +1,12 @@
 /**
- * トップダウンRPGのタイルマップ定義。
+ * トップダウンRPGのタイルマップ定義（既定値）と定数。
  *
  * タイル種別:
- *   T=木  W=水  G=草  P=道  F=花  S=看板  R=岩  B=建物(バイト先)  D=ドア
- * 木/水/岩/建物/看板は通行不可。ドア・草・道・花は通行可。
- * バイト先(ドア)に近づくと選択肢が出て、労働モードに入れる。
+ *   T=木  W=水  G=草  P=道  F=花  S=看板  R=岩  B=建物(バイト先)  D=ドア  C=城
+ * 木/水/岩/建物/看板/城は通行不可。ドア・草・道・花は通行可。
  *
- * マップは手打ちミスを避けるためコードで生成する。
+ * 実際にゲームが参照する「現在のマップ」は mapStore が保持する（編集モードで上書き可能）。
+ * ここでは既定マップ DEFAULT_MAP と、座標やサイズなどの定数だけを定義する。
  */
 
 export type TileChar = "T" | "W" | "G" | "P" | "F" | "S" | "R" | "B" | "D" | "C";
@@ -34,7 +34,6 @@ function buildMap(): string[] {
     if (x >= 0 && x < MAP_W && y >= 0 && y < MAP_H) g[y][x] = t;
   };
 
-  // 外周の木
   for (let x = 0; x < MAP_W; x++) {
     set(x, 0, "T");
     set(x, MAP_H - 1, "T");
@@ -44,7 +43,6 @@ function buildMap(): string[] {
     set(MAP_W - 1, y, "T");
   }
 
-  // 森のかたまり
   const forest: [number, number][] = [
     [3, 2], [4, 2], [3, 3], [18, 2], [19, 2], [19, 3], [2, 13], [3, 13],
     [20, 14], [21, 14], [21, 15], [6, 5], [5, 6], [17, 16], [18, 16],
@@ -53,27 +51,21 @@ function buildMap(): string[] {
   ];
   forest.forEach(([x, y]) => set(x, y, "T"));
 
-  // 池
   for (let y = 9; y <= 12; y++) for (let x = 3; x <= 7; x++) set(x, y, "W");
   for (let y = 6; y <= 8; y++) for (let x = 22; x <= 25; x++) set(x, y, "W");
 
-  // 城（足元タイルを通行不可に。見た目はイラストを重ねる）
   for (let y = CASTLE.y; y < CASTLE.y + CASTLE.h; y++)
     for (let x = CASTLE.x; x < CASTLE.x + CASTLE.w; x++) set(x, y, "C");
 
-  // バイト先（建物）とドア
   for (let y = SHOP.y; y < SHOP.y + SHOP.h; y++)
     for (let x = SHOP.x; x < SHOP.x + SHOP.w; x++) set(x, y, "B");
   set(DOOR.x, DOOR.y, "D");
 
-  // 道（縦：ドア下〜スポーン、横：十字路）
   for (let y = DOOR.y + 1; y <= SPAWN.y; y++) set(DOOR.x, y, "P");
   for (let x = 8; x <= 16; x++) set(x, 12, "P");
 
-  // 看板
   set(SIGN_POS.x, SIGN_POS.y, "S");
 
-  // 花・岩（草の上だけ）
   const flowers: [number, number][] = [
     [2, 5], [20, 6], [8, 8], [16, 9], [14, 16], [8, 15], [9, 3],
     [22, 11], [25, 16], [19, 18], [13, 18], [3, 16],
@@ -85,17 +77,11 @@ function buildMap(): string[] {
   return g.map((r) => r.join(""));
 }
 
-export const MAP: string[] = buildMap();
+export const DEFAULT_MAP: string[] = buildMap();
 
 const BLOCKING = new Set<string>(["T", "W", "R", "B", "S", "C"]);
 
-export function tileAt(x: number, y: number): TileChar | null {
-  if (y < 0 || y >= MAP_H || x < 0 || x >= MAP_W) return null;
-  return MAP[y][x] as TileChar;
-}
-
-export function isWalkable(x: number, y: number): boolean {
-  const t = tileAt(x, y);
-  if (t === null) return false;
-  return !BLOCKING.has(t);
+/** そのタイル文字が通行不可か */
+export function isBlocking(ch: string | null): boolean {
+  return ch === null || BLOCKING.has(ch);
 }

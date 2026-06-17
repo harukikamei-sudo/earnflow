@@ -82,7 +82,13 @@ export function deleteSession(id: string): Session[] {
 /* ---------------- Goal ---------------- */
 
 export function getGoal(): Goal {
-  return readJSON<Goal>(KEYS.goal, { monthlyTarget: 0 });
+  // 旧データ（monthlyTarget のみ）でも壊れないよう既定値とマージする
+  return {
+    monthlyTarget: 0,
+    yearlyTarget: 0,
+    workDaysPerMonth: 20,
+    ...readJSON<Partial<Goal>>(KEYS.goal, {}),
+  };
 }
 
 export function saveGoal(goal: Goal): void {

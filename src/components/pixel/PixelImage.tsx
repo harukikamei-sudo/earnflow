@@ -7,6 +7,8 @@ interface PixelImageProps {
   keyWhite?: boolean;
   /** 透過とみなす明るさのしきい値（0-255） */
   threshold?: number;
+  /** 画像の読み込みに失敗したとき */
+  onError?: () => void;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -16,12 +18,19 @@ interface PixelImageProps {
  * keyWhite=true なら白背景を透過し、image-rendering: pixelated でくっきり拡大する。
  * 外部素材（dot-illust.net 等）の白背景PNG/JPEGをマップに置くのに使う。
  */
-export function PixelImage({ src, keyWhite = true, threshold = 236, className, style }: PixelImageProps) {
+export function PixelImage({ src, keyWhite = true, threshold = 236, onError, className, style }: PixelImageProps) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => {
     let cancelled = false;
     const img = new Image();
+    img.onerror = () => {
+      if (!cancelled) onErrorRef.current?.();
+    };
     img.onload = () => {
       if (cancelled) return;
       const canvas = ref.current;

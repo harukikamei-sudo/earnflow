@@ -2,7 +2,8 @@ import { memo, useLayoutEffect, useRef, useState } from "react";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
-import { CASTLE, MAP, MAP_H, MAP_W, SHOP, TILE } from "@/game/map";
+import { CASTLE, MAP_H, MAP_W, SHOP, TILE } from "@/game/map";
+import { useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,7 @@ function baseColor(ch: string, x: number, y: number): string {
   const odd = (x + y) % 2;
   if (ch === "W") return WATER[odd];
   if (ch === "P" || ch === "D") return PATH[odd];
-  return GRASS[odd]; // G/F/T/S/R/B はすべて草を下地に
+  return GRASS[odd];
 }
 
 const OBJECT: Record<string, { sprite: typeof TREE; scale: number }> = {
@@ -27,8 +28,8 @@ const OBJECT: Record<string, { sprite: typeof TREE; scale: number }> = {
   R: { sprite: ROCK, scale: 2 },
 };
 
-/** タイル下地＋オブジェクト（静的なのでメモ化して毎フレーム再描画しない） */
-const TileLayer = memo(function TileLayer() {
+/** タイル下地＋オブジェクト（mapRows が変わったときだけ再描画） */
+const TileLayer = memo(function TileLayer({ rows }: { rows: string[] }) {
   return (
     <div
       className="absolute left-0 top-0 grid"
@@ -39,7 +40,7 @@ const TileLayer = memo(function TileLayer() {
         gridTemplateRows: `repeat(${MAP_H}, ${TILE}px)`,
       }}
     >
-      {MAP.flatMap((row, y) =>
+      {rows.flatMap((row, y) =>
         row.split("").map((ch, x) => {
           const obj = OBJECT[ch];
           return (
@@ -61,45 +62,44 @@ const TileLayer = memo(function TileLayer() {
   );
 });
 
-/** バイト先の建物（CSSのドット風ハウス） */
-function Shop() {
+/** バイト先：洞窟イラスト（無ければCSSの家にフォールバック） */
+function ShopBuilding() {
+  const [caveOk, setCaveOk] = useState(true);
+  const left = SHOP.x * TILE;
+  const width = SHOP.w * TILE;
+  if (caveOk) {
+    return (
+      <PixelImage
+        src="/illust/cave.png"
+        keyWhite
+        onError={() => setCaveOk(false)}
+        className="pointer-events-none absolute"
+        style={{ left, top: (SHOP.y - 1) * TILE, width, height: "auto" }}
+      />
+    );
+  }
+  // フォールバック：CSSのドット風ハウス
   return (
     <div
       className="pointer-events-none absolute"
-      style={{
-        left: SHOP.x * TILE,
-        top: (SHOP.y - 1) * TILE,
-        width: SHOP.w * TILE,
-        height: (SHOP.h + 1) * TILE,
-      }}
+      style={{ left, top: (SHOP.y - 1) * TILE, width, height: (SHOP.h + 1) * TILE }}
     >
-      {/* 屋根 */}
       <div
         className="absolute left-0 top-0 w-full"
         style={{
           height: TILE,
           background: "#c0392b",
           clipPath: "polygon(12% 100%, 0 100%, 18% 0, 82% 0, 100% 100%, 88% 100%)",
-          boxShadow: "inset 0 -4px 0 rgba(0,0,0,0.25)",
         }}
       />
-      {/* 壁 */}
       <div
         className="absolute left-1 top-[28px] flex w-[calc(100%-8px)] items-end justify-center"
         style={{ height: TILE * SHOP.h - 4, background: "#e3c9a0", border: "3px solid #6b4423" }}
       >
-        {/* 看板 ¥ */}
-        <div
-          className="font-pixel absolute -top-1 rounded-sm px-1 text-[10px] font-bold text-white"
-          style={{ background: "#2a2f4a" }}
-        >
+        <div className="font-pixel absolute -top-1 rounded-sm bg-[#2a2f4a] px-1 text-[10px] font-bold text-white">
           ¥バイト
         </div>
-        {/* ドア */}
-        <div
-          className="mb-0 h-[26px] w-[22px] rounded-t"
-          style={{ background: "#4a2f17", boxShadow: "inset 0 0 0 2px #2a190c" }}
-        />
+        <div className="mb-0 h-[26px] w-[22px] rounded-t bg-[#4a2f17]" />
       </div>
     </div>
   );
@@ -108,13 +108,18 @@ function Shop() {
 interface OverworldProps {
   snap: OverworldSnap;
   className?: string;
+  /** 編集モード：勇者を隠し、タップでタイル座標を返す */
+  editMode?: boolean;
+  onTileClick?: (x: number, y: number) => void;
 }
 
 /** トップダウンのマップ描画＋カメラ追従。 */
-export function Overworld({ snap, className }: OverworldProps) {
+export function Overworld({ snap, className, editMode, onTileClick }: OverworldProps) {
   const viewRef = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(360);
   const [vh, setVh] = useState(420);
+  const rows = useMapRows();
+  const props = useProps();
 
   useLayoutEffect(() => {
     const el = viewRef.current;
@@ -129,7 +134,6 @@ export function Overworld({ snap, className }: OverworldProps) {
     return () => ro.disconnect();
   }, []);
 
-  // ワールドが必ずビューを覆うスケール（余白を出さず画面の角に合わせる）
   const scale = Math.max(vw / WORLD_W, vh / WORLD_H);
   const visW = vw / scale;
   const visH = vh / scale;
@@ -146,10 +150,21 @@ export function Overworld({ snap, className }: OverworldProps) {
       : HERO_TOPDOWN.down;
   const heroSprite = frames[snap.frame] ?? frames[0];
 
+  function handlePointer(e: React.PointerEvent) {
+    if (!editMode || !onTileClick) return;
+    const el = viewRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const wx = (e.clientX - rect.left) / scale + camX;
+    const wy = (e.clientY - rect.top) / scale + camY;
+    onTileClick(Math.floor(wx / TILE), Math.floor(wy / TILE));
+  }
+
   return (
     <div
       ref={viewRef}
-      className={cn("relative overflow-hidden bg-[#2f7d36]", className)}
+      className={cn("relative overflow-hidden bg-[#3f9e44]", editMode && "cursor-crosshair", className)}
+      onPointerDown={handlePointer}
     >
       <div
         className="absolute left-0 top-0"
@@ -160,45 +175,58 @@ export function Overworld({ snap, className }: OverworldProps) {
           transform: `translate(${-camX * scale}px, ${-camY * scale}px) scale(${scale})`,
         }}
       >
-        <TileLayer />
+        <TileLayer rows={rows} />
 
-        {/* 城（ランドマーク・イラスト） */}
+        {/* 城（ランドマーク） */}
         <PixelImage
           src="/illust/castle.jpeg"
           className="pointer-events-none absolute"
-          style={{
-            left: CASTLE.x * TILE,
-            top: CASTLE.y * TILE - 10,
-            width: CASTLE.w * TILE,
-            height: "auto",
-          }}
+          style={{ left: CASTLE.x * TILE, top: CASTLE.y * TILE - 10, width: CASTLE.w * TILE, height: "auto" }}
         />
 
-        <Shop />
+        <ShopBuilding />
 
-        {/* 勇者 */}
-        <div
-          className="absolute"
-          style={{
-            left: snap.px * TILE,
-            top: snap.py * TILE - 6,
-            width: TILE,
-            height: TILE + 6,
-          }}
-        >
-          <div className="absolute bottom-1 left-1/2 h-1.5 w-6 -translate-x-1/2 rounded-full bg-black/30" />
+        {/* 配置された画像プロップ */}
+        {props.map((p) => (
+          <PixelImage
+            key={p.id}
+            src={p.src}
+            className="pointer-events-none absolute"
+            style={{ left: p.x * TILE, top: p.y * TILE, width: p.w * TILE, height: "auto" }}
+          />
+        ))}
+
+        {/* 編集グリッド */}
+        {editMode && (
           <div
-            className="absolute bottom-1 left-1/2"
+            className="pointer-events-none absolute left-0 top-0"
             style={{
-              transform:
-                snap.dir === "right"
-                  ? "translateX(-50%) scaleX(-1)"
-                  : "translateX(-50%)",
+              width: WORLD_W,
+              height: WORLD_H,
+              backgroundImage:
+                "linear-gradient(to right, rgba(0,0,0,0.25) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.25) 1px, transparent 1px)",
+              backgroundSize: `${TILE}px ${TILE}px`,
             }}
+          />
+        )}
+
+        {/* 勇者（編集中は非表示） */}
+        {!editMode && (
+          <div
+            className="absolute"
+            style={{ left: snap.px * TILE, top: snap.py * TILE - 6, width: TILE, height: TILE + 6 }}
           >
-            <PixelSprite sprite={heroSprite} scale={2} />
+            <div className="absolute bottom-1 left-1/2 h-1.5 w-6 -translate-x-1/2 rounded-full bg-black/30" />
+            <div
+              className="absolute bottom-1 left-1/2"
+              style={{
+                transform: snap.dir === "right" ? "translateX(-50%) scaleX(-1)" : "translateX(-50%)",
+              }}
+            >
+              <PixelSprite sprite={heroSprite} scale={2} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

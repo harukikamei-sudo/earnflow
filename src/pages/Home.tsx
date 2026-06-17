@@ -5,15 +5,17 @@ import { DQCommand, DQWindow } from "@/components/pixel/DQWindow";
 import { Overworld } from "@/components/game/Overworld";
 import { TouchControls } from "@/components/game/TouchControls";
 import { WorkMenu } from "@/components/game/WorkMenu";
+import { MapEditor, type Brush } from "@/components/game/MapEditor";
 import { useOverworld } from "@/game/useOverworld";
-import { DOOR, SIGN_POS } from "@/game/map";
+import { DOOR, SIGN_POS, type TileChar } from "@/game/map";
+import { addProp, paintTile } from "@/game/mapStore";
 import { createWorkplace } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
-import { cn, formatDuration, formatYen, formatYenPrecise } from "@/lib/utils";
+import { cn, formatDuration, formatYen, formatYenPrecise, uid } from "@/lib/utils";
 
 type Scene = "roam" | "work";
 
@@ -31,6 +33,15 @@ export default function Home() {
   const [scene, setScene] = useState<Scene>("roam");
   const working = scene === "work";
 
+  // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
+  const [editMode, setEditMode] = useState(false);
+  const [brush, setBrush] = useState<Brush>({ kind: "tile", ch: "G" as TileChar });
+  function handleTileClick(x: number, y: number) {
+    if (brush.kind === "tile") paintTile(x, y, brush.ch);
+    else if (brush.kind === "erase") paintTile(x, y, "G");
+    else if (brush.kind === "prop") addProp({ id: uid(), src: brush.src, x, y, w: 3 });
+  }
+
   // バイト先（無ければ既定を1件作って保存）
   const [workplaces, setWorkplaces] = useState<Workplace[]>(() => {
     const ws = getWorkplaces();
@@ -41,7 +52,7 @@ export default function Home() {
   });
   const refresh = () => setWorkplaces(getWorkplaces());
 
-  const overworld = useOverworld({ enabled: scene === "roam" });
+  const overworld = useOverworld({ enabled: scene === "roam" && !editMode });
   const { snap } = overworld;
 
   // 時刻（時間帯・バフ用）
@@ -168,7 +179,12 @@ export default function Home() {
       ) : (
         /* ============ 町（トップダウン） ============ */
         <>
-          <Overworld snap={snap} className="absolute inset-0" />
+          <Overworld
+            snap={snap}
+            className="absolute inset-0"
+            editMode={editMode}
+            onTileClick={editMode ? handleTileClick : undefined}
+          />
 
           {/* 上部HUD */}
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-2">
@@ -182,6 +198,18 @@ export default function Home() {
               </div>
             </div>
             <div className="pointer-events-auto flex gap-1">
+              <button
+                type="button"
+                onClick={() => setEditMode((v) => !v)}
+                className={cn(
+                  "dq-window grid h-9 w-9 place-items-center text-sm",
+                  editMode && "ring-2 ring-gold",
+                )}
+                aria-label="編集モード"
+                title="編集モード（公開時は外す）"
+              >
+                🛠
+              </button>
               <Link to="/calendar" className="dq-window grid h-9 w-9 place-items-center text-sm" aria-label="カレンダー">
                 📅
               </Link>
@@ -191,8 +219,11 @@ export default function Home() {
             </div>
           </div>
 
+          {/* 編集モード：マップエディタ */}
+          {editMode && <MapEditor brush={brush} setBrush={setBrush} onClose={() => setEditMode(false)} />}
+
           {/* バイト先に接近 → 選択肢（複数選択・追加・削除） */}
-          {nearShop && (
+          {!editMode && nearShop && (
             <div className="absolute left-1/2 top-16 w-full max-w-xs -translate-x-1/2 px-4">
               <WorkMenu
                 workplaces={workplaces}
@@ -204,7 +235,7 @@ export default function Home() {
           )}
 
           {/* 看板に接近 → 説明 */}
-          {nearSign && (
+          {!editMode && nearSign && (
             <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
               <DQWindow title="たてふだ" className="anim-dq-pop">
                 <p className="font-pixel text-sm leading-relaxed text-white">
@@ -220,10 +251,10 @@ export default function Home() {
             </div>
           )}
 
-          <TouchControls onPress={overworld.press} onRelease={overworld.release} />
+          {!editMode && <TouchControls onPress={overworld.press} onRelease={overworld.release} />}
 
           {/* ヒント */}
-          {!nearShop && !nearSign && (
+          {!editMode && !nearShop && !nearSign && (
             <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
               <p className="font-pixel rounded bg-black/55 px-3 py-1 text-[11px] text-white/80">
                 十字キーで移動・「¥バイト」に近づこう

@@ -8,7 +8,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HeroDir } from "@/components/pixel/sprites";
-import { isWalkable, SPAWN } from "./map";
+import { SPAWN } from "./map";
+import { isWalkable } from "./mapStore";
 
 const STEP_MS = 170;
 type XY = { x: number; y: number };

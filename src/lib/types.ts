@@ -57,6 +57,10 @@ export interface Session {
 export interface Goal {
   /** 月目標額（円）。未設定は 0 */
   monthlyTarget: number;
+  /** 年目標額（円）。未設定は 0 */
+  yearlyTarget: number;
+  /** 月の出勤日数（逆算用） */
+  workDaysPerMonth: number;
 }
 
 /** クライアント側のモックユーザー（後で本物の認証に差し替え） */
