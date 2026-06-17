@@ -91,6 +91,8 @@ const persisted = loadStages();
 let stages: Stage[] = persisted.stages;
 let activeId: string = persisted.activeId;
 let assets: string[] = dedupe([...DEFAULT_ASSETS, ...load<string[]>(KEYS.assets, [])]);
+/** 操作キャラの画像src（空文字＝既定のドット勇者） */
+let character: string = load<string>("earnflow.character", "");
 
 const listeners = new Set<() => void>();
 function emit() {
@@ -214,5 +216,17 @@ export function addAsset(src: string): void {
   if (!clean) return;
   assets = dedupe([...assets, clean]);
   save(KEYS.assets, assets);
+  emit();
+}
+
+/* ---------------- 操作キャラクター ---------------- */
+
+export function useCharacter(): string {
+  return useSyncExternalStore(subscribe, () => character, () => character);
+}
+/** 操作キャラの画像srcを設定（空文字＝既定のドット勇者に戻す） */
+export function setCharacter(src: string): void {
+  character = src;
+  save("earnflow.character", character);
   emit();
 }

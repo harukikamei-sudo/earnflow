@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { PixelAnim, PixelSprite } from "./PixelSprite";
+import { PixelImage } from "./PixelImage";
 import {
   CLOUD,
   CROWN,
@@ -28,6 +29,8 @@ interface StageProps {
   coins: StageCoin[];
   /** 割増バフが効いているか */
   buffed?: boolean;
+  /** 操作キャラの画像src（空＝既定のドット勇者） */
+  characterSrc?: string;
 }
 
 type Phase = "dawn" | "day" | "dusk" | "night";
@@ -133,7 +136,7 @@ function CloudStrip() {
  * 横スクロールの旅ステージ。
  * walking=true のとき空〜道がスクロールし、勇者が歩行アニメで前進しているように見せる。
  */
-export function Stage({ walking, level, nowTs, coins, buffed }: StageProps) {
+export function Stage({ walking, level, nowTs, coins, buffed, characterSrc }: StageProps) {
   const phase = useMemo(() => phaseOf(new Date(nowTs).getHours()), [nowTs]);
   const monster = useMemo(() => monsterForLevel(level), [level]);
   const playState = walking ? "running" : "paused";
@@ -210,7 +213,11 @@ export function Stage({ walking, level, nowTs, coins, buffed }: StageProps) {
       {/* 勇者（左寄り・歩行アニメ） */}
       <div className="absolute bottom-[42px] left-[22%]">
         <div className={cn(walking ? "anim-hero-work" : "anim-hero-bob")}>
-          <PixelAnim frames={HERO_FRAMES} fps={7} playing={walking} scale={5} />
+          {characterSrc ? (
+            <PixelImage src={characterSrc} style={{ height: 80, width: "auto" }} />
+          ) : (
+            <PixelAnim frames={HERO_FRAMES} fps={7} playing={walking} scale={5} />
+          )}
         </div>
         {/* 影 */}
         <div className="mx-auto h-1.5 w-12 rounded-full bg-black/35 blur-[1px]" />

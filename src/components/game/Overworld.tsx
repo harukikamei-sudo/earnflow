@@ -3,7 +3,7 @@ import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
 import { CASTLE, MAP_H, MAP_W, SHOP, TILE } from "@/game/map";
-import { useMapRows, useProps } from "@/game/mapStore";
+import { useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
 
@@ -132,6 +132,7 @@ export function Overworld({
   const [vh, setVh] = useState(420);
   const rows = useMapRows();
   const props = useProps();
+  const character = useCharacter();
 
   useLayoutEffect(() => {
     const el = viewRef.current;
@@ -238,7 +239,11 @@ export function Overworld({
                 transform: snap.dir === "right" ? "translateX(-50%) scaleX(-1)" : "translateX(-50%)",
               }}
             >
-              <PixelSprite sprite={heroSprite} scale={2} />
+              {character ? (
+                <PixelImage src={character} style={{ width: TILE + 4, height: "auto" }} />
+              ) : (
+                <PixelSprite sprite={heroSprite} scale={2} />
+              )}
             </div>
           </div>
         )}

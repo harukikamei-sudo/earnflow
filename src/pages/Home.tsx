@@ -9,7 +9,7 @@ import { MapEditor, type Brush } from "@/components/game/MapEditor";
 import type { HeroDir } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
 import { DOOR, MAP_H, MAP_W, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
-import { addProp, paintTile, useActiveId } from "@/game/mapStore";
+import { addProp, paintTile, useActiveId, useCharacter } from "@/game/mapStore";
 import { createWorkplace } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { multiplierAt } from "@/lib/earnings";
@@ -36,6 +36,7 @@ export default function Home() {
 
   const activeId = useActiveId();
   const isTown = activeId === TOWN_ID;
+  const character = useCharacter();
 
   // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
   const [editMode, setEditMode] = useState(false);
@@ -199,7 +200,7 @@ export default function Home() {
             <span className="font-pixel text-[11px] text-white/60">{activeWp?.name}</span>
           </div>
 
-          <Stage walking level={level.level} nowTs={nowTs} coins={coins} buffed={multiplier > 1} />
+          <Stage walking level={level.level} nowTs={nowTs} coins={coins} buffed={multiplier > 1} characterSrc={character} />
 
           <DQWindow title="しょとく">
             <div className="text-center">
@@ -234,17 +235,31 @@ export default function Home() {
             <DQCommand label="しごとを やめて まちに もどる" active accent="red" onClick={stopWork} />
           </DQWindow>
         </div>
+      ) : editMode ? (
+        /* ============ 編集モード（左プレビュー／右パネル） ============ */
+        <div className="flex h-full">
+          <div className="relative flex-1">
+            <Overworld
+              snap={snap}
+              className="absolute inset-0"
+              editMode
+              onTileClick={handleTileClick}
+              cameraCenter={editCam}
+              showLandmarks={isTown}
+            />
+            <TouchControls onPress={panPress} onRelease={panRelease} />
+            <div className="dq-window pointer-events-none absolute left-2 top-2 px-2 py-1 font-pixel text-[11px] text-white/80">
+              十字キーで視点移動・タップで{brush.kind === "prop" ? "画像配置" : brush.kind === "erase" ? "消す" : "タイル"}
+            </div>
+          </div>
+          <div className="dq-window no-scrollbar h-full w-[min(62%,360px)] shrink-0 overflow-y-auto rounded-none border-y-0 border-r-0">
+            <MapEditor brush={brush} setBrush={setBrush} onClose={() => setEditMode(false)} />
+          </div>
+        </div>
       ) : (
         /* ============ 町（トップダウン） ============ */
         <>
-          <Overworld
-            snap={snap}
-            className="absolute inset-0"
-            editMode={editMode}
-            onTileClick={editMode ? handleTileClick : undefined}
-            cameraCenter={editMode ? editCam : undefined}
-            showLandmarks={isTown}
-          />
+          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} />
 
           {/* 上部HUD */}
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-2">
@@ -260,11 +275,8 @@ export default function Home() {
             <div className="pointer-events-auto flex gap-1">
               <button
                 type="button"
-                onClick={() => setEditMode((v) => !v)}
-                className={cn(
-                  "dq-window grid h-9 w-9 place-items-center text-sm",
-                  editMode && "ring-2 ring-gold",
-                )}
+                onClick={() => setEditMode(true)}
+                className="dq-window grid h-9 w-9 place-items-center text-sm"
                 aria-label="編集モード"
                 title="編集モード（公開時は外す）"
               >
@@ -279,11 +291,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 編集モード：マップエディタ */}
-          {editMode && <MapEditor brush={brush} setBrush={setBrush} onClose={() => setEditMode(false)} />}
-
           {/* バイト先に接近 → 選択肢（複数選択・追加・削除） */}
-          {!editMode && nearShop && (
+          {nearShop && (
             <div className="absolute left-1/2 top-16 w-full max-w-xs -translate-x-1/2 px-4">
               <WorkMenu
                 workplaces={workplaces}
@@ -295,7 +304,7 @@ export default function Home() {
           )}
 
           {/* 看板に接近 → 説明 */}
-          {!editMode && nearSign && (
+          {nearSign && (
             <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
               <DQWindow title="たてふだ" className="anim-dq-pop">
                 <p className="font-pixel text-sm leading-relaxed text-white">
@@ -311,14 +320,10 @@ export default function Home() {
             </div>
           )}
 
-          {editMode ? (
-            <TouchControls onPress={panPress} onRelease={panRelease} />
-          ) : (
-            <TouchControls onPress={overworld.press} onRelease={overworld.release} />
-          )}
+          <TouchControls onPress={overworld.press} onRelease={overworld.release} />
 
           {/* ヒント */}
-          {!editMode && !nearShop && !nearSign && (
+          {!nearShop && !nearSign && (
             <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
               <p className="font-pixel rounded bg-black/55 px-3 py-1 text-[11px] text-white/80">
                 十字キーで移動・「¥バイト」に近づこう
