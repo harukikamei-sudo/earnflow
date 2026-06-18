@@ -33,6 +33,8 @@ const STRINGS: Record<string, Dict> = {
   "hint.move": { ja: "矢印キー / WASD で移動", en: "Move with arrow keys / WASD", es: "Muévete con flechas / WASD", fr: "Déplacez-vous avec les flèches / WASD", zh: "用方向键 / WASD 移动", ko: "방향키 / WASD 로 이동", ru: "Движение: стрелки / WASD" },
   "hint.moveTouch": { ja: "スワイプ（フリック）で移動", en: "Swipe to move", es: "Desliza para moverte", fr: "Glissez pour vous déplacer", zh: "滑动移动", ko: "스와이프로 이동", ru: "Свайп для движения" },
   "stage.arrived": { ja: "{name} に とうちゃく！", en: "Arrived in {name}!", es: "¡Llegaste a {name}!", fr: "Arrivée à {name} !", zh: "抵达了{name}！", ko: "{name}에 도착!", ru: "Прибытие в {name}!" },
+  "daily.title": { ja: "きょうの ひとこと", en: "A word from the hero", es: "Unas palabras del héroe", fr: "Un mot du héros", zh: "今日寄语", ko: "오늘의 한마디", ru: "Слово героя" },
+  "daily.close": { ja: "▼ タップでとじる", en: "▼ Tap to close", es: "▼ Toca para cerrar", fr: "▼ Touchez pour fermer", zh: "▼ 点击关闭", ko: "▼ 탭하여 닫기", ru: "▼ Нажмите, чтобы закрыть" },
 
   "prompt.workAsk": { ja: "ここで はたらきますか？", en: "Work here?", es: "¿Trabajar aquí?", fr: "Travailler ici ?", zh: "在这里工作吗？", ko: "여기서 일할까요?", ru: "Работать здесь?" },
   "btn.work": { ja: "はたらく！", en: "Work!", es: "¡Trabajar!", fr: "Travailler !", zh: "工作！", ko: "일하기!", ru: "Работать!" },

@@ -23,7 +23,8 @@ import { downloadSessionsCsv } from "@/game/exportCsv";
 import { resetProgress } from "@/game/resetProgress";
 import { LanguageSelect } from "@/components/game/LanguageSelect";
 import { notifyBlocked, requestNotifyPermission, setReminder, useReminder, useReminderScheduler } from "@/game/reminder";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
+import { dailyLine } from "@/game/dailyLines";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { useIsTouch } from "@/hooks/useIsTouch";
@@ -36,7 +37,7 @@ import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
 import { themeForLevel } from "@/game/themes";
-import { cn, formatDuration, formatYen, formatYenPrecise, uid } from "@/lib/utils";
+import { cn, formatDuration, formatYen, formatYenPrecise, toDateKey, uid } from "@/lib/utils";
 
 type Scene = "title" | "roam" | "work" | "home" | "shop";
 
@@ -73,6 +74,7 @@ export default function Home() {
   const wallet = useWallet();
   const boost = useEarningBoost();
   const t = useT();
+  const locale = useLocale();
   const reminder = useReminder();
   useReminderScheduler(t("notify.title"), t("notify.body"));
 
@@ -195,6 +197,21 @@ export default function Home() {
     const id = window.setTimeout(() => setThemeBanner(null), 2800);
     return () => window.clearTimeout(id);
   }, [theme.id, theme.name, theme.emoji]);
+
+  // 主人公の「今日のひとこと」（1日1回・町に入った時に表示）
+  const [greeting, setGreeting] = useState<string | null>(null);
+  useEffect(() => {
+    if (scene !== "roam") return;
+    try {
+      const today = toDateKey(new Date());
+      if (localStorage.getItem("earnflow.lastGreetDate") !== today) {
+        localStorage.setItem("earnflow.lastGreetDate", today);
+        setGreeting(dailyLine(locale));
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [scene, locale]);
 
   // 接近判定（バイト先 / 看板）
   const hx = Math.round(snap.px);
@@ -635,6 +652,34 @@ export default function Home() {
             <p className="font-pixel mt-1 text-sm leading-relaxed text-gold">
               {t("stage.arrived", { name: themeBanner.name })}
             </p>
+          </DQWindow>
+        </div>
+      )}
+
+      {/* 主人公の「今日のひとこと」（毎日1回） */}
+      {greeting && (
+        <div
+          onClick={() => {
+            playSE("confirm");
+            setGreeting(null);
+          }}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 pb-8"
+        >
+          <DQWindow title={t("daily.title")} className="anim-dq-pop w-full max-w-sm">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0">
+                <PixelSprite
+                  sprite={
+                    character && getBuiltinCharacter(character)
+                      ? getBuiltinCharacter(character)!.frames[0]
+                      : HERO_DOWN_A
+                  }
+                  scale={3}
+                />
+              </div>
+              <p className="font-pixel flex-1 text-sm leading-relaxed text-white">{greeting}</p>
+            </div>
+            <p className="font-pixel mt-2 text-right text-[11px] text-white/50">{t("daily.close")}</p>
           </DQWindow>
         </div>
       )}
