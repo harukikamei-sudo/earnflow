@@ -53,6 +53,8 @@ export interface SalaryEngine {
   start: (wp: Workplace) => void;
   stop: () => void;
   reset: () => void;
+  /** 保存済みセッションから累計ゴールドを再計算する（手入力で収入を追加した時など） */
+  refreshLifetime: () => void;
 }
 
 export function useSalaryEngine(): SalaryEngine {
@@ -145,6 +147,10 @@ export function useSalaryEngine(): SalaryEngine {
     writeActive(null);
   }, []);
 
+  const refreshLifetime = useCallback(() => {
+    setLifetimeGold(sumEarnings(getSessions()));
+  }, []);
+
   return {
     status,
     elapsedSec,
@@ -154,5 +160,6 @@ export function useSalaryEngine(): SalaryEngine {
     start,
     stop,
     reset,
+    refreshLifetime,
   };
 }

@@ -77,6 +77,12 @@ const STRINGS: Record<string, Dict> = {
   "house.calendar": { ja: "かせぎカレンダー", en: "Earnings calendar", es: "Calendario de ingresos", fr: "Calendrier des gains", zh: "收入日历", ko: "수입 달력", ru: "Календарь доходов" },
   "house.data": { ja: "データ", en: "Data", es: "Datos", fr: "Données", zh: "数据", ko: "데이터", ru: "Данные" },
   "data.csv": { ja: "📤 CSVで書き出す", en: "📤 Export CSV", es: "📤 Exportar CSV", fr: "📤 Exporter CSV", zh: "📤 导出 CSV", ko: "📤 CSV 내보내기", ru: "📤 Экспорт CSV" },
+
+  "manual.title": { ja: "収入を手入力", en: "Add income by hand", es: "Añadir ingreso a mano", fr: "Saisir un revenu", zh: "手动添加收入", ko: "수입 직접 입력", ru: "Добавить доход вручную" },
+  "manual.date": { ja: "日付", en: "Date", es: "Fecha", fr: "Date", zh: "日期", ko: "날짜", ru: "Дата" },
+  "manual.amount": { ja: "金額", en: "Amount", es: "Importe", fr: "Montant", zh: "金额", ko: "금액", ru: "Сумма" },
+  "manual.add": { ja: "この日に追加する", en: "Add to this day", es: "Añadir a este día", fr: "Ajouter à ce jour", zh: "添加到这一天", ko: "이 날에 추가", ru: "Добавить на этот день" },
+  "manual.hint": { ja: "アプリの外で稼いだぶんもここで記録できる。", en: "Log earnings you made outside the app.", es: "Registra ingresos hechos fuera de la app.", fr: "Enregistrez les revenus hors de l'appli.", zh: "记录在应用外赚到的收入。", ko: "앱 밖에서 번 수입도 기록할 수 있어.", ru: "Запишите доход, полученный вне приложения." },
   "data.noRecord": { ja: "まだ収入の記録がありません。", en: "No income records yet.", es: "Aún no hay registros.", fr: "Aucun enregistrement pour l'instant.", zh: "还没有收入记录。", ko: "아직 수입 기록이 없습니다.", ru: "Пока нет записей о доходе." },
 
   "sign.title": { ja: "たてふだ", en: "Sign", es: "Cartel", fr: "Panneau", zh: "告示牌", ko: "푯말", ru: "Указатель" },

@@ -18,7 +18,7 @@ import { DOOR, HOUSE_DOOR, MAP_H, MAP_W, MARKET_DOOR, SIGN_POS, TOWN_ID, type Ti
 import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
 import { addGold, useEarningBoost, useWallet } from "@/game/playerStore";
 import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
-import { getGoal, getSessions } from "@/lib/store";
+import { addSession, getGoal, getSessions } from "@/lib/store";
 import { downloadSessionsCsv } from "@/game/exportCsv";
 import { resetProgress } from "@/game/resetProgress";
 import { LanguageSelect } from "@/components/game/LanguageSelect";
@@ -244,12 +244,38 @@ export default function Home() {
     }
   }, [scene, nearMarket, nearHouse]);
 
+  // 手入力で収入を追加したら更新するためのバージョン
+  const [dataVersion, setDataVersion] = useState(0);
+
+  // 手入力で収入を追加（アプリ外で稼いだぶんの記録など）
+  const [manualAmount, setManualAmount] = useState("");
+  const [manualDate, setManualDate] = useState(() => toDateKey(new Date()));
+  function addManualEarning() {
+    const amt = Math.round(Number(manualAmount));
+    if (!Number.isFinite(amt) || amt <= 0) return;
+    const d = manualDate ? new Date(`${manualDate}T12:00:00`) : new Date();
+    const ts = d.getTime();
+    addSession({
+      id: uid(),
+      workplaceId: "manual",
+      startTime: ts,
+      endTime: ts,
+      durationSec: 0,
+      earnings: amt,
+      dateKey: toDateKey(d),
+    });
+    playSE("confirm");
+    setManualAmount("");
+    setDataVersion((v) => v + 1);
+    engine.refreshLifetime();
+  }
+
   // 今月のノルマ進捗（家の中で確認）
   const monthEarned = useMemo(() => {
     const now = new Date();
     return sumEarnings(sessionsInMonth(getSessions(), now.getFullYear(), now.getMonth()));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene]);
+  }, [scene, dataVersion]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const goal = useMemo(() => getGoal(), [scene]);
 
@@ -462,6 +488,38 @@ export default function Home() {
             )}
           </DQWindow>
 
+          {/* 収入を手入力 */}
+          <DQWindow title={t("manual.title")}>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between font-pixel text-sm text-white">
+                <span>{t("manual.date")}</span>
+                <input
+                  type="date"
+                  value={manualDate}
+                  onChange={(e) => setManualDate(e.target.value)}
+                  className="font-pixel rounded bg-white/10 px-2 py-1 text-white"
+                />
+              </div>
+              <div className="flex items-center gap-2 font-pixel text-sm text-white">
+                <span>{t("manual.amount")}</span>
+                <div className="relative flex-1">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white/50">¥</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={manualAmount}
+                    onChange={(e) => setManualAmount(e.target.value)}
+                    placeholder="0"
+                    className="tabular h-10 w-full rounded bg-white/10 pl-7 pr-2 text-right font-bold text-white"
+                  />
+                </div>
+              </div>
+              <DQCommand label={t("manual.add")} active accent="gold" onClick={addManualEarning} />
+              <p className="font-pixel text-[10px] text-white/40">{t("manual.hint")}</p>
+            </div>
+          </DQWindow>
+
           {/* ノルマ設定（逆算） */}
           <DQWindow title={t("house.setGoal")}>
             <GoalSettings />
@@ -469,12 +527,12 @@ export default function Home() {
 
           {/* グラフ */}
           <DQWindow title={t("house.graph")}>
-            <EarningsChart />
+            <EarningsChart key={dataVersion} />
           </DQWindow>
 
           {/* カレンダー */}
           <DQWindow title={t("house.calendar")}>
-            <CalendarBoard />
+            <CalendarBoard key={dataVersion} />
           </DQWindow>
 
           {/* リマインダー */}
