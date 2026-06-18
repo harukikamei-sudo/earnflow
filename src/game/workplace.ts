@@ -18,11 +18,12 @@ export const RULE_PRESETS: { label: string; startHour: number; endHour: number; 
   { label: "夕方割増", startHour: 17, endHour: 22, multiplier: 1.15 },
 ];
 
-/** 名前・時給・時間帯ルールから Workplace を生成する */
+/** 名前・時給・時間帯ルール・休日追加時給から Workplace を生成する */
 export function createWorkplace(
   name: string,
   hourlyRate: number,
   rules: TimeRule[],
+  holidayBonus = 0,
 ): Workplace {
   return {
     id: uid(),
@@ -31,6 +32,7 @@ export function createWorkplace(
     hourlyRate,
     dailyRate: 0,
     timeRules: rules,
+    holidayBonus: holidayBonus > 0 ? holidayBonus : 0,
     createdAt: Date.now(),
   };
 }

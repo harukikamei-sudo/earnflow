@@ -7,6 +7,7 @@
  */
 
 import type { Session, TimeRule, Workplace } from "./types";
+import { isHoliday } from "./holiday";
 import { toDateKey, uid } from "./utils";
 
 /** 指定時刻(Date)に適用される最大倍率を返す。該当ルールが無ければ 1.0 */
@@ -34,22 +35,25 @@ function isHourInRule(hour: number, startHour: number, endHour: number): boolean
 /**
  * [start, end) 区間（epoch ms）の時給収入を計算。
  * 倍率が時間帯で変わるため、1 分刻みで積分する（誤差は無視できる範囲）。
+ * holidayBonus を渡すと、土日・祝日の分は時給に上乗せする（時間帯倍率はその合計に掛かる）。
  */
 export function hourlyEarnings(
   startMs: number,
   endMs: number,
   hourlyRate: number,
   rules: TimeRule[],
+  holidayBonus = 0,
 ): number {
   if (endMs <= startMs || hourlyRate <= 0) return 0;
-  const perSecondBase = hourlyRate / 3600;
   const stepMs = 60_000; // 1 分刻み
   let total = 0;
   for (let t = startMs; t < endMs; t += stepMs) {
     const segEnd = Math.min(t + stepMs, endMs);
     const segSec = (segEnd - t) / 1000;
-    const m = multiplierAt(new Date(t), rules);
-    total += perSecondBase * segSec * m;
+    const d = new Date(t);
+    const rate = hourlyRate + (holidayBonus > 0 && isHoliday(d) ? holidayBonus : 0);
+    const m = multiplierAt(d, rules);
+    total += (rate / 3600) * segSec * m;
   }
   return total;
 }
@@ -61,10 +65,12 @@ export function currentEarnings(
   nowMs: number,
 ): number {
   if (wp.payType === "daily") {
-    // 日給制: 稼働開始した時点で満額（按分しない）
-    return nowMs > startMs ? wp.dailyRate : 0;
+    // 日給制: 稼働開始した時点で満額（按分しない）。休日は追加分を上乗せ
+    if (nowMs <= startMs) return 0;
+    const bonus = (wp.holidayBonus ?? 0) > 0 && isHoliday(new Date(startMs)) ? wp.holidayBonus! : 0;
+    return wp.dailyRate + bonus;
   }
-  return hourlyEarnings(startMs, nowMs, wp.hourlyRate, wp.timeRules);
+  return hourlyEarnings(startMs, nowMs, wp.hourlyRate, wp.timeRules, wp.holidayBonus ?? 0);
 }
 
 /** 稼働終了時に確定セッションを生成 */

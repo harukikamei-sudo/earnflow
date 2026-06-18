@@ -31,6 +31,7 @@ import { AudioControl } from "@/components/game/AudioControl";
 import { useBgm } from "@/audio/useAudio";
 import { playSE } from "@/audio/engine";
 import { multiplierAt } from "@/lib/earnings";
+import { isHoliday } from "@/lib/holiday";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
@@ -161,9 +162,11 @@ export default function Home() {
 
   const activeWp = working ? engine.runningWorkplace : null;
   const multiplier = activeWp ? multiplierAt(new Date(nowTs), activeWp.timeRules) : 1;
+  const onHoliday = isHoliday(new Date(nowTs));
+  const holidayBonus = onHoliday ? (activeWp?.holidayBonus ?? 0) : 0;
   const perSecond =
     activeWp && activeWp.payType === "hourly"
-      ? (activeWp.hourlyRate / 3600) * multiplier * boost
+      ? ((activeWp.hourlyRate + holidayBonus) / 3600) * multiplier * boost
       : 0;
 
   const level = useMemo(() => levelInfo(totalGold), [totalGold]);
@@ -334,6 +337,9 @@ export default function Home() {
               <span>{perSecond > 0 ? `¥${perSecond.toFixed(2)}/秒` : "—"}</span>
               {multiplier > 1 && (
                 <span className="rounded bg-gold/20 px-1.5 py-0.5 font-bold text-gold">🌙 ×{multiplier}</span>
+              )}
+              {holidayBonus > 0 && (
+                <span className="rounded bg-gold/20 px-1.5 py-0.5 font-bold text-gold">🎌 +¥{holidayBonus}</span>
               )}
             </div>
           </DQWindow>
@@ -561,6 +567,7 @@ export default function Home() {
                 workplaces={workplaces}
                 onStart={startWork}
                 onAdd={addWorkplace}
+                onUpdate={addWorkplace}
                 onDelete={removeWorkplace}
               />
             </div>

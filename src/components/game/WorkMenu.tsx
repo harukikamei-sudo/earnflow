@@ -9,15 +9,19 @@ interface WorkMenuProps {
   workplaces: Workplace[];
   onStart: (wp: Workplace) => void;
   onAdd: (wp: Workplace) => void;
+  onUpdate: (wp: Workplace) => void;
   onDelete: (id: string) => void;
 }
 
-/** バイト先に接近したときに出る選択ウィンドウ（複数選択・追加・削除）。 */
-export function WorkMenu({ workplaces, onStart, onAdd, onDelete }: WorkMenuProps) {
+/** バイト先に接近したときに出る選択ウィンドウ（複数選択・追加・編集・削除）。 */
+export function WorkMenu({ workplaces, onStart, onAdd, onUpdate, onDelete }: WorkMenuProps) {
   const [selectedId, setSelectedId] = useState(workplaces[0]?.id ?? "");
   const [adding, setAdding] = useState(false);
+  /** 編集中のバイトID（null＝新規追加） */
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [rate, setRate] = useState("1100");
+  const [holiday, setHoliday] = useState("0");
   const [rules, setRules] = useState<TimeRule[]>([makeTimeRule("深夜割増", 22, 5, 1.25)]);
   // カスタム時間帯ルール入力
   const [cStart, setCStart] = useState("22");
@@ -26,7 +30,7 @@ export function WorkMenu({ workplaces, onStart, onAdd, onDelete }: WorkMenuProps
 
   // 選択中が消えていたら先頭にフォールバック（state は更新せず描画時に解決）
   const selected = workplaces.find((w) => w.id === selectedId) ?? workplaces[0] ?? null;
-  const showAdd = adding || workplaces.length === 0;
+  const showForm = adding || editingId !== null || workplaces.length === 0;
 
   function addPreset(p: (typeof RULE_PRESETS)[number]) {
     setRules((rs) => [...rs, makeTimeRule(p.label, p.startHour, p.endHour, p.multiplier)]);
@@ -42,16 +46,42 @@ export function WorkMenu({ workplaces, onStart, onAdd, onDelete }: WorkMenuProps
     setRules((rs) => rs.filter((r) => r.id !== id));
   }
 
-  function submitAdd() {
-    const r = Number(rate);
-    if (!name.trim() || !Number.isFinite(r) || r <= 0) return;
-    const wp = createWorkplace(name.trim(), r, rules);
-    onAdd(wp);
-    setSelectedId(wp.id);
+  function resetForm() {
     setAdding(false);
+    setEditingId(null);
     setName("");
     setRate("1100");
+    setHoliday("0");
     setRules([makeTimeRule("深夜割増", 22, 5, 1.25)]);
+  }
+
+  /** 既存バイトを編集モードで開く（値をフォームへ流し込む） */
+  function startEdit(w: Workplace) {
+    setEditingId(w.id);
+    setAdding(false);
+    setName(w.name);
+    setRate(String(w.hourlyRate));
+    setHoliday(String(w.holidayBonus ?? 0));
+    setRules(w.timeRules.map((r) => ({ ...r })));
+  }
+
+  function submitForm() {
+    const r = Number(rate);
+    if (!name.trim() || !Number.isFinite(r) || r <= 0) return;
+    const hb = Number(holiday);
+    const bonus = Number.isFinite(hb) && hb > 0 ? hb : 0;
+    if (editingId) {
+      const orig = workplaces.find((w) => w.id === editingId);
+      if (!orig) return;
+      const wp: Workplace = { ...orig, name: name.trim(), hourlyRate: r, holidayBonus: bonus, timeRules: rules };
+      onUpdate(wp);
+      setSelectedId(wp.id);
+    } else {
+      const wp = createWorkplace(name.trim(), r, rules, bonus);
+      onAdd(wp);
+      setSelectedId(wp.id);
+    }
+    resetForm();
   }
 
   return (
@@ -78,8 +108,19 @@ export function WorkMenu({ workplaces, onStart, onAdd, onDelete }: WorkMenuProps
                   {w.name}
                 </span>
                 <span className="text-xs opacity-80">
-                  {formatYen(w.hourlyRate)}/時{m ? " 🌙" : ""}
+                  {formatYen(w.hourlyRate)}/時{m ? " 🌙" : ""}{(w.holidayBonus ?? 0) > 0 ? " 🎌" : ""}
                 </span>
+              </button>
+              <button
+                type="button"
+                aria-label="編集"
+                onClick={() => startEdit(w)}
+                className={cn(
+                  "font-pixel rounded px-2 py-1 text-xs hover:bg-white/10",
+                  editingId === w.id ? "text-gold" : "text-white/50 hover:text-gold",
+                )}
+              >
+                ✎
               </button>
               <button
                 type="button"
@@ -94,9 +135,12 @@ export function WorkMenu({ workplaces, onStart, onAdd, onDelete }: WorkMenuProps
         })}
       </div>
 
-      {/* 追加フォーム */}
-      {showAdd ? (
+      {/* 追加 / 編集フォーム */}
+      {showForm ? (
         <div className="mb-2 flex flex-col gap-2 rounded bg-white/5 p-2">
+          {editingId && (
+            <p className="font-pixel text-[11px] text-gold">✎ バイトの内容を編集</p>
+          )}
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -118,6 +162,23 @@ export function WorkMenu({ workplaces, onStart, onAdd, onDelete }: WorkMenuProps
               />
             </div>
           </div>
+
+          {/* 休日（土日・祝日）の追加時給 */}
+          <div className="flex items-center gap-2">
+            <label className="font-pixel text-sm whitespace-nowrap">🎌 休日時給+</label>
+            <div className="relative flex-1">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">¥</span>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={holiday}
+                onChange={(e) => setHoliday(e.target.value)}
+                className="tabular h-10 pl-7 text-right font-bold"
+              />
+            </div>
+          </div>
+          <p className="font-pixel -mt-1 text-[10px] text-white/50">土日・祝日はこの分だけ時給が上がる</p>
 
           {/* 時間帯割増ルール */}
           <p className="font-pixel text-[11px] text-white/60">時間帯の割増（深夜・早朝など）</p>
@@ -155,14 +216,17 @@ export function WorkMenu({ workplaces, onStart, onAdd, onDelete }: WorkMenuProps
           </div>
 
           <div className="flex gap-2">
-            <DQCommand label="ついかする" active accent="gold" onClick={submitAdd} />
-            {workplaces.length > 0 && <DQCommand label="やめる" onClick={() => setAdding(false)} />}
+            <DQCommand label={editingId ? "ほぞんする" : "ついかする"} active accent="gold" onClick={submitForm} />
+            {workplaces.length > 0 && <DQCommand label="やめる" se="cancel" onClick={resetForm} />}
           </div>
         </div>
       ) : (
         <button
           type="button"
-          onClick={() => setAdding(true)}
+          onClick={() => {
+            resetForm();
+            setAdding(true);
+          }}
           className="font-pixel mb-2 w-full rounded border border-dashed border-white/30 px-2 py-1.5 text-sm text-white/70 hover:bg-white/10"
         >
           ＋ あたらしい バイトを ついか

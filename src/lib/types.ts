@@ -32,6 +32,8 @@ export interface Workplace {
   dailyRate: number;
   /** 時間帯別倍率ルール */
   timeRules: TimeRule[];
+  /** 休日(土日・祝日)の追加時給(円/時)。0またはundefined＝なし */
+  holidayBonus?: number;
   /** テーマカラー（任意・将来のラベル色分け用） */
   color?: string;
   createdAt: number;
