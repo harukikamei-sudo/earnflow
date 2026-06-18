@@ -3,6 +3,7 @@ import { Stage, type StageCoin } from "@/components/pixel/Stage";
 import { DQCommand, DQWindow } from "@/components/pixel/DQWindow";
 import { Overworld } from "@/components/game/Overworld";
 import { TouchControls } from "@/components/game/TouchControls";
+import { FlickControls } from "@/components/game/FlickControls";
 import { WorkMenu } from "@/components/game/WorkMenu";
 import { MapEditor, type Brush } from "@/components/game/MapEditor";
 import { CostumePanel } from "@/components/game/CostumePanel";
@@ -33,6 +34,7 @@ import { multiplierAt } from "@/lib/earnings";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
+import { themeForLevel } from "@/game/themes";
 import { cn, formatDuration, formatYen, formatYenPrecise, uid } from "@/lib/utils";
 
 type Scene = "title" | "roam" | "work" | "home" | "shop";
@@ -178,6 +180,18 @@ export default function Home() {
     return night ? ("townNight" as const) : ("townDay" as const);
   }, [scene, nowTs]);
   useBgm(bgmKey);
+
+  // レベルに応じたステージテーマ（12カ国）。上がると見た目がガラッと変わる
+  const theme = useMemo(() => themeForLevel(level.level), [level.level]);
+  const [themeBanner, setThemeBanner] = useState<{ name: string; emoji: string } | null>(null);
+  const prevThemeRef = useRef(theme.id);
+  useEffect(() => {
+    if (theme.id === prevThemeRef.current) return;
+    prevThemeRef.current = theme.id;
+    setThemeBanner({ name: theme.name, emoji: theme.emoji });
+    const id = window.setTimeout(() => setThemeBanner(null), 2800);
+    return () => window.clearTimeout(id);
+  }, [theme.id, theme.name, theme.emoji]);
 
   // 接近判定（バイト先 / 看板）
   const hx = Math.round(snap.px);
@@ -512,8 +526,8 @@ export default function Home() {
         <>
           <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} />
 
-          {/* タッチ端末（iPhone/iPad/Android）用の画面上十字キー */}
-          {isTouch && <TouchControls onPress={press} onRelease={release} />}
+          {/* フリック / スワイプ / ドラッグで移動（十字キーの代わり） */}
+          <FlickControls onPress={press} onRelease={release} />
 
           {/* 上部HUD */}
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-2">
@@ -521,6 +535,7 @@ export default function Home() {
               <div className="flex items-center gap-3 font-pixel text-xs">
                 <span className="text-gold">Lv.{level.level}</span>
                 <span>💰 {wallet} G</span>
+                <span className="text-white/80">{theme.emoji} {theme.name}</span>
               </div>
               <div className="mt-1 w-28">
                 <ExpBar progress={level.progress} thin />
@@ -601,6 +616,18 @@ export default function Home() {
             </p>
             <p className="font-pixel mt-2 text-sm text-gold">{t("levelup.gotTitle", { rank: levelUp.rank })}</p>
             <p className="font-pixel mt-1 text-sm text-white">{t("levelup.gold", { n: levelUp.gold })}</p>
+          </DQWindow>
+        </div>
+      )}
+
+      {/* ステージ（国）が変わった時のバナー */}
+      {themeBanner && (
+        <div className="pointer-events-none fixed inset-x-0 top-1/3 z-50 grid place-items-center px-6">
+          <DQWindow className="anim-dq-pop text-center">
+            <p className="font-pixel text-3xl">{themeBanner.emoji}</p>
+            <p className="font-pixel mt-1 text-sm leading-relaxed text-gold">
+              {t("stage.arrived", { name: themeBanner.name })}
+            </p>
           </DQWindow>
         </div>
       )}

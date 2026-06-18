@@ -3,8 +3,7 @@ import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
 import { HOUSE, MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
-import { WeatherOverlay } from "./WeatherOverlay";
-import { weatherTier } from "@/game/weather";
+import { themeForLevel, type StageTheme } from "@/game/themes";
 import { useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
@@ -12,16 +11,12 @@ import { cn } from "@/lib/utils";
 const WORLD_W = MAP_W * TILE;
 const WORLD_H = MAP_H * TILE;
 
-const GRASS = ["#3f9e44", "#43a548"];
-const PATH = ["#caa869", "#c19f60"];
-const WATER = ["#2f6fd0", "#3577da"];
-
-function baseColor(ch: string, x: number, y: number): string {
+function baseColor(theme: StageTheme, ch: string, x: number, y: number): string {
   const odd = (x + y) % 2;
   if (ch === "N") return odd ? "#ffffff" : "#f1f3f6"; // 真っ白ステージ
-  if (ch === "W") return WATER[odd];
-  if (ch === "P" || ch === "D") return PATH[odd];
-  return GRASS[odd];
+  if (ch === "W") return theme.water[odd];
+  if (ch === "P" || ch === "D") return theme.path[odd];
+  return theme.grass[odd];
 }
 
 const OBJECT: Record<string, { sprite: typeof TREE; scale: number }> = {
@@ -31,8 +26,8 @@ const OBJECT: Record<string, { sprite: typeof TREE; scale: number }> = {
   R: { sprite: ROCK, scale: 2 },
 };
 
-/** タイル下地＋オブジェクト（mapRows が変わったときだけ再描画） */
-const TileLayer = memo(function TileLayer({ rows }: { rows: string[] }) {
+/** タイル下地＋オブジェクト（mapRows / テーマが変わったときだけ再描画） */
+const TileLayer = memo(function TileLayer({ rows, theme }: { rows: string[]; theme: StageTheme }) {
   return (
     <div
       className="absolute left-0 top-0 grid"
@@ -50,10 +45,13 @@ const TileLayer = memo(function TileLayer({ rows }: { rows: string[] }) {
             <div
               key={`${x}-${y}`}
               className={cn("relative", ch === "W" && "anim-water")}
-              style={{ background: baseColor(ch, x, y) }}
+              style={{ background: baseColor(theme, ch, x, y) }}
             >
               {obj && (
-                <div className="absolute inset-0 grid place-items-end justify-center pb-0.5">
+                <div
+                  className="absolute inset-0 grid place-items-end justify-center pb-0.5"
+                  style={{ filter: theme.objectFilter }}
+                >
                   <PixelSprite sprite={obj.sprite} scale={obj.scale} />
                 </div>
               )}
@@ -257,6 +255,7 @@ export function Overworld({
   const rows = useMapRows();
   const props = useProps();
   const character = useCharacter();
+  const theme = themeForLevel(level);
 
   useLayoutEffect(() => {
     const el = viewRef.current;
@@ -300,7 +299,8 @@ export function Overworld({
   return (
     <div
       ref={viewRef}
-      className={cn("relative overflow-hidden bg-[#3f9e44]", editMode && "cursor-crosshair", className)}
+      className={cn("relative overflow-hidden", editMode && "cursor-crosshair", className)}
+      style={{ background: theme.bg }}
       onPointerDown={handlePointer}
     >
       <div
@@ -312,11 +312,11 @@ export function Overworld({
           transform: `translate(${-camX * scale}px, ${-camY * scale}px) scale(${scale})`,
         }}
       >
-        <TileLayer rows={rows} />
+        <TileLayer rows={rows} theme={theme} />
 
         {showLandmarks && (
           <>
-            <ShopBuilding castle={weatherTier(level) >= 2} />
+            <ShopBuilding castle={level >= 60} />
             <MarketBuilding />
             <HouseBuilding />
           </>
@@ -370,9 +370,6 @@ export function Overworld({
           </div>
         )}
       </div>
-
-      {/* レベル演出（20レベル刻み：霧→雨→炎→夜） */}
-      <WeatherOverlay level={level} />
     </div>
   );
 }

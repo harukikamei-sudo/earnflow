@@ -13,7 +13,7 @@ import {
   TREE,
   type Sprite,
 } from "./sprites";
-import { WeatherOverlay } from "@/components/game/WeatherOverlay";
+import { themeForLevel } from "@/game/themes";
 import { cn } from "@/lib/utils";
 
 export interface StageCoin {
@@ -141,6 +141,7 @@ function CloudStrip() {
 export function Stage({ walking, level, nowTs, coins, buffed, characterSrc }: StageProps) {
   const phase = useMemo(() => phaseOf(new Date(nowTs).getHours()), [nowTs]);
   const monster = useMemo(() => monsterForLevel(level), [level]);
+  const theme = useMemo(() => themeForLevel(level), [level]);
   const playState = walking ? "running" : "paused";
   const isNight = phase === "night" || phase === "dusk";
 
@@ -187,7 +188,7 @@ export function Stage({ walking, level, nowTs, coins, buffed, characterSrc }: St
       </div>
 
       {/* 中景の木立 */}
-      <div className="absolute bottom-12 left-0 w-full">
+      <div className="absolute bottom-12 left-0 w-full" style={{ filter: theme.objectFilter }}>
         <div className="scroller-x" style={{ animationDuration: "15s", animationPlayState: playState }}>
           <TreeStrip />
         </div>
@@ -195,18 +196,17 @@ export function Stage({ walking, level, nowTs, coins, buffed, characterSrc }: St
 
       {/* 地面（草 + 土の道） */}
       <div className="absolute bottom-0 left-0 h-16 w-full">
-        <div className="h-3 w-full bg-[#3f9e44]" />
+        <div className="h-3 w-full" style={{ background: theme.grass[0] }} />
         <div
           className="h-full w-full"
           style={{
-            background:
-              "repeating-linear-gradient(90deg,#7a5230 0px,#7a5230 10px,#6b4628 10px,#6b4628 20px)",
+            background: `repeating-linear-gradient(90deg,${theme.dirt} 0px,${theme.dirt} 10px,color-mix(in srgb,${theme.dirt} 78%,#000) 10px,color-mix(in srgb,${theme.dirt} 78%,#000) 20px)`,
           }}
         />
       </div>
 
       {/* 道の流れ（前景：花・岩・看板・モンスター） */}
-      <div className="absolute bottom-3 left-0 w-full">
+      <div className="absolute bottom-3 left-0 w-full" style={{ filter: theme.objectFilter }}>
         <div className="scroller-x" style={{ animationDuration: "9s", animationPlayState: playState }}>
           <ForegroundStrip monster={monster.sprite} />
         </div>
@@ -249,9 +249,6 @@ export function Stage({ walking, level, nowTs, coins, buffed, characterSrc }: St
       <div className="absolute bottom-1 right-2 text-[10px] font-bold text-white/80">
         {walking ? "▶ あるいている…" : "‖ きゅうけい中"}
       </div>
-
-      {/* レベル演出（天候） */}
-      <WeatherOverlay level={level} />
     </div>
   );
 }
