@@ -29,6 +29,8 @@ export const SE: Record<string, { src: string; gain?: number }> = {
   cancel: { src: "/audio/se_button.mp3" },
   /** レベルアップ（成功音） */
   levelup: { src: "/audio/se_levelup.mp3", gain: 0.9 },
+  /** ドアを開ける（我が家・道具屋に入る時） */
+  door: { src: "/audio/se_door.mp3" },
 };
 
 export type SeName = keyof typeof SE;

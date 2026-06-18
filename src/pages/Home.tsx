@@ -235,8 +235,13 @@ export default function Home() {
       return;
     }
     if (reenterGuard.current) return; // 退出直後は無視
-    if (nearMarket) setScene("shop");
-    else if (nearHouse) setScene("home");
+    if (nearMarket) {
+      playSE("door");
+      setScene("shop");
+    } else if (nearHouse) {
+      playSE("door");
+      setScene("home");
+    }
   }, [scene, nearMarket, nearHouse]);
 
   // 今月のノルマ進捗（家の中で確認）
