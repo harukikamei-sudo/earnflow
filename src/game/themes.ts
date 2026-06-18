@@ -27,8 +27,8 @@ export interface StageTheme {
   dirt: string;
 }
 
-/** レベル1つのテーマが続く幅（レベル数） */
-export const LEVELS_PER_THEME = 3;
+/** レベル1つのテーマが続く幅（レベル数）。15ごとに新しい街(国)が開放される */
+export const LEVELS_PER_THEME = 15;
 
 export const THEMES: StageTheme[] = [
   {
