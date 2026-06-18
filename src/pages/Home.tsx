@@ -225,6 +225,20 @@ export default function Home() {
   const nearSign =
     isTown && !working && !editMode && settled && !nearShop && !nearMarket && !nearHouse && man(SIGN_POS.x, SIGN_POS.y) <= 1;
 
+  // 我が家・道具屋は触れたら自動で入る。退出直後の再入場を防ぐため、
+  // 一度ドアから離れる（near がすべて false になる）まで再入場しないようガードする。
+  const reenterGuard = useRef(false);
+  useEffect(() => {
+    if (scene !== "roam") return;
+    if (!nearMarket && !nearHouse) {
+      reenterGuard.current = false; // ドアから離れたら再武装
+      return;
+    }
+    if (reenterGuard.current) return; // 退出直後は無視
+    if (nearMarket) setScene("shop");
+    else if (nearHouse) setScene("home");
+  }, [scene, nearMarket, nearHouse]);
+
   // 今月のノルマ進捗（家の中で確認）
   const monthEarned = useMemo(() => {
     const now = new Date();
@@ -416,6 +430,7 @@ export default function Home() {
               type="button"
               onClick={() => {
                 playSE("cancel");
+                reenterGuard.current = true;
                 setScene("roam");
               }}
               className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white"
@@ -534,6 +549,7 @@ export default function Home() {
               type="button"
               onClick={() => {
                 playSE("cancel");
+                reenterGuard.current = true;
                 setScene("roam");
               }}
               className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white"
@@ -590,25 +606,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* どうぐ屋に接近 → 入店 */}
-          {nearMarket && (
-            <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
-              <DQWindow title={t("shop.name")} className="anim-dq-pop">
-                <p className="font-pixel mb-2 text-sm text-white">{t("shop.ask")}</p>
-                <DQCommand label={t("shop.enter")} active accent="gold" onClick={() => setScene("shop")} />
-              </DQWindow>
-            </div>
-          )}
-
-          {/* わが家に接近 → 入る */}
-          {nearHouse && (
-            <div className="absolute left-1/2 top-20 w-full max-w-xs -translate-x-1/2 px-4">
-              <DQWindow title={t("house.name")} className="anim-dq-pop">
-                <p className="font-pixel mb-2 text-sm text-white">{t("house.enterAsk")}</p>
-                <DQCommand label={t("house.enter")} active accent="gold" onClick={() => setScene("home")} />
-              </DQWindow>
-            </div>
-          )}
+          {/* どうぐ屋・わが家は接近で自動入場（確認なし） */}
 
           {/* 看板に接近 → 説明 */}
           {nearSign && (
