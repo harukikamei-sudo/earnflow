@@ -45,7 +45,14 @@ function DirButton({
 /** ドラクエ風の十字キー。スマホのタッチ操作用（移動のみ）。 */
 export function TouchControls({ onPress, onRelease }: TouchControlsProps) {
   return (
-    <div className="absolute bottom-5 left-5 select-none touch-none">
+    <div
+      className="absolute z-30 select-none touch-none"
+      style={{
+        // iPhone のホームインジケータ等（セーフエリア）に被らないよう余白を確保
+        left: "max(1.25rem, env(safe-area-inset-left))",
+        bottom: "max(1.25rem, env(safe-area-inset-bottom))",
+      }}
+    >
       <div className="grid grid-cols-3 grid-rows-3 gap-0.5" style={{ width: 150, height: 150 }}>
         <span />
         <DirButton dir="up" label="▲" onPress={onPress} onRelease={onRelease} className="rounded-t-md" />

@@ -25,6 +25,7 @@ import { notifyBlocked, requestNotifyPermission, setReminder, useReminder, useRe
 import { useT } from "@/i18n";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
+import { useIsTouch } from "@/hooks/useIsTouch";
 import { multiplierAt } from "@/lib/earnings";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
@@ -143,7 +144,8 @@ export default function Home() {
   const refresh = () => setWorkplaces(getWorkplaces());
 
   const overworld = useOverworld({ enabled: scene === "roam" && !editMode, resetKey: activeId });
-  const { snap } = overworld;
+  const { snap, press, release } = overworld;
+  const isTouch = useIsTouch();
 
   // 時刻（時間帯・バフ用）
   const [nowTs, setNowTs] = useState(() => Date.now());
@@ -484,6 +486,9 @@ export default function Home() {
         <>
           <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} />
 
+          {/* タッチ端末（iPhone/iPad/Android）用の画面上十字キー */}
+          {isTouch && <TouchControls onPress={press} onRelease={release} />}
+
           {/* 上部HUD */}
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-2">
             <div className="dq-window pointer-events-auto px-3 py-1.5">
@@ -553,7 +558,7 @@ export default function Home() {
           {!nearShop && !nearMarket && !nearHouse && !nearSign && (
             <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
               <p className="font-pixel rounded bg-black/55 px-3 py-1 text-[11px] text-white/80">
-                {t("hint.move")}
+                {t(isTouch ? "hint.moveTouch" : "hint.move")}
               </p>
             </div>
           )}

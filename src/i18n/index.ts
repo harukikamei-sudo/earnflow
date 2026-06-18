@@ -31,6 +31,7 @@ const STRINGS: Record<string, Dict> = {
   "title.continue": { ja: "つづきから", en: "Continue", es: "Continuar", fr: "Continuer", zh: "继续游戏", ko: "이어서 하기", ru: "Продолжить" },
   "title.confirmNew": { ja: "はじめから始めます。今のレベル・所持金・着せ替え・勤務履歴は消えます。よろしいですか？", en: "Start a new game? Your level, gold, costume and work history will be erased. OK?", es: "¿Empezar de nuevo? Se borrarán tu nivel, oro, traje e historial. ¿Continuar?", fr: "Nouvelle partie ? Votre niveau, or, costume et historique seront effacés. OK ?", zh: "重新开始？等级、金币、装扮和记录都会被清除。确定吗？", ko: "처음부터 시작할까요? 레벨·골드·코스튬·기록이 모두 삭제됩니다. 괜찮나요?", ru: "Начать заново? Уровень, золото, костюм и история будут удалены. Продолжить?" },
   "hint.move": { ja: "矢印キー / WASD で移動", en: "Move with arrow keys / WASD", es: "Muévete con flechas / WASD", fr: "Déplacez-vous avec les flèches / WASD", zh: "用方向键 / WASD 移动", ko: "방향키 / WASD 로 이동", ru: "Движение: стрелки / WASD" },
+  "hint.moveTouch": { ja: "十字キーで移動", en: "Move with the D-pad", es: "Muévete con la cruceta", fr: "Déplacez-vous avec la croix", zh: "用十字键移动", ko: "십자 키로 이동", ru: "Движение: крестовина" },
 
   "prompt.workAsk": { ja: "ここで はたらきますか？", en: "Work here?", es: "¿Trabajar aquí?", fr: "Travailler ici ?", zh: "在这里工作吗？", ko: "여기서 일할까요?", ru: "Работать здесь?" },
   "btn.work": { ja: "はたらく！", en: "Work!", es: "¡Trabajar!", fr: "Travailler !", zh: "工作！", ko: "일하기!", ru: "Работать!" },
