@@ -1,3 +1,5 @@
+import { playSE } from "@/audio/engine";
+import type { SeName } from "@/audio/tracks";
 import { cn } from "@/lib/utils";
 
 interface DQWindowProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -32,6 +34,7 @@ export function DQCommand({
   disabled,
   onClick,
   accent,
+  se,
 }: {
   label: string;
   active?: boolean;
@@ -39,6 +42,8 @@ export function DQCommand({
   onClick?: () => void;
   /** 強調色（はい/いいえ的に主要操作を目立たせる用） */
   accent?: "gold" | "red" | "white";
+  /** クリック時の効果音（既定: 決定。null で無音） */
+  se?: SeName | null;
 }) {
   const color =
     accent === "red"
@@ -49,7 +54,11 @@ export function DQCommand({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        const kind = se === undefined ? "confirm" : se;
+        if (kind) playSE(kind);
+        onClick?.();
+      }}
       disabled={disabled}
       className={cn(
         "font-pixel flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-base transition-colors",

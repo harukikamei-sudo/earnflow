@@ -26,6 +26,9 @@ import { useT } from "@/i18n";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { useIsTouch } from "@/hooks/useIsTouch";
+import { AudioControl } from "@/components/game/AudioControl";
+import { useBgm } from "@/audio/useAudio";
+import { playSE } from "@/audio/engine";
 import { multiplierAt } from "@/lib/earnings";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
@@ -164,6 +167,18 @@ export default function Home() {
   const level = useMemo(() => levelInfo(totalGold), [totalGold]);
   const rank = rankForLevel(level.level);
 
+  // シーン連動BGM（町は朝昼=townDay / 夜=townNight で切替）
+  const bgmKey = useMemo(() => {
+    if (scene === "title") return "title" as const;
+    if (scene === "work") return "work" as const;
+    if (scene === "shop") return "shop" as const;
+    if (scene === "home") return "home" as const;
+    const hour = new Date(nowTs).getHours();
+    const night = hour >= 18 || hour < 6;
+    return night ? ("townNight" as const) : ("townDay" as const);
+  }, [scene, nowTs]);
+  useBgm(bgmKey);
+
   // 接近判定（バイト先 / 看板）
   const hx = Math.round(snap.px);
   const hy = Math.round(snap.py);
@@ -212,6 +227,7 @@ export default function Home() {
       const gained = level.level - prevLevelRef.current;
       const gold = gained * 100; // レベルアップ報酬ゴールド
       addGold(gold);
+      playSE("levelup");
       setLevelUp({ level: level.level, rank: rankForLevel(level.level).name, gold });
       window.setTimeout(() => setLevelUp(null), 2600);
     }
@@ -309,7 +325,7 @@ export default function Home() {
           </DQWindow>
 
           <DQWindow title="コマンド">
-            <DQCommand label={t("cmd.stopWork")} active accent="red" onClick={stopWork} />
+            <DQCommand label={t("cmd.stopWork")} active accent="red" se="cancel" onClick={stopWork} />
           </DQWindow>
         </div>
       ) : editMode ? (
@@ -361,7 +377,10 @@ export default function Home() {
             <h1 className="font-pixel text-lg font-bold text-gold-gradient">{t("house.name")}</h1>
             <button
               type="button"
-              onClick={() => setScene("roam")}
+              onClick={() => {
+                playSE("cancel");
+                setScene("roam");
+              }}
               className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white"
             >
               {t("house.exit")}
@@ -474,7 +493,14 @@ export default function Home() {
 
           <div className="flex items-center justify-between">
             <h1 className="font-pixel text-lg font-bold text-gold-gradient">{t("shop.name")}</h1>
-            <button type="button" onClick={() => setScene("roam")} className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white">
+            <button
+              type="button"
+              onClick={() => {
+                playSE("cancel");
+                setScene("roam");
+              }}
+              className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white"
+            >
               {t("shop.exit")}
             </button>
           </div>
@@ -579,6 +605,8 @@ export default function Home() {
         </div>
       )}
 
+      {/* 画面上の音量コントロール（全シーン共通・右下） */}
+      <AudioControl />
     </div>
   );
 }

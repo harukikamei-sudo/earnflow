@@ -103,6 +103,10 @@ const STRINGS: Record<string, Dict> = {
   "notify.title": { ja: "給料クエスト", en: "Salary Quest", es: "Misión Salario", fr: "Quête du Salaire", zh: "工资冒险", ko: "급여 퀘스트", ru: "Зарплата-Квест" },
   "notify.body": { ja: "はたらく時間です！今日も稼ごう💪", en: "Time to work! Let's earn today 💪", es: "¡Hora de trabajar! A ganar hoy 💪", fr: "C'est l'heure de travailler ! Gagnons aujourd'hui 💪", zh: "该工作啦！今天也来赚钱 💪", ko: "일할 시간이에요! 오늘도 벌어봐요 💪", ru: "Пора работать! Заработаем сегодня 💪" },
   "common.language": { ja: "言語", en: "Language", es: "Idioma", fr: "Langue", zh: "语言", ko: "언어", ru: "Язык" },
+
+  "audio.volume": { ja: "おとの おおきさ", en: "Volume", es: "Volumen", fr: "Volume", zh: "音量", ko: "음량", ru: "Громкость" },
+  "audio.mute": { ja: "ミュート", en: "Mute", es: "Silenciar", fr: "Couper le son", zh: "静音", ko: "음소거", ru: "Выключить звук" },
+  "audio.unmute": { ja: "ミュート解除", en: "Unmute", es: "Activar sonido", fr: "Réactiver le son", zh: "取消静音", ko: "음소거 해제", ru: "Включить звук" },
 };
 
 const KEY = "earnflow.locale";
