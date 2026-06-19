@@ -1,10 +1,14 @@
 /**
- * オーディオエンジン（HTMLAudioElement ベース）。
+ * オーディオエンジン（Web Audio API 経由）。
  *
  * public/audio/*.mp3 を BGM / 効果音として再生する。
  * - 音量・ミュートは localStorage に永続化し、useSyncExternalStore でUIに反映。
- * - BGM は2要素クロスフェードでシーンに応じて滑らかに切り替える。ループ再生。
- * - ブラウザの自動再生制限に対応：最初のユーザー操作で再生をアンロックする。
+ * - 音量は必ず Web Audio の GainNode で制御する。
+ *   （iOS Safari は HTMLMediaElement.volume を無視するため、要素の volume では音量調整できない。
+ *     GainNode 経由なら iOS でも音量・ミュートが効く。）
+ * - BGM は <audio> を MediaElementSource 経由で2チャンネルにつなぎ、ゲインでクロスフェード＆ループ。
+ * - 効果音は mp3 をデコードして AudioBuffer で再生（重ね再生OK）。
+ * - 自動再生制限に対応：最初のユーザー操作で AudioContext を resume し、待機BGMを鳴らす。
  */
 
 import { BGM, SE, type SeName, type TrackName } from "./tracks";
@@ -24,8 +28,7 @@ function loadPrefs(): AudioPrefs {
     if (raw) {
       const p = JSON.parse(raw) as Partial<AudioPrefs>;
       const v = typeof p.volume === "number" ? Math.min(1, Math.max(0, p.volume)) : 0.6;
-      // 音量UIを廃止したため、過去のミュート/音量0で無音にならないよう補正する
-      return { volume: v > 0 ? v : 0.6, muted: false };
+      return { volume: v > 0 ? v : 0.6, muted: !!p.muted };
     }
   } catch {
     /* ignore */
@@ -69,14 +72,14 @@ function effectiveVolume(): number {
 export function setVolume(v: number): void {
   prefs = { ...prefs, volume: Math.min(1, Math.max(0, v)), muted: v <= 0 ? prefs.muted : false };
   savePrefs();
-  applyBgmVolume();
+  applyMasterVolume();
   emit();
 }
 
 export function setMuted(m: boolean): void {
   prefs = { ...prefs, muted: m };
   savePrefs();
-  applyBgmVolume();
+  applyMasterVolume();
   emit();
 }
 
@@ -84,77 +87,118 @@ export function toggleMuted(): void {
   setMuted(!prefs.muted);
 }
 
-/* ───────────── 共通ヘルパ ───────────── */
+/* ───────────── AudioContext / マスター ───────────── */
 
 const canPlay = typeof window !== "undefined" && typeof Audio !== "undefined";
 
-/* ───────────── 効果音（SE） ───────────── */
+let ctx: AudioContext | null = null;
+let masterGain: GainNode | null = null;
 
-// 事前読み込みでキャッシュを温めておく（初回再生の遅延を防ぐ）
-const sePreload: Record<string, HTMLAudioElement> = {};
-function preloadSE() {
-  if (!canPlay) return;
-  for (const key of Object.keys(SE)) {
-    const { src } = SE[key];
-    if (!sePreload[src]) {
-      const el = new Audio(src);
-      el.preload = "auto";
-      sePreload[src] = el;
-    }
+function ensureCtx(): AudioContext | null {
+  if (!canPlay) return null;
+  if (!ctx) {
+    const Ctor =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return null;
+    ctx = new Ctor();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = effectiveVolume();
+    masterGain.connect(ctx.destination);
+  }
+  return ctx;
+}
+
+/** マスター音量（＝ユーザー音量・ミュート）を反映 */
+function applyMasterVolume() {
+  if (ctx && masterGain) {
+    const now = ctx.currentTime;
+    masterGain.gain.cancelScheduledValues(now);
+    masterGain.gain.setTargetAtTime(effectiveVolume(), now, 0.02);
   }
 }
 
-export function playSE(name: SeName): void {
-  if (!canPlay) return;
-  const def = SE[name];
-  if (!def) return;
-  // 連打・重複再生に対応するため複製して鳴らす
-  const base = sePreload[def.src] ?? new Audio(def.src);
-  const el = base.cloneNode(true) as HTMLAudioElement;
-  el.volume = Math.min(1, effectiveVolume() * (def.gain ?? 1));
-  void el.play().catch(() => {
-    /* 未アンロック等は無視 */
-  });
+/* ───────────── 効果音（SE）— デコードして再生 ───────────── */
+
+const seBuffers: Record<string, AudioBuffer> = {};
+const seLoading: Record<string, Promise<AudioBuffer | null>> = {};
+
+function loadSE(src: string): Promise<AudioBuffer | null> {
+  const c = ensureCtx();
+  if (!c) return Promise.resolve(null);
+  if (seBuffers[src]) return Promise.resolve(seBuffers[src]);
+  if (!seLoading[src]) {
+    seLoading[src] = fetch(src)
+      .then((r) => r.arrayBuffer())
+      .then((b) => c.decodeAudioData(b))
+      .then((buf) => {
+        seBuffers[src] = buf;
+        return buf;
+      })
+      .catch(() => null);
+  }
+  return seLoading[src];
 }
 
-/* ───────────── BGM（2要素クロスフェード） ───────────── */
+function preloadSE() {
+  for (const key of Object.keys(SE)) void loadSE(SE[key].src);
+}
+
+export function playSE(name: SeName): void {
+  const def = SE[name];
+  if (!def) return;
+  const c = ensureCtx();
+  if (!c || !masterGain) return;
+  if (c.state !== "running") void c.resume();
+  const fire = (buf: AudioBuffer) => {
+    const node = c.createBufferSource();
+    node.buffer = buf;
+    const g = c.createGain();
+    g.gain.value = def.gain ?? 1;
+    node.connect(g).connect(masterGain!);
+    node.start();
+  };
+  if (seBuffers[def.src]) fire(seBuffers[def.src]);
+  else void loadSE(def.src).then((buf) => buf && fire(buf));
+}
+
+/* ───────────── BGM（2チャンネル・ゲインでクロスフェード） ───────────── */
 
 const FADE_MS = 600;
 
-let bgmEls: HTMLAudioElement[] = [];
+interface BgmChannel {
+  el: HTMLAudioElement;
+  gain: GainNode;
+}
+
+let bgm: BgmChannel[] = [];
 let activeIdx = 0;
 let curTrack: TrackName | null = null;
 let curSrc: string | null = null;
 
 function initBgm() {
-  if (!canPlay || bgmEls.length) return;
-  bgmEls = [new Audio(), new Audio()];
-  for (const el of bgmEls) {
+  const c = ensureCtx();
+  if (!c || !masterGain || bgm.length) return;
+  bgm = [0, 1].map(() => {
+    const el = new Audio();
     el.loop = true;
     el.preload = "auto";
-    el.volume = 0;
-  }
+    el.volume = 1; // 音量は GainNode 側で制御（iOS対策）
+    const srcNode = c.createMediaElementSource(el);
+    const gain = c.createGain();
+    gain.gain.value = 0;
+    srcNode.connect(gain).connect(masterGain!);
+    return { el, gain };
+  });
 }
 
-/** 再生中のBGM要素に現在の音量を反映 */
-function applyBgmVolume() {
-  const el = bgmEls[activeIdx];
-  if (el && !el.paused) el.volume = effectiveVolume();
-}
-
-function fade(el: HTMLAudioElement, to: number, done?: () => void) {
-  const from = el.volume;
-  const start = performance.now();
-  const step = (now: number) => {
-    const p = Math.min(1, (now - start) / FADE_MS);
-    el.volume = Math.max(0, Math.min(1, from + (to - from) * p));
-    if (p < 1) {
-      requestAnimationFrame(step);
-    } else if (done) {
-      done();
-    }
-  };
-  requestAnimationFrame(step);
+function fadeGain(g: GainNode, to: number, done?: () => void) {
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  g.gain.cancelScheduledValues(now);
+  g.gain.setValueAtTime(g.gain.value, now);
+  g.gain.linearRampToValueAtTime(to, now + FADE_MS / 1000);
+  if (done) window.setTimeout(done, FADE_MS + 40);
 }
 
 /**
@@ -162,37 +206,37 @@ function fade(el: HTMLAudioElement, to: number, done?: () => void) {
  * 同じ音源（shop↔home など）なら鳴らし直さず継続する。
  */
 export function playBgm(name: TrackName | null): void {
-  if (!canPlay) return;
+  const c = ensureCtx();
+  if (!c) return;
   initBgm();
   curTrack = name;
 
   if (name === null) {
-    const el = bgmEls[activeIdx];
-    if (el && !el.paused) fade(el, 0, () => el.pause());
+    const ch = bgm[activeIdx];
+    if (ch && !ch.el.paused) fadeGain(ch.gain, 0, () => ch.el.pause());
     curSrc = null;
     return;
   }
 
   const src = BGM[name].src;
   // 同じ音源が既に流れているなら継続（室内BGMの使い回し等）
-  if (src === curSrc && bgmEls[activeIdx] && !bgmEls[activeIdx].paused) return;
+  if (src === curSrc && bgm[activeIdx] && !bgm[activeIdx].el.paused) return;
   curSrc = src;
 
   const next = 1 - activeIdx;
-  const prevEl = bgmEls[activeIdx];
-  const nextEl = bgmEls[next];
+  const prev = bgm[activeIdx];
+  const nx = bgm[next];
 
   const absSrc = new URL(src, window.location.href).href;
-  if (nextEl.src !== absSrc) nextEl.src = src;
-  nextEl.currentTime = 0;
-  nextEl.volume = 0;
+  if (nx.el.src !== absSrc) nx.el.src = src;
+  nx.el.currentTime = 0;
+  nx.gain.gain.value = 0;
 
-  const target = effectiveVolume();
-  void nextEl
+  void nx.el
     .play()
     .then(() => {
-      fade(nextEl, target);
-      if (prevEl && !prevEl.paused) fade(prevEl, 0, () => prevEl.pause());
+      fadeGain(nx.gain, 1); // チャンネルは全開。音量はマスターで制御
+      if (prev && !prev.el.paused) fadeGain(prev.gain, 0, () => prev.el.pause());
       activeIdx = next;
     })
     .catch(() => {
@@ -207,17 +251,20 @@ let gestureBound = false;
 let pendingTrack: TrackName | null = null;
 
 /**
- * 最初のユーザー操作で BGM 再生をアンロックする（iOS/Chrome の自動再生制限対策）。
+ * 最初のユーザー操作で AudioContext を resume し、待機中のBGMを鳴らす。
+ * （iOS/Chrome の自動再生制限対策。ジェスチャー中に同期的に呼ぶ）
  */
 export function installAudioUnlock(): void {
   if (gestureBound || !canPlay) return;
   gestureBound = true;
-  preloadSE();
   const unlock = () => {
+    const c = ensureCtx();
+    if (!c) return;
+    if (c.state !== "running") void c.resume();
+    preloadSE();
     const want = pendingTrack ?? curTrack;
     pendingTrack = null;
-    // 再生中でなければ（＝まだ鳴っていなければ）改めて鳴らす
-    if (want && (!bgmEls[activeIdx] || bgmEls[activeIdx].paused)) {
+    if (want && (!bgm[activeIdx] || bgm[activeIdx].el.paused)) {
       curSrc = null; // 強制再生
       playBgm(want);
     }

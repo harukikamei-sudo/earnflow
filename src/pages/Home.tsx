@@ -28,6 +28,7 @@ import { dailyLine } from "@/game/dailyLines";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { useIsTouch } from "@/hooks/useIsTouch";
+import { VolumeButton } from "@/components/game/VolumeButton";
 import { useBgm } from "@/audio/useAudio";
 import { playSE } from "@/audio/engine";
 import { multiplierAt } from "@/lib/earnings";
@@ -366,7 +367,7 @@ export default function Home() {
       ) : working ? (
         /* ============ 労働シーン ============ */
         <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
-          <div className="flex items-baseline justify-between">
+          <div className="flex items-baseline justify-between pr-14">
             <h1 className="font-pixel text-lg font-bold text-gold-gradient">{t("work.header")}</h1>
             <span className="font-pixel text-[11px] text-white/60">{activeWp?.name}</span>
           </div>
@@ -454,7 +455,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pr-14">
             <h1 className="font-pixel text-lg font-bold text-gold-gradient">{t("house.name")}</h1>
             <button
               type="button"
@@ -536,7 +537,7 @@ export default function Home() {
 
           {/* リマインダー */}
           <DQWindow title={t("rem.title")}>
-            <label className="flex cursor-pointer items-center justify-between font-pixel text-sm text-white">
+            <div className="flex items-center justify-between gap-2 font-pixel text-sm text-white">
               <span>{t("rem.enable")}</span>
               <button
                 type="button"
@@ -552,11 +553,14 @@ export default function Home() {
                   }
                   setReminder({ enabled: !reminder.enabled });
                 }}
-                className={cn("relative h-6 w-11 rounded-full transition-colors", reminder.enabled ? "bg-gold" : "bg-white/20")}
+                className={cn(
+                  "font-pixel shrink-0 rounded px-4 py-1.5 text-sm font-bold transition-colors",
+                  reminder.enabled ? "bg-gold text-black" : "bg-white/15 text-white/80",
+                )}
               >
-                <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform", reminder.enabled ? "translate-x-[22px]" : "translate-x-0.5")} />
+                {reminder.enabled ? "ON" : "OFF"}
               </button>
-            </label>
+            </div>
             <div className="mt-2 flex items-center justify-between font-pixel text-sm text-white">
               <span>{t("rem.time")}</span>
               <input
@@ -605,7 +609,7 @@ export default function Home() {
             <p className="font-pixel text-sm leading-relaxed text-white">{t("shop.keeper")}</p>
           </DQWindow>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pr-14">
             <h1 className="font-pixel text-lg font-bold text-gold-gradient">{t("shop.name")}</h1>
             <button
               type="button"
@@ -642,7 +646,7 @@ export default function Home() {
                 <ExpBar progress={level.progress} thin />
               </div>
             </div>
-            <div className="pointer-events-auto flex gap-1">
+            <div className="pointer-events-auto mr-14 flex gap-1">
               <button
                 type="button"
                 onClick={() => setEditMode(true)}
@@ -744,6 +748,8 @@ export default function Home() {
         </div>
       )}
 
+      {/* 音量ボタン（右上・全シーン共通） */}
+      <VolumeButton />
     </div>
   );
 }
