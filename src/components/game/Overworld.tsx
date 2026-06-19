@@ -2,7 +2,8 @@ import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE, type HeroDir } from "@/components/pixel/sprites";
-import { MAP_H, MAP_W, TILE, townLayout, type Rect } from "@/game/map";
+import { MAP_H, MAP_W, TILE, townLayout, type Rect, type TownLayout } from "@/game/map";
+import { TownLandmark } from "./TownLandmark";
 import { THEMES, themeForLevel, townBuildings, townExit, type StageTheme } from "@/game/themes";
 import { isWalkable, useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
@@ -372,6 +373,22 @@ interface OverworldProps {
   devLevel?: number;
 }
 
+/** ランドマークの配置候補（主要建物を避けて選ぶ） */
+const LM_SPOTS = [
+  { x: 11, y: 3 }, { x: 21, y: 3 }, { x: 3, y: 3 }, { x: 20, y: 14 }, { x: 3, y: 14 },
+];
+function landmarkSpot(L: TownLayout): { x: number; y: number } {
+  const rects = [L.shop, L.market, L.house];
+  for (const s of LM_SPOTS) {
+    const lx = s.x - 1, ly = s.y - 3, lw = 5, lh = 5;
+    const hit = rects.some(
+      (r) => lx < r.x + r.w + 1 && lx + lw > r.x - 1 && ly < r.y + r.h + 1 && ly + lh > r.y - 2,
+    );
+    if (!hit) return s;
+  }
+  return LM_SPOTS[0];
+}
+
 /** にぎわいで建つ小さな家 */
 function DevHouse({ x, y, roof }: { x: number; y: number; roof: string }) {
   const w = TILE * 1.4;
@@ -485,8 +502,10 @@ export function Overworld({
 
         {showLandmarks && (() => {
           const L = townLayout(themeIndex ?? 0);
+          const lm = landmarkSpot(L);
           return (
             <>
+              <TownLandmark id={theme.id} x={lm.x} y={lm.y} />
               <ShopBuilding castle={level >= 60} rect={L.shop} />
               <MarketBuilding rect={L.market} />
               <HouseBuilding rect={L.house} />
