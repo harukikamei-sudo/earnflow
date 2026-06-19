@@ -204,6 +204,23 @@ const SIDE_HEAD = [
   "..oSKSso........",
   "..oSSSSo........",
 ];
+/** 横向きの胴（4行）＝プロフィールの体（前に出した腕は肌色 S） */
+const SIDE_BODY = [
+  "..oCCCCo........",
+  ".oCCCCCCo.......",
+  ".oSCCCCo........",
+  ".oCCCCCCo.......",
+];
+/** 横向きの脚（左向き歩行2コマ） */
+const SIDE_LEGS_A = ["..oBo.oBo.......", "..ogo.ogo.......", "..oo...oo......."];
+const SIDE_LEGS_B = ["...oBoBo........", "...ogogo........", "...oo.oo........"];
+/** 横向き用の歩行スプライト生成（脚も横向き） */
+function walkerSide(headBody: string[], palette: Sprite["palette"]): Sprite[] {
+  return [
+    { grid: [...headBody, ...SIDE_LEGS_A], palette },
+    { grid: [...headBody, ...SIDE_LEGS_B], palette },
+  ];
+}
 
 /**
  * トルソー（頭4+顔3+胴4＝11行）から、下/上/横の3方向ぶんの歩行フレームを作る。
@@ -219,7 +236,7 @@ function dirSets(torso: string[], palette: Sprite["palette"]): {
   return {
     frames: walker([...head, ...FACE, ...body], palette),
     up: walker([...head, ...BACK_FACE, ...body], palette),
-    side: walker([...SIDE_HEAD, ...body], palette),
+    side: walkerSide([...SIDE_HEAD, ...SIDE_BODY], palette),
   };
 }
 
