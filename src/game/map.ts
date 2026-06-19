@@ -42,6 +42,37 @@ export const HOUSE_DOOR = { x: 12, y: 16 } as const;
 /** 勇者の初期位置 */
 export const SPAWN = { x: 11, y: 15 } as const;
 
+type XY = { x: number; y: number };
+const BSIZE = { w: 3, h: 2 };
+/** 町ごとの建物配置テンプレ（先頭=従来の配置）。テーマindexで巡回。 */
+const LAYOUT_TEMPLATES: { shop: XY; market: XY; house: XY }[] = [
+  { shop: { x: 10, y: 3 }, market: { x: 15, y: 8 }, house: { x: 11, y: 17 } },
+  { shop: { x: 3, y: 4 }, market: { x: 20, y: 12 }, house: { x: 18, y: 3 } },
+  { shop: { x: 18, y: 11 }, market: { x: 4, y: 6 }, house: { x: 12, y: 3 } },
+  { shop: { x: 11, y: 11 }, market: { x: 17, y: 4 }, house: { x: 4, y: 13 } },
+  { shop: { x: 20, y: 13 }, market: { x: 8, y: 12 }, house: { x: 14, y: 3 } },
+  { shop: { x: 14, y: 9 }, market: { x: 3, y: 15 }, house: { x: 21, y: 11 } },
+];
+/** 入口（ドア）の位置。下に余裕があれば建物の下、無ければ上に置く */
+const doorOf = (b: XY): XY => {
+  const below = b.y + BSIZE.h;
+  return { x: b.x + 1, y: below <= MAP_H - 2 ? below : b.y - 1 };
+};
+
+/** 全テンプレの主要建物が占めるタイル（屋根の1行上＋本体＋ドア）を集める */
+function buildingFootprintCells(): XY[] {
+  const cells: XY[] = [];
+  for (const tpl of LAYOUT_TEMPLATES) {
+    for (const b of [tpl.shop, tpl.market, tpl.house]) {
+      for (let y = b.y - 1; y < b.y + BSIZE.h; y++) {
+        for (let x = b.x; x < b.x + BSIZE.w; x++) cells.push({ x, y });
+      }
+      cells.push(doorOf(b));
+    }
+  }
+  return cells;
+}
+
 function buildMap(): string[] {
   const g: TileChar[][] = Array.from({ length: MAP_H }, () =>
     Array.from({ length: MAP_W }, () => "G" as TileChar),
@@ -82,6 +113,15 @@ function buildMap(): string[] {
   const rocks: [number, number][] = [[15, 4], [20, 10], [7, 16], [16, 6], [24, 14], [11, 18]];
   rocks.forEach(([x, y]) => g[y][x] === "G" && set(x, y, "R"));
 
+  // 主要建物（バイト先/我が家/道具屋）と障害物が被らないよう、全テンプレの
+  // 建物が乗るタイルから障害物（木・水・岩・花）を取り除いて草地に戻す。
+  for (const c of buildingFootprintCells()) {
+    if (c.x >= 1 && c.x < MAP_W - 1 && c.y >= 1 && c.y < MAP_H - 1) {
+      const t = g[c.y][c.x];
+      if (t === "T" || t === "W" || t === "R" || t === "F") set(c.x, c.y, "G");
+    }
+  }
+
   return g.map((r) => r.join(""));
 }
 
@@ -104,24 +144,7 @@ export interface TownLayout {
   houseDoor: { x: number; y: number };
 }
 
-const BSIZE = { w: 3, h: 2 };
-/** 町ごとの建物配置テンプレ（先頭=従来の配置）。テーマindexで巡回。 */
-const LAYOUT_TEMPLATES: { shop: XY; market: XY; house: XY }[] = [
-  { shop: { x: 10, y: 3 }, market: { x: 15, y: 8 }, house: { x: 11, y: 17 } },
-  { shop: { x: 3, y: 4 }, market: { x: 20, y: 12 }, house: { x: 18, y: 3 } },
-  { shop: { x: 18, y: 11 }, market: { x: 4, y: 6 }, house: { x: 12, y: 3 } },
-  { shop: { x: 11, y: 11 }, market: { x: 17, y: 4 }, house: { x: 4, y: 13 } },
-  { shop: { x: 20, y: 13 }, market: { x: 8, y: 12 }, house: { x: 14, y: 3 } },
-  { shop: { x: 14, y: 9 }, market: { x: 3, y: 15 }, house: { x: 21, y: 11 } },
-];
-
-type XY = { x: number; y: number };
 const rectOf = (b: XY): Rect => ({ x: b.x, y: b.y, w: BSIZE.w, h: BSIZE.h });
-/** 入口（ドア）の位置。下に余裕があれば建物の下、無ければ上に置く */
-const doorOf = (b: XY): XY => {
-  const below = b.y + BSIZE.h;
-  return { x: b.x + 1, y: below <= MAP_H - 2 ? below : b.y - 1 };
-};
 
 /** 町（テーマ）ごとの建物レイアウトを返す。機能は同じで配置だけ変わる。 */
 export function townLayout(themeIndex: number): TownLayout {
