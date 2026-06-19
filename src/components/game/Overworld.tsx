@@ -2,7 +2,7 @@ import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE, type HeroDir } from "@/components/pixel/sprites";
-import { MAP_H, MAP_W, TILE, townLayout, type Rect, type TownLayout } from "@/game/map";
+import { MAP_H, MAP_W, TILE, townLayout, townPathCells, type Rect, type TownLayout } from "@/game/map";
 import { TownLandmark } from "./TownLandmark";
 import { THEMES, themeForLevel, townBuildings, townExit, type StageTheme } from "@/game/themes";
 import { isWalkable, useCharacter, useMapRows, useProps } from "@/game/mapStore";
@@ -499,6 +499,16 @@ export function Overworld({
         }}
       >
         <TileLayer rows={rows} theme={theme} />
+
+        {/* 主要建物の入口へ続く道（町のレイアウトに追従） */}
+        {showLandmarks &&
+          townPathCells(themeIndex ?? 0).map((c, i) => (
+            <div
+              key={`path-${i}`}
+              className="absolute"
+              style={{ left: c.x * TILE, top: c.y * TILE, width: TILE, height: TILE, background: theme.path[0] }}
+            />
+          ))}
 
         {showLandmarks && (() => {
           const L = townLayout(themeIndex ?? 0);

@@ -59,6 +59,28 @@ const doorOf = (b: XY): XY => {
   return { x: b.x + 1, y: below <= MAP_H - 2 ? below : b.y - 1 };
 };
 
+/** 3つの入口を中央ハブでL字に結ぶ道タイルを返す */
+function pathCellsFromDoors(doors: XY[]): XY[] {
+  const hub = {
+    x: Math.round((doors[0].x + doors[1].x + doors[2].x) / 3),
+    y: Math.round((doors[0].y + doors[1].y + doors[2].y) / 3),
+  };
+  const m = new Map<string, XY>();
+  const add = (x: number, y: number) => m.set(`${x},${y}`, { x, y });
+  for (const d of doors) {
+    const x0 = Math.min(d.x, hub.x), x1 = Math.max(d.x, hub.x);
+    for (let x = x0; x <= x1; x++) add(x, d.y);
+    const y0 = Math.min(d.y, hub.y), y1 = Math.max(d.y, hub.y);
+    for (let y = y0; y <= y1; y++) add(hub.x, y);
+  }
+  return [...m.values()];
+}
+
+/** テンプレの3入口の道タイル */
+function templatePathCells(tpl: { shop: XY; market: XY; house: XY }): XY[] {
+  return pathCellsFromDoors([doorOf(tpl.shop), doorOf(tpl.market), doorOf(tpl.house)]);
+}
+
 /** 全テンプレの主要建物が占めるタイル（屋根の1行上＋本体＋ドア）を集める */
 function buildingFootprintCells(): XY[] {
   const cells: XY[] = [];
@@ -115,12 +137,15 @@ function buildMap(): string[] {
 
   // 主要建物（バイト先/我が家/道具屋）と障害物が被らないよう、全テンプレの
   // 建物が乗るタイルから障害物（木・水・岩・花）を取り除いて草地に戻す。
-  for (const c of buildingFootprintCells()) {
+  const clearObstacle = (c: XY) => {
     if (c.x >= 1 && c.x < MAP_W - 1 && c.y >= 1 && c.y < MAP_H - 1) {
       const t = g[c.y][c.x];
       if (t === "T" || t === "W" || t === "R" || t === "F") set(c.x, c.y, "G");
     }
-  }
+  };
+  buildingFootprintCells().forEach(clearObstacle);
+  // 全テンプレの道タイルからも障害物を除去（道が木や池を貫かないように）
+  for (const tpl of LAYOUT_TEMPLATES) templatePathCells(tpl).forEach(clearObstacle);
 
   return g.map((r) => r.join(""));
 }
@@ -158,6 +183,12 @@ export function townLayout(themeIndex: number): TownLayout {
     marketDoor: doorOf(tpl.market),
     houseDoor: doorOf(tpl.house),
   };
+}
+
+/** 町（テーマ）ごとの道タイル（主要建物の入口へ続く道）。 */
+export function townPathCells(themeIndex: number): { x: number; y: number }[] {
+  const i = ((themeIndex % LAYOUT_TEMPLATES.length) + LAYOUT_TEMPLATES.length) % LAYOUT_TEMPLATES.length;
+  return templatePathCells(LAYOUT_TEMPLATES[i]);
 }
 
 const BLOCKING = new Set<string>(["T", "W", "R", "B", "S"]);
