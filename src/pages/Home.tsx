@@ -247,6 +247,21 @@ export default function Home() {
   // 手入力で収入を追加したら更新するためのバージョン
   const [dataVersion, setDataVersion] = useState(0);
 
+  // わが家のページ切替（0:ノルマ / 1:カレンダー / 2:その他）。スワイプ＆タブ両対応
+  const [homePage, setHomePage] = useState(0);
+  const homePagesRef = useRef<HTMLDivElement>(null);
+  function goHomePage(i: number) {
+    setHomePage(i);
+    const el = homePagesRef.current;
+    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+  }
+  function onHomeScroll() {
+    const el = homePagesRef.current;
+    if (!el) return;
+    const i = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
+    setHomePage((p) => (p === i ? p : i));
+  }
+
   // 手入力で収入を追加（アプリ外で稼いだぶんの記録など）
   const [manualAmount, setManualAmount] = useState("");
   const [manualDate, setManualDate] = useState(() => toDateKey(new Date()));
@@ -461,8 +476,8 @@ export default function Home() {
           </div>
         </div>
       ) : scene === "home" ? (
-        /* ============ わが家（室内） ============ */
-        <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
+        /* ============ わが家（室内・3ページ） ============ */
+        <div className="mx-auto flex h-full max-w-md flex-col gap-3 px-4 py-4">
           {/* 室内シーン */}
           <div className="pixel-frame relative flex h-36 items-end justify-center overflow-hidden rounded-md">
             {/* 壁と床 */}
@@ -498,6 +513,31 @@ export default function Home() {
             </button>
           </div>
 
+          {/* ページ切替タブ */}
+          <div className="flex shrink-0 gap-1">
+            {[t("home.tabGoal"), t("home.tabCalendar"), t("home.tabOther")].map((label, i) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => goHomePage(i)}
+                className={cn(
+                  "font-pixel flex-1 rounded px-2 py-1.5 text-xs transition-colors",
+                  homePage === i ? "bg-gold text-black" : "bg-white/10 text-white hover:bg-white/20",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* ページ本体（横スワイプ／スナップ＆タブ） */}
+          <div
+            ref={homePagesRef}
+            onScroll={onHomeScroll}
+            className="no-scrollbar flex flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden"
+          >
+            {/* ▼ページ1：ノルマ */}
+            <section className="no-scrollbar flex w-full shrink-0 snap-start flex-col gap-3 overflow-y-auto px-0.5 pb-2">
           {/* ノルマ */}
           <DQWindow title={t("house.norma")}>
             {goal.monthlyTarget > 0 ? (
@@ -615,15 +655,21 @@ export default function Home() {
           <DQWindow title={t("house.setGoal")}>
             <GoalSettings />
           </DQWindow>
+            </section>
 
-          {/* グラフ */}
-          <DQWindow title={t("house.graph")}>
-            <EarningsChart key={dataVersion} />
-          </DQWindow>
-
+            {/* ▼ページ2：カレンダー */}
+            <section className="no-scrollbar flex w-full shrink-0 snap-start flex-col gap-3 overflow-y-auto px-0.5 pb-2">
           {/* カレンダー */}
           <DQWindow title={t("house.calendar")}>
             <CalendarBoard key={dataVersion} />
+          </DQWindow>
+            </section>
+
+            {/* ▼ページ3：その他 */}
+            <section className="no-scrollbar flex w-full shrink-0 snap-start flex-col gap-3 overflow-y-auto px-0.5 pb-2">
+          {/* グラフ */}
+          <DQWindow title={t("house.graph")}>
+            <EarningsChart key={dataVersion} />
           </DQWindow>
 
           {/* リマインダー */}
@@ -677,6 +723,8 @@ export default function Home() {
             </button>
             <div className="mt-3"><LanguageSelect /></div>
           </DQWindow>
+            </section>
+          </div>
         </div>
       ) : scene === "shop" ? (
         /* ============ どうぐ屋（店内） ============ */

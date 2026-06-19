@@ -76,6 +76,9 @@ const STRINGS: Record<string, Dict> = {
   "house.graph": { ja: "しゅうにゅうグラフ（6か月）", en: "Income (6 months)", es: "Ingresos (6 meses)", fr: "Revenus (6 mois)", zh: "收入（6个月）", ko: "수입 (6개월)", ru: "Доход (6 мес.)" },
   "house.calendar": { ja: "かせぎカレンダー", en: "Earnings calendar", es: "Calendario de ingresos", fr: "Calendrier des gains", zh: "收入日历", ko: "수입 달력", ru: "Календарь доходов" },
   "house.data": { ja: "データ", en: "Data", es: "Datos", fr: "Données", zh: "数据", ko: "데이터", ru: "Данные" },
+  "home.tabGoal": { ja: "ノルマ", en: "Goal", es: "Meta", fr: "Objectif", zh: "目标", ko: "목표", ru: "Цель" },
+  "home.tabCalendar": { ja: "カレンダー", en: "Calendar", es: "Calendario", fr: "Calendrier", zh: "日历", ko: "달력", ru: "Календарь" },
+  "home.tabOther": { ja: "その他", en: "More", es: "Más", fr: "Plus", zh: "其他", ko: "기타", ru: "Ещё" },
   "data.csv": { ja: "📤 CSVで書き出す", en: "📤 Export CSV", es: "📤 Exportar CSV", fr: "📤 Exporter CSV", zh: "📤 导出 CSV", ko: "📤 CSV 내보내기", ru: "📤 Экспорт CSV" },
 
   "manual.title": { ja: "収入を手入力", en: "Add income by hand", es: "Añadir ingreso a mano", fr: "Saisir un revenu", zh: "手动添加收入", ko: "수입 직접 입력", ru: "Добавить доход вручную" },
