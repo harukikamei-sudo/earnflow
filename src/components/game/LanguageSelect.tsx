@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export function LanguageSelect() {
   const locale = useLocale();
   return (
-    <div className="flex flex-wrap justify-center gap-1">
+    <div className="no-scrollbar flex max-h-28 flex-wrap justify-center gap-1 overflow-y-auto">
       {LOCALES.map((l) => (
         <button
           key={l}

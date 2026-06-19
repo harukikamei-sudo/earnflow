@@ -5,30 +5,49 @@
 
 import { useSyncExternalStore } from "react";
 
-// 辞書は多言語ぶん持つが、当面は日本語と英語のみ選択可能にする
-export type Locale = "ja" | "en" | "es" | "fr" | "zh" | "ko" | "ru";
+// 対応言語。未訳の文字列は英語→日本語の順にフォールバックする。
+export type Locale =
+  | "ja" | "en" | "zh" | "ko" | "es" | "fr" | "de" | "it" | "pt" | "ru"
+  | "ar" | "hi" | "id" | "th" | "vi" | "tr" | "pl" | "nl" | "uk" | "bn" | "fil";
 
-/** UIで選択できる言語（現在は日本語・英語のみ） */
-export const LOCALES: Locale[] = ["ja", "en"];
+/** UIで選択できる言語（多いほど良い。完全対応は7言語、他は英語フォールバック） */
+export const LOCALES: Locale[] = [
+  "ja", "en", "zh", "ko", "es", "fr", "de", "it", "pt", "ru",
+  "ar", "hi", "id", "th", "vi", "tr", "pl", "nl", "uk", "bn", "fil",
+];
 
 export const LOCALE_LABELS: Record<Locale, string> = {
   ja: "日本語",
   en: "English",
-  es: "Español",
-  fr: "Français",
   zh: "中文",
   ko: "한국어",
+  es: "Español",
+  fr: "Français",
+  de: "Deutsch",
+  it: "Italiano",
+  pt: "Português",
   ru: "Русский",
+  ar: "العربية",
+  hi: "हिन्दी",
+  id: "Bahasa Indonesia",
+  th: "ไทย",
+  vi: "Tiếng Việt",
+  tr: "Türkçe",
+  pl: "Polski",
+  nl: "Nederlands",
+  uk: "Українська",
+  bn: "বাংলা",
+  fil: "Filipino",
 };
 
-type Dict = Record<Locale, string>;
+type Dict = Partial<Record<Locale, string>>;
 
 /** 主要UIの訳語。{x} はプレースホルダ */
 const STRINGS: Record<string, Dict> = {
-  "title.name": { ja: "給料クエスト", en: "Salary Quest", es: "Misión Salario", fr: "Quête du Salaire", zh: "工资冒险", ko: "급여 퀘스트", ru: "Зарплата-Квест" },
-  "title.sub": { ja: "今いくら稼いでる？", en: "How much are you earning?", es: "¿Cuánto estás ganando?", fr: "Combien gagnez-vous ?", zh: "你现在赚了多少？", ko: "지금 얼마 벌고 있어?", ru: "Сколько ты уже заработал?" },
-  "title.new": { ja: "はじめから", en: "New Game", es: "Nueva partida", fr: "Nouvelle partie", zh: "重新开始", ko: "처음부터", ru: "Новая игра" },
-  "title.continue": { ja: "つづきから", en: "Continue", es: "Continuar", fr: "Continuer", zh: "继续游戏", ko: "이어서 하기", ru: "Продолжить" },
+  "title.name": { ja: "給料クエスト", en: "Salary Quest", es: "Misión Salario", fr: "Quête du Salaire", zh: "工资冒险", ko: "급여 퀘스트", ru: "Зарплата-Квест", de: "Gehalts-Quest", it: "Quest dello Stipendio", pt: "Missão Salário", ar: "مهمة الراتب", hi: "वेतन क्वेस्ट", id: "Misi Gaji", th: "เควสต์เงินเดือน", vi: "Nhiệm Vụ Lương", tr: "Maaş Görevi", pl: "Misja Wypłata", nl: "Salaris Quest", uk: "Квест Зарплати", bn: "বেতন কোয়েস্ট", fil: "Sahod Quest" },
+  "title.sub": { ja: "今いくら稼いでる？", en: "How much are you earning?", es: "¿Cuánto estás ganando?", fr: "Combien gagnez-vous ?", zh: "你现在赚了多少？", ko: "지금 얼마 벌고 있어?", ru: "Сколько ты уже заработал?", de: "Wie viel verdienst du?", it: "Quanto stai guadagnando?", pt: "Quanto você está ganhando?", ar: "كم تكسب الآن؟", hi: "अभी कितना कमा रहे हो?", id: "Berapa penghasilanmu?", th: "ตอนนี้หาเงินได้เท่าไหร่?", vi: "Bạn đang kiếm bao nhiêu?", tr: "Ne kadar kazanıyorsun?", pl: "Ile zarabiasz?", nl: "Hoeveel verdien je?", uk: "Скільки ти заробляєш?", bn: "এখন কত আয় করছ?", fil: "Magkano ang kita mo?" },
+  "title.new": { ja: "はじめから", en: "New Game", es: "Nueva partida", fr: "Nouvelle partie", zh: "重新开始", ko: "처음부터", ru: "Новая игра", de: "Neues Spiel", it: "Nuova partita", pt: "Novo jogo", ar: "لعبة جديدة", hi: "नया खेल", id: "Permainan Baru", th: "เกมใหม่", vi: "Trò chơi mới", tr: "Yeni Oyun", pl: "Nowa gra", nl: "Nieuw spel", uk: "Нова гра", bn: "নতুন খেলা", fil: "Bagong Laro" },
+  "title.continue": { ja: "つづきから", en: "Continue", es: "Continuar", fr: "Continuer", zh: "继续游戏", ko: "이어서 하기", ru: "Продолжить", de: "Fortsetzen", it: "Continua", pt: "Continuar", ar: "متابعة", hi: "जारी रखें", id: "Lanjutkan", th: "เล่นต่อ", vi: "Tiếp tục", tr: "Devam et", pl: "Kontynuuj", nl: "Doorgaan", uk: "Продовжити", bn: "চালিয়ে যান", fil: "Magpatuloy" },
   "title.confirmNew": { ja: "はじめから始めます。今のレベル・所持金・着せ替え・勤務履歴は消えます。よろしいですか？", en: "Start a new game? Your level, gold, costume and work history will be erased. OK?", es: "¿Empezar de nuevo? Se borrarán tu nivel, oro, traje e historial. ¿Continuar?", fr: "Nouvelle partie ? Votre niveau, or, costume et historique seront effacés. OK ?", zh: "重新开始？等级、金币、装扮和记录都会被清除。确定吗？", ko: "처음부터 시작할까요? 레벨·골드·코스튬·기록이 모두 삭제됩니다. 괜찮나요?", ru: "Начать заново? Уровень, золото, костюм и история будут удалены. Продолжить?" },
   "hint.move": { ja: "矢印キー / WASD で移動", en: "Move with arrow keys / WASD", es: "Muévete con flechas / WASD", fr: "Déplacez-vous avec les flèches / WASD", zh: "用方向键 / WASD 移动", ko: "방향키 / WASD 로 이동", ru: "Движение: стрелки / WASD" },
   "hint.moveTouch": { ja: "スワイプ（フリック）で移動", en: "Swipe to move", es: "Desliza para moverte", fr: "Glissez pour vous déplacer", zh: "滑动移动", ko: "스와이프로 이동", ru: "Свайп для движения" },
@@ -152,7 +171,7 @@ const STRINGS: Record<string, Dict> = {
   "rem.denied": { ja: "通知が許可されていません（ブラウザ設定を確認）。", en: "Notifications are blocked (check browser settings).", es: "Notificaciones bloqueadas (revisa el navegador).", fr: "Notifications bloquées (vérifiez le navigateur).", zh: "通知被阻止（请检查浏览器设置）。", ko: "알림이 차단되어 있습니다(브라우저 설정 확인).", ru: "Уведомления заблокированы (проверьте браузер)." },
   "notify.title": { ja: "給料クエスト", en: "Salary Quest", es: "Misión Salario", fr: "Quête du Salaire", zh: "工资冒险", ko: "급여 퀘스트", ru: "Зарплата-Квест" },
   "notify.body": { ja: "はたらく時間です！今日も稼ごう💪", en: "Time to work! Let's earn today 💪", es: "¡Hora de trabajar! A ganar hoy 💪", fr: "C'est l'heure de travailler ! Gagnons aujourd'hui 💪", zh: "该工作啦！今天也来赚钱 💪", ko: "일할 시간이에요! 오늘도 벌어봐요 💪", ru: "Пора работать! Заработаем сегодня 💪" },
-  "common.language": { ja: "言語", en: "Language", es: "Idioma", fr: "Langue", zh: "语言", ko: "언어", ru: "Язык" },
+  "common.language": { ja: "言語", en: "Language", es: "Idioma", fr: "Langue", zh: "语言", ko: "언어", ru: "Язык", de: "Sprache", it: "Lingua", pt: "Idioma", ar: "اللغة", hi: "भाषा", id: "Bahasa", th: "ภาษา", vi: "Ngôn ngữ", tr: "Dil", pl: "Język", nl: "Taal", uk: "Мова", bn: "ভাষা", fil: "Wika" },
 
   "audio.volume": { ja: "おとの おおきさ", en: "Volume", es: "Volumen", fr: "Volume", zh: "音量", ko: "음량", ru: "Громкость" },
   "audio.mute": { ja: "ミュート", en: "Mute", es: "Silenciar", fr: "Couper le son", zh: "静音", ko: "음소거", ru: "Выключить звук" },
@@ -166,7 +185,7 @@ function detectDefault(): Locale {
     const saved = localStorage.getItem(KEY);
     if (saved && LOCALES.includes(saved as Locale)) return saved as Locale;
     const nav = (navigator.language || "ja").slice(0, 2).toLowerCase();
-    if (nav === "en") return "en";
+    if (LOCALES.includes(nav as Locale)) return nav as Locale;
   } catch {
     /* ignore */
   }
@@ -199,7 +218,7 @@ export function useLocale(): Locale {
 
 function translate(loc: Locale, key: string, vars?: Record<string, string | number>): string {
   const entry = STRINGS[key];
-  let s = entry ? entry[loc] ?? entry.en ?? key : key;
+  let s = entry ? entry[loc] ?? entry.en ?? entry.ja ?? key : key;
   if (vars) for (const k of Object.keys(vars)) s = s.replace(`{${k}}`, String(vars[k]));
   return s;
 }
