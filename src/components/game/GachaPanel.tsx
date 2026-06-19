@@ -9,9 +9,9 @@ import { playSE } from "@/audio/engine";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
-/** ガチャ1回の値段 / ダブり時の返金（ゴールド） */
+/** ガチャ1回の値段（ダブりでも返金なし） */
 const PRICE = 300;
-const DUP_REFUND = 100;
+const DUP_REFUND = 0;
 
 /** レア度ごとの排出ウェイト（合計100）。UR=激レア=0.5% */
 const RARITY_WEIGHT: Record<Rarity, number> = { N: 60, R: 25, SR: 11, SSR: 3.5, UR: 0.5 };
@@ -125,7 +125,7 @@ export function GachaPanel() {
                   ✨ {t("gacha.new")}
                 </span>
               ) : (
-                <span className="font-pixel text-[11px] text-white/70">{t("gacha.dup", { n: DUP_REFUND })}</span>
+                <span className="font-pixel text-[11px] text-white/70">{t("gacha.dup")}</span>
               )}
             </div>
           ) : (

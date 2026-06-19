@@ -67,7 +67,7 @@ const STRINGS: Record<string, Dict> = {
   "gacha.lead": { ja: "回すと すがたが ランダムで出る！", en: "Spin for a random costume!", es: "¡Gira por un disfraz al azar!", fr: "Tournez pour un costume aléatoire !", zh: "转一下随机获得造型！", ko: "돌리면 랜덤 코스튬 등장!", ru: "Крути — выпадет случайный костюм!" },
   "gacha.pull": { ja: "ガチャを回す（{n}G）", en: "Spin ({n} G)", es: "Girar ({n} G)", fr: "Tourner ({n} G)", zh: "扭一发（{n}G）", ko: "뽑기 ({n}G)", ru: "Крутить ({n} G)" },
   "gacha.new": { ja: "NEW！ ゲット！", en: "NEW! Got it!", es: "¡NUEVO! ¡Conseguido!", fr: "NOUVEAU ! Obtenu !", zh: "NEW！获得！", ko: "NEW! 획득!", ru: "NEW! Получено!" },
-  "gacha.dup": { ja: "ダブり… {n}G 返金", en: "Duplicate… {n} G refunded", es: "Repetido… {n} G devueltos", fr: "Doublon… {n} G remboursés", zh: "重复…返还 {n}G", ko: "중복… {n}G 환불", ru: "Повтор… возврат {n} G" },
+  "gacha.dup": { ja: "ダブり…（すでに所持）", en: "Duplicate (already owned)", es: "Repetido (ya lo tienes)", fr: "Doublon (déjà obtenu)", zh: "重复（已拥有）", ko: "중복(이미 보유)", ru: "Повтор (уже есть)" },
   "gacha.collection": { ja: "コレクション", en: "Collection", es: "Colección", fr: "Collection", zh: "收藏", ko: "컬렉션", ru: "Коллекция" },
   "gacha.notEnough": { ja: "ゴールドが足りない…", en: "Not enough gold…", es: "Oro insuficiente…", fr: "Pas assez d'or…", zh: "金币不足…", ko: "골드가 부족해…", ru: "Не хватает золота…" },
 
