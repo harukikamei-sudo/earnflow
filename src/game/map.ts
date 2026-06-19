@@ -9,6 +9,8 @@
  * ここでは既定マップ DEFAULT_MAP と、座標やサイズなどの定数だけを定義する。
  */
 
+import { DECO_SPOTS } from "./themes";
+
 export type TileChar = "T" | "W" | "G" | "P" | "F" | "S" | "R" | "B" | "D" | "C" | "N";
 
 /** 既定ステージ（まち）のID */
@@ -146,6 +148,12 @@ function buildMap(): string[] {
   buildingFootprintCells().forEach(clearObstacle);
   // 全テンプレの道タイルからも障害物を除去（道が木や池を貫かないように）
   for (const tpl of LAYOUT_TEMPLATES) templatePathCells(tpl).forEach(clearObstacle);
+  // 住民の家（装飾スポット）の足元からも障害物を除去
+  for (const s of DECO_SPOTS) {
+    clearObstacle({ x: s.x, y: s.y });
+    clearObstacle({ x: s.x + 1, y: s.y });
+    clearObstacle({ x: s.x, y: s.y + 1 });
+  }
 
   return g.map((r) => r.join(""));
 }

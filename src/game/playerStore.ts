@@ -61,6 +61,20 @@ export function isOwned(src: string): boolean {
   return src === "" || owned.includes(src);
 }
 
+/** 所持リスト（非リアクティブ読み取り） */
+export function getOwned(): string[] {
+  return owned;
+}
+
+/** 無償で所持に追加（家の報酬など）。追加できたら true */
+export function grantOwned(id: string): boolean {
+  if (!id || isOwned(id)) return false;
+  owned = [...owned, id];
+  save(KEYS.owned, owned);
+  emit();
+  return true;
+}
+
 /** コスチューム/アイテムを購入（所持金が足りれば true）。id/src を所持リストに追加 */
 export function buy(idOrSrc: string, price: number): boolean {
   if (isOwned(idOrSrc)) return true;

@@ -165,11 +165,12 @@ export const THEMES: StageTheme[] = [
 ];
 
 /** 装飾建物の配置候補（中心の主要建物・水を避けたタイル座標） */
-const BUILD_SPOTS = [
+export const DECO_SPOTS = [
   { x: 2, y: 7 }, { x: 6, y: 3 }, { x: 21, y: 4 }, { x: 25, y: 10 },
   { x: 3, y: 18 }, { x: 20, y: 18 }, { x: 24, y: 14 }, { x: 2, y: 11 },
   { x: 8, y: 6 }, { x: 18, y: 6 }, { x: 13, y: 7 }, { x: 22, y: 16 },
 ];
+const BUILD_SPOTS = DECO_SPOTS;
 const ROOFS = ["#c0392b", "#2980b9", "#e67e22", "#16a085", "#8e44ad", "#27ae60", "#d35400", "#2c3e50", "#c0a020", "#9b59b6"];
 
 export interface TownBuilding {
@@ -197,6 +198,26 @@ export function townBuildings(themeIndex: number): TownBuilding[] {
     out.push({ x: s.x, y: s.y, roof: ROOFS[(themeIndex + k * 3) % ROOFS.length] });
   }
   return out;
+}
+
+export interface ResidentHouse {
+  id: string;
+  x: number;
+  y: number;
+  roof: string;
+  door: { x: number; y: number };
+}
+
+/** 派遣住民の家（建物）。住民IDごとに装飾スポットへ配置し、入口を持つ。 */
+export function residentHouses(themeIndex: number, ids: string[]): ResidentHouse[] {
+  const spots = townBuildings(themeIndex);
+  return ids.slice(0, spots.length).map((id, i) => ({
+    id,
+    x: spots[i].x,
+    y: spots[i].y,
+    roof: spots[i].roof,
+    door: { x: spots[i].x, y: spots[i].y + 1 },
+  }));
 }
 
 /** 街ごとの「抜け道（門）」の位置候補（左右の端。街ごとに高さが変わる） */

@@ -8,7 +8,9 @@
 
 import { useSyncExternalStore } from "react";
 import { THEMES } from "./themes";
-import { getBuiltinCharacter, type Rarity } from "@/components/pixel/sprites";
+import { CHARACTERS, getBuiltinCharacter, type Rarity } from "@/components/pixel/sprites";
+import { addGold, getOwned, grantOwned } from "./playerStore";
+import { toDateKey } from "@/lib/utils";
 
 const KEYS = {
   town: "earnflow.currentTown",
@@ -177,4 +179,53 @@ export function claimTownGoal(i: number): number {
   save(GOALS_KEY, claimedGoals);
   emit();
   return townGoalReward(i);
+}
+
+/* ---------------- 住民の家への訪問（1日1回・報酬） ---------------- */
+
+/** レア度ごとの訪問報酬ゴールド */
+const VISIT_GOLD: Record<Rarity, number> = { N: 50, R: 120, SR: 300, SSR: 700, UR: 1500 };
+/** レア度ごとの衣装プレゼント確率 */
+const COSTUME_CHANCE: Record<Rarity, number> = { N: 0.1, R: 0.2, SR: 0.4, SSR: 0.7, UR: 1 };
+
+const VISIT_KEY = "earnflow.houseVisits";
+let lastVisited: Record<string, string> = load<Record<string, string>>(VISIT_KEY, {});
+const todayKey = () => toDateKey(new Date());
+
+/** 今日その住民の家を訪問できるか（1日1回） */
+export function canVisitResident(id: string): boolean {
+  return lastVisited[id] !== todayKey();
+}
+export function useVisitVersion(): number {
+  // 訪問状態の変化で再描画させるためのダミー購読（emit時に更新）
+  return useSyncExternalStore(subscribe, () => Object.keys(lastVisited).length, () => Object.keys(lastVisited).length);
+}
+
+export interface VisitReward {
+  gold: number;
+  costumeId: string | null;
+  rarity: Rarity;
+}
+
+/** 住民の家を訪問して報酬を受け取る。1日1回。レアなほど報酬も豪華＆衣装が高レア。 */
+export function visitResident(id: string): VisitReward | null {
+  if (!canVisitResident(id)) return null;
+  const rarity: Rarity = getBuiltinCharacter(id)?.rarity ?? "N";
+  const gold = VISIT_GOLD[rarity];
+  addGold(gold);
+
+  let costumeId: string | null = null;
+  if (Math.random() < COSTUME_CHANCE[rarity]) {
+    const owned = getOwned();
+    const pool = CHARACTERS.filter((c) => (c.rarity ?? "N") === rarity && !owned.includes(c.id));
+    if (pool.length > 0) {
+      costumeId = pool[Math.floor(Math.random() * pool.length)].id;
+      grantOwned(costumeId);
+    }
+  }
+
+  lastVisited = { ...lastVisited, [id]: todayKey() };
+  save(VISIT_KEY, lastVisited);
+  emit();
+  return { gold, costumeId, rarity };
 }

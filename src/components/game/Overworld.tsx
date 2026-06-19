@@ -4,7 +4,7 @@ import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE, type HeroDir } from "@/components/pixel/sprites";
 import { MAP_H, MAP_W, TILE, townLayout, townPathCells, type Rect, type TownLayout } from "@/game/map";
 import { TownLandmark } from "./TownLandmark";
-import { THEMES, themeForLevel, townBuildings, townExit, type StageTheme } from "@/game/themes";
+import { THEMES, themeForLevel, residentHouses, townExit, type StageTheme } from "@/game/themes";
 import { isWalkable, useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
@@ -429,7 +429,6 @@ export function Overworld({
   level = 1,
   themeIndex,
   residents = [],
-  devLevel = 0,
 }: OverworldProps) {
   const viewRef = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(360);
@@ -537,15 +536,12 @@ export function Overworld({
           );
         })()}
 
-        {/* 国ごとに異なる建物レイアウト。発展レベルで軒数が増える */}
+        {/* 派遣住民の家（住民ごとに1軒・入ると報酬） */}
         {!editMode &&
-          (() => {
-            const layout = townBuildings(themeIndex ?? 0);
-            const shown = Math.min(layout.length, 2 + devLevel * 2);
-            return layout.slice(0, shown).map((b, i) => (
-              <DevHouse key={`dev-${i}`} x={b.x} y={b.y} roof={b.roof} />
-            ));
-          })()}
+          showLandmarks &&
+          residentHouses(themeIndex ?? 0, residents).map((h) => (
+            <DevHouse key={`rh-${h.id}`} x={h.x} y={h.y} roof={h.roof} />
+          ))}
 
         {/* 配置された画像プロップ */}
         {props.map((p) => (

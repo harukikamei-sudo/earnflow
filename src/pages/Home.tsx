@@ -35,8 +35,8 @@ import { isHoliday } from "@/lib/holiday";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
-import { THEMES, townExit } from "@/game/themes";
-import { useCurrentTown, setCurrentTown, useResidents, townDevLevel, collectIdleGold } from "@/game/townStore";
+import { THEMES, townExit, residentHouses } from "@/game/themes";
+import { useCurrentTown, setCurrentTown, useResidents, townDevLevel, collectIdleGold, canVisitResident, visitResident, useVisitVersion } from "@/game/townStore";
 import { WorldMap } from "@/components/game/WorldMap";
 import { cn, formatDuration, formatYen, formatYenPrecise, toDateKey, uid } from "@/lib/utils";
 
@@ -198,6 +198,29 @@ export default function Home() {
   // 抜け道（となり街へ抜ける門）に接近
   const exitPos = townExit(currentTown);
   const nearExit = isTown && !working && settled && man(exitPos.x, exitPos.y) <= 1;
+
+  // 派遣住民の家への接近（入ると報酬）
+  useVisitVersion(); // 訪問状態の変化で再描画
+  const houses = residentHouses(currentTown, townResidents[currentTown] ?? []);
+  const nearResidentHouse =
+    isTown && !working && settled && !nearShop && !nearMarket && !nearHouse && !nearSign && !nearExit
+      ? houses.find((h) => man(h.door.x, h.door.y) <= 1) ?? null
+      : null;
+  const [houseDialog, setHouseDialog] = useState<{ name: string; lines: string[] } | null>(null);
+  function visitHouse(houseId: string) {
+    const name = getBuiltinCharacter(houseId)?.name ?? "じゅうみん";
+    if (!canVisitResident(houseId)) {
+      playSE("cancel");
+      setHouseDialog({ name, lines: ["また あした あそびに きてね！"] });
+      return;
+    }
+    const r = visitResident(houseId);
+    if (!r) return;
+    playSE(r.costumeId ? "levelup" : "confirm");
+    const lines = ["ようこそ！ いつも おうえん してるよ！", `💰 ${r.gold}G を もらった！`];
+    if (r.costumeId) lines.push(`✨ 「${getBuiltinCharacter(r.costumeId)?.name ?? "新衣装"}」を もらった！`);
+    setHouseDialog({ name, lines });
+  }
 
   // 抜け道に触れたらワールドマップを開く（退出直後の再オープンは離れるまで抑止）
   const exitGuard = useRef(false);
@@ -788,6 +811,18 @@ export default function Home() {
             </div>
           )}
 
+          {/* 住民の家に接近 → 訪問 */}
+          {nearResidentHouse && !houseDialog && (
+            <div className="absolute left-1/2 top-16 w-full max-w-xs -translate-x-1/2 px-4">
+              <DQWindow title={`${getBuiltinCharacter(nearResidentHouse.id)?.name ?? "じゅうみん"}のいえ`} className="anim-dq-pop">
+                <p className="font-pixel mb-2 text-sm text-white">
+                  {canVisitResident(nearResidentHouse.id) ? "あそびに いける！" : "きょうは もう おとずれた"}
+                </p>
+                <DQCommand label="おとずれる" active accent="gold" onClick={() => visitHouse(nearResidentHouse.id)} />
+              </DQWindow>
+            </div>
+          )}
+
           {/* ヒント */}
           {!nearShop && !nearMarket && !nearHouse && !nearSign && (
             <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
@@ -848,6 +883,24 @@ export default function Home() {
               </div>
               <p className="font-pixel flex-1 text-sm leading-relaxed text-white">{greeting}</p>
             </div>
+            <p className="font-pixel mt-2 text-right text-[11px] text-white/50">{t("daily.close")}</p>
+          </DQWindow>
+        </div>
+      )}
+
+      {/* 住民の家：訪問のあいさつ＆報酬 */}
+      {houseDialog && (
+        <div
+          onClick={() => {
+            playSE("confirm");
+            setHouseDialog(null);
+          }}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 pb-8"
+        >
+          <DQWindow title={`${houseDialog.name}のいえ`} className="anim-dq-pop w-full max-w-sm">
+            {houseDialog.lines.map((l, i) => (
+              <p key={i} className="font-pixel text-sm leading-relaxed text-white">{l}</p>
+            ))}
             <p className="font-pixel mt-2 text-right text-[11px] text-white/50">{t("daily.close")}</p>
           </DQWindow>
         </div>
