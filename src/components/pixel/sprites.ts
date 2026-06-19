@@ -162,11 +162,16 @@ export const HERO_TOPDOWN: Record<"down" | "up" | "side", Sprite[]> = {
 
 /* ---------------- 着せ替え（組み込みキャラ・歩行2コマ） ---------------- */
 
+/** レア度（N=ノーマル / R / SR / SSR / UR=激レア） */
+export type Rarity = "N" | "R" | "SR" | "SSR" | "UR";
+
 export interface CharacterDef {
   id: string;
   name: string;
   /** 歩行フレーム（2コマ＝歩いて見える / 1コマ＝静止） */
   frames: Sprite[];
+  /** レア度（未指定は N 扱い） */
+  rarity?: Rarity;
 }
 
 /** 共通の顔（肌＋目） */
@@ -253,9 +258,36 @@ export const CHARACTERS: CharacterDef[] = [
   },
 ];
 
-/* -------- 自動生成キャラ（職場ロール × 称号で〜360体）。デザインは後で調整可能 -------- */
+/* -------- 自動生成キャラ（職場ロール × 称号で〜360体）。装飾品＆レア度つき -------- */
 
-const ROLE_TORSOS = [HERO_TORSO, WARRIOR_TORSO, PRIEST_TORSO, SUIT_TORSO];
+// 頭（4行）＝髪/帽子。CROWN は激レア用
+const HEAD_HAIR = ["......oooo......", ".....oHHHHo.....", "....oHHHHHHo....", "....oHHHHHHo...."];
+const HEAD_BAND = ["......oooo......", ".....oHHHHo.....", "....oHHHHHHo....", "....oYYYYYYo...."];
+const HEAD_CAP = ["......oooo......", ".....oWWWWo.....", "....oWWWWWWo....", "...oYYYYYYo....."];
+const HEAD_BEANIE = ["......oooo......", ".....oWWWWo.....", "....oWWWWWWo....", "....oWWWWWWo...."];
+const HEAD_CROWN = ["....oYoYoYo.....", "....oYYYYYo.....", "....oHHHHHHo....", "....oHHHHHHo...."];
+const HEADS_COMMON = [HEAD_HAIR, HEAD_BAND, HEAD_CAP, HEAD_BEANIE];
+
+// 胴（4行）＝服/エプロン/ベスト/スーツ
+const BODY_PLAIN = ["...oCCCCCCCCo...", "..oSCCCCCCCCSo..", "..oSCCCCCCCCSo..", "...oCCCCCCCCo..."];
+const BODY_BAND = ["...oCCCCCCCCo...", "..oSCCYYYYCCSo..", "..oSCCCCCCCCSo..", "...oCCCCCCCCo..."];
+const BODY_SUIT = ["...oCCCCCCCCo...", "..oSCCWWWWCCSo..", "..oSCCWRRWCCSo..", "...oCCCCCCCCo..."];
+const BODY_APRON = ["...oCCCCCCCCo...", "..oSCWWWWWWCSo..", "..oSCWWWWWWCSo..", "...oWWWWWWWWo..."];
+const BODY_VEST = ["...oCCCCCCCCo...", "..oSCYYYYYYCSo..", "..oSCYYYYYYCSo..", "...oCCCCCCCCo..."];
+const BODIES = [BODY_PLAIN, BODY_BAND, BODY_SUIT, BODY_APRON, BODY_VEST];
+
+function makeTorso(head: string[], body: string[]): string[] {
+  return [...head, ...FACE, ...body];
+}
+
+function rarityForTier(tIdx: number): Rarity {
+  if (tIdx >= 11) return "UR";
+  if (tIdx >= 10) return "SSR";
+  if (tIdx >= 8) return "SR";
+  if (tIdx >= 5) return "R";
+  return "N";
+}
+
 const G_SKINS: [string, string][] = [
   ["#f3c98b", "#d99a5b"],
   ["#e8b07a", "#c98a50"],
@@ -279,9 +311,12 @@ const ROLE_NAMES = [
 
 let _rIdx = 0;
 for (const role of ROLE_NAMES) {
-  for (const tier of ROLE_TIERS) {
+  for (let tIdx = 0; tIdx < ROLE_TIERS.length; tIdx++) {
     const i = _rIdx++;
+    const rarity = rarityForTier(tIdx);
     const skin = G_SKINS[(i * 5) % G_SKINS.length];
+    // レア度が高いほど金色の差し色になりやすい
+    const accent = rarity === "UR" || rarity === "SSR" ? "#f6c945" : G_ACCENTS[(i * 3) % G_ACCENTS.length];
     const palette: Sprite["palette"] = {
       o: "#1a1026",
       K: "#1a1026",
@@ -289,16 +324,20 @@ for (const role of ROLE_NAMES) {
       s: skin[1],
       H: G_HAIRS[i % G_HAIRS.length],
       W: "#ececec",
-      Y: G_ACCENTS[(i * 3) % G_ACCENTS.length],
+      Y: accent,
       C: G_CLOTHES[(i * 7) % G_CLOTHES.length],
       R: "#c0392b",
       B: G_PANTS[(i * 2) % G_PANTS.length],
       g: G_SHOES[i % G_SHOES.length],
     };
+    // 激レアは王冠、それ以外は髪/帽子をローテーション。胴（服/エプロン等）も巡回
+    const head = rarity === "UR" ? HEAD_CROWN : HEADS_COMMON[i % HEADS_COMMON.length];
+    const body = BODIES[Math.floor(i / HEADS_COMMON.length) % BODIES.length];
     CHARACTERS.push({
       id: `char:role${i}`,
-      name: `${tier}${role}`,
-      frames: walker(ROLE_TORSOS[i % ROLE_TORSOS.length], palette),
+      name: `${ROLE_TIERS[tIdx]}${role}`,
+      frames: walker(makeTorso(head, body), palette),
+      rarity,
     });
   }
 }

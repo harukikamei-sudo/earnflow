@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
-import { CHARACTERS, getBuiltinCharacter, HERO_DOWN_A } from "@/components/pixel/sprites";
+import { CHARACTERS, getBuiltinCharacter, HERO_DOWN_A, type Rarity } from "@/components/pixel/sprites";
 import { DQWindow } from "@/components/pixel/DQWindow";
 import { setCharacter, useAssets, useCharacter } from "@/game/mapStore";
-import { gachaPull, useOwned, useWallet, type GachaResult } from "@/game/playerStore";
+import { gachaPull, useOwned, useWallet, type GachaGroup, type GachaResult } from "@/game/playerStore";
 import { playSE } from "@/audio/engine";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,19 @@ import { cn } from "@/lib/utils";
 /** ガチャ1回の値段 / ダブり時の返金（ゴールド） */
 const PRICE = 300;
 const DUP_REFUND = 100;
+
+/** レア度ごとの排出ウェイト（合計100）。UR=激レア=0.5% */
+const RARITY_WEIGHT: Record<Rarity, number> = { N: 60, R: 25, SR: 11, SSR: 3.5, UR: 0.5 };
+const RARITY_ORDER: Rarity[] = ["N", "R", "SR", "SSR", "UR"];
+
+/** レア度ごとの見た目（ラベル色・グロー） */
+const RARITY_STYLE: Record<Rarity, { label: string; color: string; glow: string; spark: string }> = {
+  N: { label: "ノーマル", color: "#cfd3dd", glow: "transparent", spark: "" },
+  R: { label: "レア", color: "#74b9ff", glow: "rgba(116,185,255,0.6)", spark: "" },
+  SR: { label: "スーパーレア", color: "#b388ff", glow: "rgba(179,136,255,0.7)", spark: "✨" },
+  SSR: { label: "SSレア", color: "#f6c945", glow: "rgba(246,201,69,0.8)", spark: "✨✨" },
+  UR: { label: "激レア", color: "#ff7675", glow: "rgba(246,201,69,0.95)", spark: "🌈✨" },
+};
 
 function basename(src: string): string {
   return src.split("/").pop() ?? src;
@@ -30,8 +43,8 @@ function nameOf(id: string, t: (k: string) => string): string {
 }
 
 /**
- * どうぐ屋のガチャポン。ゴールドを払うとランダムでコスチュームが出る。
- * 新規ならゲット＆自動で着用、ダブりなら一部返金。所持品はコレクションから着替え可能。
+ * どうぐ屋のガチャポン。レア度の重み付き抽選（激レア0.5%）でコスチュームが出る。
+ * 同じキャラがかぶることもある（ダブりは一部返金）。新規はその場で着用、所持品は着替え可能。
  */
 export function GachaPanel() {
   const t = useT();
@@ -43,7 +56,10 @@ export function GachaPanel() {
   const [result, setResult] = useState<GachaResult | null>(null);
   const [rolling, setRolling] = useState(false);
 
+  // 全コスチューム（抽選プール）と所持数
   const pool = [...CHARACTERS.map((c) => c.id), ...assets];
+  const total = pool.length;
+  const got = pool.filter((id) => ownedIds.includes(id)).length;
   const canRoll = wallet >= PRICE && !rolling;
 
   function roll() {
@@ -52,25 +68,29 @@ export function GachaPanel() {
     setResult(null);
     playSE("confirm");
     window.setTimeout(() => {
-      const res = gachaPull(PRICE, pool, DUP_REFUND);
+      const groups: GachaGroup[] = RARITY_ORDER.map((r) => ({
+        rarity: r,
+        weight: RARITY_WEIGHT[r],
+        ids: CHARACTERS.filter((c) => (c.rarity ?? "N") === r).map((c) => c.id),
+      }));
+      groups[0].ids.push(...assets); // 追加画像はノーマル枠
+      const res = gachaPull(PRICE, groups, DUP_REFUND);
       setRolling(false);
       if (res) {
         setResult(res);
-        if (res.isNew) {
-          setCharacter(res.id); // 新規は自動で着用
-          playSE("levelup");
-        }
+        if (res.isNew) setCharacter(res.id); // 新規は自動で着用
+        // SR以上は派手な効果音
+        playSE(res.rarity === "SR" || res.rarity === "SSR" || res.rarity === "UR" ? "levelup" : "confirm");
       }
     }, 800);
   }
 
-  // コレクションは「所持済み」のみ表示（全365体を描画すると重いため）
-  const total = pool.length;
-  const got = pool.filter((id) => ownedIds.includes(id)).length;
   const ownedCollection = [
     { src: "", name: t("costume.default") },
     ...pool.filter((id) => ownedIds.includes(id)).map((id) => ({ src: id, name: nameOf(id, t) })),
   ];
+
+  const rs = result ? RARITY_STYLE[(result.rarity as Rarity) ?? "N"] : null;
 
   return (
     <>
@@ -82,12 +102,23 @@ export function GachaPanel() {
         </div>
 
         {/* 結果表示 / カプセル */}
-        <div className="mb-3 grid min-h-[120px] place-items-center rounded-md bg-black/30 p-3">
+        <div className="mb-3 grid min-h-[140px] place-items-center rounded-md bg-black/30 p-3">
           {rolling ? (
             <div className="anim-hero-bob text-4xl">🥚</div>
-          ) : result ? (
-            <div className="anim-dq-pop flex flex-col items-center gap-1 text-center">
-              <Thumb id={result.id} scale={3} />
+          ) : result && rs ? (
+            <div className="anim-dq-pop flex flex-col items-center gap-1.5 text-center">
+              <div
+                className={cn("grid place-items-center rounded-lg p-2", result.rarity === "UR" && "anim-hero-bob")}
+                style={{ boxShadow: rs.glow === "transparent" ? undefined : `0 0 18px 4px ${rs.glow}` }}
+              >
+                <Thumb id={result.id} scale={3} />
+              </div>
+              <span
+                className="font-pixel rounded px-2 py-0.5 text-[11px] font-bold"
+                style={{ background: rs.color, color: "#1a1026" }}
+              >
+                {rs.spark} {rs.label} {rs.spark}
+              </span>
               <span className="font-pixel text-sm font-bold text-white">{nameOf(result.id, t)}</span>
               {result.isNew ? (
                 <span className="font-pixel rounded bg-gold px-2 py-0.5 text-[11px] font-bold text-black">

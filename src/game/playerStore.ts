@@ -73,21 +73,46 @@ export function buy(idOrSrc: string, price: number): boolean {
   return true;
 }
 
+export interface GachaGroup {
+  /** レア度ラベル（"N"〜"UR"） */
+  rarity: string;
+  /** 排出ウェイト（合計に対する相対値） */
+  weight: number;
+  /** このレア度のコスチュームID群 */
+  ids: string[];
+}
+
 export interface GachaResult {
   /** 出たコスチュームのID/画像src */
   id: string;
-  /** 新規獲得なら true、ダブりなら false */
+  /** 新規獲得なら true、ダブり（同じキャラ）なら false */
   isNew: boolean;
+  /** 出たレア度 */
+  rarity: string;
 }
 
 /**
- * ガチャを1回引く。所持金が足りなければ null。
- * プールからランダムに1つ出し、新規なら所持に追加、ダブりなら dupRefund を返金する。
+ * ガチャを1回引く（レア度の重み付き抽選）。所持金が足りなければ null。
+ * まずレア度をウェイトで抽選 → その中から等確率で1体。
+ * 新規なら所持に追加、ダブり（同じキャラ）なら dupRefund を返金する。
  */
-export function gachaPull(price: number, pool: string[], dupRefund: number): GachaResult | null {
-  if (wallet < price || pool.length === 0) return null;
+export function gachaPull(price: number, groups: GachaGroup[], dupRefund: number): GachaResult | null {
+  if (wallet < price) return null;
+  const avail = groups.filter((g) => g.ids.length > 0 && g.weight > 0);
+  if (avail.length === 0) return null;
   wallet -= price;
-  const id = pool[Math.floor(Math.random() * pool.length)];
+
+  const totalW = avail.reduce((s, g) => s + g.weight, 0);
+  let r = Math.random() * totalW;
+  let chosen = avail[avail.length - 1];
+  for (const g of avail) {
+    if (r < g.weight) {
+      chosen = g;
+      break;
+    }
+    r -= g.weight;
+  }
+  const id = chosen.ids[Math.floor(Math.random() * chosen.ids.length)];
   const isNew = !owned.includes(id);
   if (isNew) {
     owned = [...owned, id];
@@ -97,7 +122,7 @@ export function gachaPull(price: number, pool: string[], dupRefund: number): Gac
   }
   save(KEYS.wallet, wallet);
   emit();
-  return { id, isNew };
+  return { id, isNew, rarity: chosen.rarity };
 }
 
 /** 所持アイテムによる収入倍率（1.0 = 等倍）。非リアクティブ読み取り（エンジン用） */
