@@ -2,7 +2,7 @@ import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE, type HeroDir } from "@/components/pixel/sprites";
-import { HOUSE, MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
+import { MAP_H, MAP_W, TILE, townLayout, type Rect } from "@/game/map";
 import { THEMES, themeForLevel, townBuildings, townExit, type StageTheme } from "@/game/themes";
 import { isWalkable, useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
@@ -64,12 +64,12 @@ const TileLayer = memo(function TileLayer({ rows, theme }: { rows: string[]; the
 });
 
 /** バイト先：城（高レベル時）。CSSのドット風フォートレス */
-function CastleBuilding() {
-  const left = SHOP.x * TILE;
-  const width = SHOP.w * TILE;
-  const h = (SHOP.h + 1) * TILE;
+function CastleBuilding({ rect }: { rect: Rect }) {
+  const left = rect.x * TILE;
+  const width = rect.w * TILE;
+  const h = (rect.h + 1) * TILE;
   return (
-    <div className="pointer-events-none absolute" style={{ left, top: SHOP.y * TILE - TILE, width, height: h }}>
+    <div className="pointer-events-none absolute" style={{ left, top: rect.y * TILE - TILE, width, height: h }}>
       {/* 胸壁（ギザギザの上辺） */}
       <div
         className="absolute inset-x-0 top-0"
@@ -90,11 +90,11 @@ function CastleBuilding() {
 }
 
 /** バイト先：洞窟イラスト（無ければCSSの洞窟にフォールバック） */
-function ShopBuilding({ castle }: { castle?: boolean }) {
+function ShopBuilding({ castle, rect }: { castle?: boolean; rect: Rect }) {
   const [caveOk, setCaveOk] = useState(true);
-  const left = SHOP.x * TILE;
-  const width = SHOP.w * TILE;
-  if (castle) return <CastleBuilding />;
+  const left = rect.x * TILE;
+  const width = rect.w * TILE;
+  if (castle) return <CastleBuilding rect={rect} />;
   if (caveOk) {
     return (
       <PixelImage
@@ -102,14 +102,14 @@ function ShopBuilding({ castle }: { castle?: boolean }) {
         keyWhite
         onError={() => setCaveOk(false)}
         className="pointer-events-none absolute"
-        style={{ left, top: (SHOP.y - 1) * TILE, width, height: "auto" }}
+        style={{ left, top: (rect.y - 1) * TILE, width, height: "auto" }}
       />
     );
   }
   // フォールバック：CSSの洞窟（cave.png 未配置時）
-  const h = (SHOP.h + 1) * TILE;
+  const h = (rect.h + 1) * TILE;
   return (
-    <div className="pointer-events-none absolute" style={{ left, top: SHOP.y * TILE - TILE, width, height: h }}>
+    <div className="pointer-events-none absolute" style={{ left, top: rect.y * TILE - TILE, width, height: h }}>
       {/* 岩山 */}
       <div
         className="absolute inset-x-0 bottom-0"
@@ -139,23 +139,23 @@ function ShopBuilding({ castle }: { castle?: boolean }) {
 }
 
 /** どうぐ屋：shop.png があれば画像、無ければCSSのドット風ショップ */
-function MarketBuilding() {
+function MarketBuilding({ rect }: { rect: Rect }) {
   const [imgOk, setImgOk] = useState(true);
-  const left = MARKET.x * TILE;
-  const width = MARKET.w * TILE;
+  const left = rect.x * TILE;
+  const width = rect.w * TILE;
   if (imgOk) {
     return (
       <PixelImage
         src="/illust/shop.png"
         onError={() => setImgOk(false)}
         className="pointer-events-none absolute"
-        style={{ left, top: (MARKET.y - 1) * TILE, width, height: "auto" }}
+        style={{ left, top: (rect.y - 1) * TILE, width, height: "auto" }}
       />
     );
   }
-  const h = (MARKET.h + 1) * TILE;
+  const h = (rect.h + 1) * TILE;
   return (
-    <div className="pointer-events-none absolute" style={{ left, top: MARKET.y * TILE - TILE, width, height: h }}>
+    <div className="pointer-events-none absolute" style={{ left, top: rect.y * TILE - TILE, width, height: h }}>
       {/* 屋根（縞のひさし） */}
       <div
         className="absolute left-0 top-0 w-full"
@@ -181,23 +181,23 @@ function MarketBuilding() {
 }
 
 /** わが家：house.png があれば画像、無ければCSSのドット風ハウス */
-function HouseBuilding() {
+function HouseBuilding({ rect }: { rect: Rect }) {
   const [imgOk, setImgOk] = useState(true);
-  const left = HOUSE.x * TILE;
-  const width = HOUSE.w * TILE;
+  const left = rect.x * TILE;
+  const width = rect.w * TILE;
   if (imgOk) {
     return (
       <PixelImage
         src="/illust/house.png"
         onError={() => setImgOk(false)}
         className="pointer-events-none absolute"
-        style={{ left, top: (HOUSE.y - 1) * TILE, width, height: "auto" }}
+        style={{ left, top: (rect.y - 1) * TILE, width, height: "auto" }}
       />
     );
   }
-  const h = (HOUSE.h + 1) * TILE;
+  const h = (rect.h + 1) * TILE;
   return (
-    <div className="pointer-events-none absolute" style={{ left, top: HOUSE.y * TILE - TILE, width, height: h }}>
+    <div className="pointer-events-none absolute" style={{ left, top: rect.y * TILE - TILE, width, height: h }}>
       {/* 屋根 */}
       <div
         className="absolute left-0 top-0 w-full"
@@ -483,13 +483,16 @@ export function Overworld({
       >
         <TileLayer rows={rows} theme={theme} />
 
-        {showLandmarks && (
-          <>
-            <ShopBuilding castle={level >= 60} />
-            <MarketBuilding />
-            <HouseBuilding />
-          </>
-        )}
+        {showLandmarks && (() => {
+          const L = townLayout(themeIndex ?? 0);
+          return (
+            <>
+              <ShopBuilding castle={level >= 60} rect={L.shop} />
+              <MarketBuilding rect={L.market} />
+              <HouseBuilding rect={L.house} />
+            </>
+          );
+        })()}
 
         {/* 抜け道（となり街へ抜けられる門） */}
         {showLandmarks && themeIndex != null && (() => {

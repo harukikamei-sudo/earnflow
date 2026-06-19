@@ -12,7 +12,7 @@ import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { getBuiltinCharacter, HERO_DOWN_A, SHOPKEEPER } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
-import { DOOR, HOUSE_DOOR, MARKET_DOOR, SIGN_POS, TOWN_ID } from "@/game/map";
+import { SIGN_POS, TOWN_ID, townLayout } from "@/game/map";
 import { useActiveId, useCharacter } from "@/game/mapStore";
 import { addGold, useEarningBoost, useWallet } from "@/game/playerStore";
 import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
@@ -186,10 +186,12 @@ export default function Home() {
   const hy = Math.round(snap.py);
   const settled = !snap.moving;
   const man = (ax: number, ay: number) => Math.abs(hx - ax) + Math.abs(hy - ay);
-  const nearShop = isTown && !working && settled && man(DOOR.x, DOOR.y) <= 1;
-  const nearMarket = isTown && !working && settled && !nearShop && man(MARKET_DOOR.x, MARKET_DOOR.y) <= 1;
+  // 町ごとの建物配置（ドア位置）で接近判定
+  const layout = townLayout(currentTown);
+  const nearShop = isTown && !working && settled && man(layout.shopDoor.x, layout.shopDoor.y) <= 1;
+  const nearMarket = isTown && !working && settled && !nearShop && man(layout.marketDoor.x, layout.marketDoor.y) <= 1;
   const nearHouse =
-    isTown && !working && settled && !nearShop && !nearMarket && man(HOUSE_DOOR.x, HOUSE_DOOR.y) <= 1;
+    isTown && !working && settled && !nearShop && !nearMarket && man(layout.houseDoor.x, layout.houseDoor.y) <= 1;
   const nearSign =
     isTown && !working && settled && !nearShop && !nearMarket && !nearHouse && man(SIGN_POS.x, SIGN_POS.y) <= 1;
   // 抜け道（となり街へ抜ける門）に接近

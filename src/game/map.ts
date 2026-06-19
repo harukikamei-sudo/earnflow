@@ -70,13 +70,8 @@ function buildMap(): string[] {
   for (let y = 9; y <= 12; y++) for (let x = 3; x <= 7; x++) set(x, y, "W");
   for (let y = 6; y <= 8; y++) for (let x = 22; x <= 25; x++) set(x, y, "W");
 
-  for (let y = SHOP.y; y < SHOP.y + SHOP.h; y++)
-    for (let x = SHOP.x; x < SHOP.x + SHOP.w; x++) set(x, y, "B");
-  set(DOOR.x, DOOR.y, "D");
-
-  for (let y = DOOR.y + 1; y <= SPAWN.y; y++) set(DOOR.x, y, "P");
-  for (let x = 8; x <= 16; x++) set(x, 12, "P");
-
+  // 建物(バイト先/道具屋/我が家)は町ごとに位置が変わるオーバーレイなので、
+  // 当たり判定タイルは置かない（自由に歩ける）。看板だけタイルに置く。
   set(SIGN_POS.x, SIGN_POS.y, "S");
 
   const flowers: [number, number][] = [
@@ -91,6 +86,56 @@ function buildMap(): string[] {
 }
 
 export const DEFAULT_MAP: string[] = buildMap();
+
+/* ---------------- 町ごとの建物レイアウト ---------------- */
+
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+export interface TownLayout {
+  shop: Rect;
+  market: Rect;
+  house: Rect;
+  shopDoor: { x: number; y: number };
+  marketDoor: { x: number; y: number };
+  houseDoor: { x: number; y: number };
+}
+
+const BSIZE = { w: 3, h: 2 };
+/** 町ごとの建物配置テンプレ（先頭=従来の配置）。テーマindexで巡回。 */
+const LAYOUT_TEMPLATES: { shop: XY; market: XY; house: XY }[] = [
+  { shop: { x: 10, y: 3 }, market: { x: 15, y: 8 }, house: { x: 11, y: 17 } },
+  { shop: { x: 3, y: 4 }, market: { x: 20, y: 12 }, house: { x: 18, y: 3 } },
+  { shop: { x: 18, y: 11 }, market: { x: 4, y: 6 }, house: { x: 12, y: 3 } },
+  { shop: { x: 11, y: 11 }, market: { x: 17, y: 4 }, house: { x: 4, y: 13 } },
+  { shop: { x: 20, y: 13 }, market: { x: 8, y: 12 }, house: { x: 14, y: 3 } },
+  { shop: { x: 14, y: 9 }, market: { x: 3, y: 15 }, house: { x: 21, y: 11 } },
+];
+
+type XY = { x: number; y: number };
+const rectOf = (b: XY): Rect => ({ x: b.x, y: b.y, w: BSIZE.w, h: BSIZE.h });
+/** 入口（ドア）の位置。下に余裕があれば建物の下、無ければ上に置く */
+const doorOf = (b: XY): XY => {
+  const below = b.y + BSIZE.h;
+  return { x: b.x + 1, y: below <= MAP_H - 2 ? below : b.y - 1 };
+};
+
+/** 町（テーマ）ごとの建物レイアウトを返す。機能は同じで配置だけ変わる。 */
+export function townLayout(themeIndex: number): TownLayout {
+  const i = ((themeIndex % LAYOUT_TEMPLATES.length) + LAYOUT_TEMPLATES.length) % LAYOUT_TEMPLATES.length;
+  const tpl = LAYOUT_TEMPLATES[i];
+  return {
+    shop: rectOf(tpl.shop),
+    market: rectOf(tpl.market),
+    house: rectOf(tpl.house),
+    shopDoor: doorOf(tpl.shop),
+    marketDoor: doorOf(tpl.market),
+    houseDoor: doorOf(tpl.house),
+  };
+}
 
 const BLOCKING = new Set<string>(["T", "W", "R", "B", "S"]);
 
