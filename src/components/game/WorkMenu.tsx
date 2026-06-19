@@ -2,8 +2,29 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { DQCommand, DQWindow } from "@/components/pixel/DQWindow";
 import { createWorkplace, makeTimeRule, RULE_PRESETS } from "@/game/workplace";
-import type { TimeRule, Workplace } from "@/lib/types";
+import type { PayType, TimeRule, Workplace } from "@/lib/types";
 import { cn, formatYen } from "@/lib/utils";
+
+/** 給与タイプの一覧（ラベル・単位） */
+const PAY_TYPES: { key: PayType; label: string; unit: string }[] = [
+  { key: "hourly", label: "時給", unit: "/時" },
+  { key: "daily", label: "日給", unit: "/日" },
+  { key: "monthly", label: "月給", unit: "/月" },
+  { key: "annual", label: "年俸", unit: "/年" },
+];
+/** その勤務先の金額と単位を返す */
+function payOf(w: Workplace): { amount: number; unit: string } {
+  switch (w.payType) {
+    case "daily":
+      return { amount: w.dailyRate, unit: "/日" };
+    case "monthly":
+      return { amount: w.monthlyRate ?? 0, unit: "/月" };
+    case "annual":
+      return { amount: w.annualRate ?? 0, unit: "/年" };
+    default:
+      return { amount: w.hourlyRate, unit: "/時" };
+  }
+}
 
 interface WorkMenuProps {
   workplaces: Workplace[];
@@ -20,7 +41,8 @@ export function WorkMenu({ workplaces, onStart, onAdd, onUpdate, onDelete }: Wor
   /** 編集中のバイトID（null＝新規追加） */
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [rate, setRate] = useState("1100");
+  const [payType, setPayType] = useState<PayType>("hourly");
+  const [amount, setAmount] = useState("1100");
   const [holiday, setHoliday] = useState("0");
   const [rules, setRules] = useState<TimeRule[]>([makeTimeRule("深夜割増", 22, 5, 1.25)]);
   // カスタム時間帯ルール入力
@@ -50,7 +72,8 @@ export function WorkMenu({ workplaces, onStart, onAdd, onUpdate, onDelete }: Wor
     setAdding(false);
     setEditingId(null);
     setName("");
-    setRate("1100");
+    setPayType("hourly");
+    setAmount("1100");
     setHoliday("0");
     setRules([makeTimeRule("深夜割増", 22, 5, 1.25)]);
   }
@@ -60,24 +83,37 @@ export function WorkMenu({ workplaces, onStart, onAdd, onUpdate, onDelete }: Wor
     setEditingId(w.id);
     setAdding(false);
     setName(w.name);
-    setRate(String(w.hourlyRate));
+    setPayType(w.payType);
+    setAmount(String(payOf(w).amount));
     setHoliday(String(w.holidayBonus ?? 0));
     setRules(w.timeRules.map((r) => ({ ...r })));
   }
 
   function submitForm() {
-    const r = Number(rate);
-    if (!name.trim() || !Number.isFinite(r) || r <= 0) return;
+    const a = Number(amount);
+    if (!name.trim() || !Number.isFinite(a) || a <= 0) return;
     const hb = Number(holiday);
-    const bonus = Number.isFinite(hb) && hb > 0 ? hb : 0;
+    // 休日追加は時給・日給のみ、時間帯割増は時給のみ
+    const bonus = (payType === "hourly" || payType === "daily") && Number.isFinite(hb) && hb > 0 ? hb : 0;
+    const useRules = payType === "hourly" ? rules : [];
     if (editingId) {
       const orig = workplaces.find((w) => w.id === editingId);
       if (!orig) return;
-      const wp: Workplace = { ...orig, name: name.trim(), hourlyRate: r, holidayBonus: bonus, timeRules: rules };
+      const wp: Workplace = {
+        ...orig,
+        name: name.trim(),
+        payType,
+        hourlyRate: payType === "hourly" ? a : 0,
+        dailyRate: payType === "daily" ? a : 0,
+        monthlyRate: payType === "monthly" ? a : 0,
+        annualRate: payType === "annual" ? a : 0,
+        holidayBonus: bonus,
+        timeRules: useRules,
+      };
       onUpdate(wp);
       setSelectedId(wp.id);
     } else {
-      const wp = createWorkplace(name.trim(), r, rules, bonus);
+      const wp = createWorkplace(name.trim(), payType, a, useRules, bonus);
       onAdd(wp);
       setSelectedId(wp.id);
     }
@@ -108,7 +144,7 @@ export function WorkMenu({ workplaces, onStart, onAdd, onUpdate, onDelete }: Wor
                   {w.name}
                 </span>
                 <span className="text-xs opacity-80">
-                  {formatYen(w.hourlyRate)}/時{m ? " 🌙" : ""}{(w.holidayBonus ?? 0) > 0 ? " 🎌" : ""}
+                  {formatYen(payOf(w).amount)}{payOf(w).unit}{m ? " 🌙" : ""}{(w.holidayBonus ?? 0) > 0 ? " 🎌" : ""}
                 </span>
               </button>
               <button
@@ -148,39 +184,69 @@ export function WorkMenu({ workplaces, onStart, onAdd, onUpdate, onDelete }: Wor
             className="h-10 text-sm"
             maxLength={16}
           />
+          {/* 給与タイプ */}
+          <div className="flex gap-1">
+            {PAY_TYPES.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setPayType(p.key)}
+                className={cn(
+                  "font-pixel flex-1 rounded px-1 py-1.5 text-xs transition-colors",
+                  payType === p.key ? "bg-gold text-black" : "bg-white/10 text-white hover:bg-white/20",
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2">
-            <label className="font-pixel text-sm">時給</label>
+            <label className="font-pixel text-sm whitespace-nowrap">
+              {PAY_TYPES.find((p) => p.key === payType)?.label}
+            </label>
             <div className="relative flex-1">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">¥</span>
               <Input
                 type="number"
                 inputMode="numeric"
                 min={0}
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 className="tabular h-10 pl-7 text-right font-bold"
               />
             </div>
           </div>
+          {(payType === "monthly" || payType === "annual") && (
+            <p className="font-pixel -mt-1 text-[10px] text-white/50">
+              月160時間想定で時給換算してリアルタイム計上します
+            </p>
+          )}
 
-          {/* 休日（土日・祝日）の追加時給 */}
-          <div className="flex items-center gap-2">
-            <label className="font-pixel text-sm whitespace-nowrap">🎌 休日時給+</label>
-            <div className="relative flex-1">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">¥</span>
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={holiday}
-                onChange={(e) => setHoliday(e.target.value)}
-                className="tabular h-10 pl-7 text-right font-bold"
-              />
-            </div>
-          </div>
-          <p className="font-pixel -mt-1 text-[10px] text-white/50">土日・祝日はこの分だけ時給が上がる</p>
+          {/* 休日（土日・祝日）の追加時給：時給・日給のみ */}
+          {(payType === "hourly" || payType === "daily") && (
+            <>
+              <div className="flex items-center gap-2">
+                <label className="font-pixel text-sm whitespace-nowrap">🎌 休日{payType === "daily" ? "日給" : "時給"}+</label>
+                <div className="relative flex-1">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">¥</span>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={holiday}
+                    onChange={(e) => setHoliday(e.target.value)}
+                    className="tabular h-10 pl-7 text-right font-bold"
+                  />
+                </div>
+              </div>
+              <p className="font-pixel -mt-1 text-[10px] text-white/50">土日・祝日はこの分だけ上がる</p>
+            </>
+          )}
 
-          {/* 時間帯割増ルール */}
+          {/* 時間帯割増ルール：時給のみ */}
+          {payType === "hourly" && (
+          <>
           <p className="font-pixel text-[11px] text-white/60">時間帯の割増（深夜・早朝など）</p>
           {rules.length > 0 && (
             <div className="flex flex-col gap-1">
@@ -214,6 +280,8 @@ export function WorkMenu({ workplaces, onStart, onAdd, onUpdate, onDelete }: Wor
             <Input type="number" min={1} step={0.05} value={cMul} onChange={(e) => setCMul(e.target.value)} className="tabular h-8 w-14 text-center" />
             <button type="button" onClick={addCustomRule} className="font-pixel rounded bg-white/15 px-2 py-1 hover:bg-white/25">追加</button>
           </div>
+          </>
+          )}
 
           <div className="flex gap-2">
             <DQCommand label={editingId ? "ほぞんする" : "ついかする"} active accent="gold" onClick={submitForm} />

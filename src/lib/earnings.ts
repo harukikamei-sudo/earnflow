@@ -58,6 +58,26 @@ export function hourlyEarnings(
   return total;
 }
 
+/** 月給・年俸を時給換算する際の想定月間労働時間 */
+export const STD_MONTHLY_HOURS = 160;
+
+/**
+ * 月給・年俸・時給を「時給換算」した額を返す（リアルタイム計上に使う）。
+ * 月給=月給/160h、年俸=年俸/(160×12)h。日給は0（別計算）。
+ */
+export function hourlyEquivalent(wp: Workplace): number {
+  switch (wp.payType) {
+    case "hourly":
+      return wp.hourlyRate;
+    case "monthly":
+      return (wp.monthlyRate ?? 0) / STD_MONTHLY_HOURS;
+    case "annual":
+      return (wp.annualRate ?? 0) / (STD_MONTHLY_HOURS * 12);
+    default:
+      return 0; // daily
+  }
+}
+
 /** 現在の稼働中セッションの収入をリアルタイム計算 */
 export function currentEarnings(
   wp: Workplace,
@@ -70,7 +90,8 @@ export function currentEarnings(
     const bonus = (wp.holidayBonus ?? 0) > 0 && isHoliday(new Date(startMs)) ? wp.holidayBonus! : 0;
     return wp.dailyRate + bonus;
   }
-  return hourlyEarnings(startMs, nowMs, wp.hourlyRate, wp.timeRules, wp.holidayBonus ?? 0);
+  // 時給・月給・年俸：時給換算してリアルタイム計上
+  return hourlyEarnings(startMs, nowMs, hourlyEquivalent(wp), wp.timeRules, wp.holidayBonus ?? 0);
 }
 
 /** 稼働終了時に確定セッションを生成 */

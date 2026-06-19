@@ -6,7 +6,7 @@
  * バックエンドに差し替える場合は store.ts の実装だけを置き換えればよい。
  */
 
-export type PayType = "hourly" | "daily";
+export type PayType = "hourly" | "daily" | "monthly" | "annual";
 
 /** 時間帯別の割増ルール（例: 深夜22時〜翌5時は 1.25 倍） */
 export interface TimeRule {
@@ -30,6 +30,10 @@ export interface Workplace {
   hourlyRate: number;
   /** 日給（円）— payType === "daily" のとき使用 */
   dailyRate: number;
+  /** 月給（円）— payType === "monthly" のとき使用 */
+  monthlyRate?: number;
+  /** 年俸（円）— payType === "annual" のとき使用 */
+  annualRate?: number;
   /** 時間帯別倍率ルール */
   timeRules: TimeRule[];
   /** 休日(土日・祝日)の追加時給(円/時)。0またはundefined＝なし */

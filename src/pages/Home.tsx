@@ -30,7 +30,7 @@ import { usePageVisible } from "@/hooks/usePageVisible";
 import { VolumeButton } from "@/components/game/VolumeButton";
 import { useBgm } from "@/audio/useAudio";
 import { playSE } from "@/audio/engine";
-import { multiplierAt } from "@/lib/earnings";
+import { multiplierAt, hourlyEquivalent } from "@/lib/earnings";
 import { isHoliday } from "@/lib/holiday";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
@@ -83,7 +83,7 @@ export default function Home() {
   const [workplaces, setWorkplaces] = useState<Workplace[]>(() => {
     const ws = getWorkplaces();
     if (ws.length > 0) return ws;
-    const def = createWorkplace("マイバイト", 1100, [makeTimeRule("深夜割増", 22, 5, 1.25)]);
+    const def = createWorkplace("マイバイト", "hourly", 1100, [makeTimeRule("深夜割増", 22, 5, 1.25)]);
     upsertWorkplace(def);
     return [def];
   });
@@ -107,9 +107,10 @@ export default function Home() {
   const multiplier = activeWp ? multiplierAt(new Date(nowTs), activeWp.timeRules) : 1;
   const onHoliday = isHoliday(new Date(nowTs));
   const holidayBonus = onHoliday ? (activeWp?.holidayBonus ?? 0) : 0;
+  // 時給・月給・年俸は時給換算で毎秒表示（日給は一括計上なので0）
   const perSecond =
-    activeWp && activeWp.payType === "hourly"
-      ? ((activeWp.hourlyRate + holidayBonus) / 3600) * multiplier * boost
+    activeWp && activeWp.payType !== "daily"
+      ? ((hourlyEquivalent(activeWp) + holidayBonus) / 3600) * multiplier * boost
       : 0;
 
   const level = useMemo(() => levelInfo(totalGold), [totalGold]);
