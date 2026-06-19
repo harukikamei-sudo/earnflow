@@ -83,6 +83,14 @@ const STRINGS: Record<string, Dict> = {
   "manual.amount": { ja: "金額", en: "Amount", es: "Importe", fr: "Montant", zh: "金额", ko: "금액", ru: "Сумма" },
   "manual.add": { ja: "この日に追加する", en: "Add to this day", es: "Añadir a este día", fr: "Ajouter à ce jour", zh: "添加到这一天", ko: "이 날에 추가", ru: "Добавить на этот день" },
   "manual.hint": { ja: "アプリの外で稼いだぶんもここで記録できる。", en: "Log earnings you made outside the app.", es: "Registra ingresos hechos fuera de la app.", fr: "Enregistrez les revenus hors de l'appli.", zh: "记录在应用外赚到的收入。", ko: "앱 밖에서 번 수입도 기록할 수 있어.", ru: "Запишите доход, полученный вне приложения." },
+
+  "ot.title": { ja: "残業代を自己申告", en: "Report overtime pay", es: "Declarar horas extra", fr: "Déclarer heures sup.", zh: "申报加班费", ko: "야근수당 신고", ru: "Заявить сверхурочные" },
+  "ot.hours": { ja: "残業時間", en: "Overtime hours", es: "Horas extra", fr: "Heures sup.", zh: "加班时长", ko: "야근 시간", ru: "Сверхурочные часы" },
+  "ot.unitHours": { ja: "時間", en: "h", es: "h", fr: "h", zh: "小时", ko: "시간", ru: "ч" },
+  "ot.wage": { ja: "時給", en: "Hourly wage", es: "Salario/h", fr: "Taux horaire", zh: "时薪", ko: "시급", ru: "Ставка/ч" },
+  "ot.rate": { ja: "割増率", en: "Rate", es: "Recargo", fr: "Majoration", zh: "加成倍率", ko: "할증률", ru: "Надбавка" },
+  "ot.add": { ja: "残業代を追加する", en: "Add overtime pay", es: "Añadir horas extra", fr: "Ajouter heures sup.", zh: "添加加班费", ko: "야근수당 추가", ru: "Добавить сверхурочные" },
+  "ot.hint": { ja: "残業時間 × 時給 × 割増率 で計算して記録するよ。", en: "Calculated as hours × wage × rate.", es: "Se calcula: horas × salario × recargo.", fr: "Calcul : heures × taux × majoration.", zh: "按 时长 × 时薪 × 倍率 计算。", ko: "시간 × 시급 × 할증률로 계산.", ru: "Расчёт: часы × ставка × надбавка." },
   "data.noRecord": { ja: "まだ収入の記録がありません。", en: "No income records yet.", es: "Aún no hay registros.", fr: "Aucun enregistrement pour l'instant.", zh: "还没有收入记录。", ko: "아직 수입 기록이 없습니다.", ru: "Пока нет записей о доходе." },
 
   "sign.title": { ja: "たてふだ", en: "Sign", es: "Cartel", fr: "Panneau", zh: "告示牌", ko: "푯말", ru: "Указатель" },

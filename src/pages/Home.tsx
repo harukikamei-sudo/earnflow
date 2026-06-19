@@ -270,6 +270,34 @@ export default function Home() {
     engine.refreshLifetime();
   }
 
+  // 残業代を自己申告（残業時間 × 時給 × 割増率）
+  const [otDate, setOtDate] = useState(() => toDateKey(new Date()));
+  const [otHours, setOtHours] = useState("");
+  const [otWage, setOtWage] = useState(() => String(getWorkplaces()[0]?.hourlyRate ?? 1100));
+  const [otRate, setOtRate] = useState("1.25");
+  const otAmount = Math.max(
+    0,
+    Math.round((Number(otHours) || 0) * (Number(otWage) || 0) * (Number(otRate) || 0)),
+  );
+  function addOvertime() {
+    if (otAmount <= 0) return;
+    const d = otDate ? new Date(`${otDate}T12:00:00`) : new Date();
+    const ts = d.getTime();
+    addSession({
+      id: uid(),
+      workplaceId: "overtime",
+      startTime: ts,
+      endTime: ts,
+      durationSec: Math.round((Number(otHours) || 0) * 3600),
+      earnings: otAmount,
+      dateKey: toDateKey(d),
+    });
+    playSE("confirm");
+    setOtHours("");
+    setDataVersion((v) => v + 1);
+    engine.refreshLifetime();
+  }
+
   // 今月のノルマ進捗（家の中で確認）
   const monthEarned = useMemo(() => {
     const now = new Date();
@@ -517,6 +545,69 @@ export default function Home() {
               </div>
               <DQCommand label={t("manual.add")} active accent="gold" onClick={addManualEarning} />
               <p className="font-pixel text-[10px] text-white/40">{t("manual.hint")}</p>
+            </div>
+          </DQWindow>
+
+          {/* 残業代を自己申告 */}
+          <DQWindow title={t("ot.title")}>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between font-pixel text-sm text-white">
+                <span>{t("manual.date")}</span>
+                <input
+                  type="date"
+                  value={otDate}
+                  onChange={(e) => setOtDate(e.target.value)}
+                  className="font-pixel rounded bg-white/10 px-2 py-1 text-white"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2 font-pixel text-sm text-white">
+                <span className="whitespace-nowrap">{t("ot.hours")}</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step={0.5}
+                    value={otHours}
+                    onChange={(e) => setOtHours(e.target.value)}
+                    placeholder="0"
+                    className="tabular h-9 w-20 rounded bg-white/10 px-2 text-right font-bold text-white"
+                  />
+                  <span>{t("ot.unitHours")}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2 font-pixel text-sm text-white">
+                <span className="whitespace-nowrap">{t("ot.wage")}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-white/50">¥</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={otWage}
+                    onChange={(e) => setOtWage(e.target.value)}
+                    className="tabular h-9 w-20 rounded bg-white/10 px-2 text-right font-bold text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2 font-pixel text-sm text-white">
+                <span className="whitespace-nowrap">{t("ot.rate")}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-white/50">×</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={1}
+                    step={0.05}
+                    value={otRate}
+                    onChange={(e) => setOtRate(e.target.value)}
+                    className="tabular h-9 w-20 rounded bg-white/10 px-2 text-right font-bold text-white"
+                  />
+                </div>
+              </div>
+              <p className="font-pixel text-right text-sm text-gold">≒ {formatYen(otAmount)}</p>
+              <DQCommand label={t("ot.add")} active accent="gold" onClick={addOvertime} />
+              <p className="font-pixel text-[10px] text-white/40">{t("ot.hint")}</p>
             </div>
           </DQWindow>
 
