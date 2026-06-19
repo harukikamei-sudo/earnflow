@@ -36,7 +36,7 @@ import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
 import { THEMES } from "@/game/themes";
-import { useCurrentTown, setCurrentTown } from "@/game/townStore";
+import { useCurrentTown, setCurrentTown, useResidents } from "@/game/townStore";
 import { WorldMap } from "@/components/game/WorldMap";
 import { cn, formatDuration, formatYen, formatYenPrecise, toDateKey, uid } from "@/lib/utils";
 
@@ -129,6 +129,7 @@ export default function Home() {
 
   // 現在滞在中の町（テーマ）。ワールドマップで移動すると切り替わる
   const currentTown = useCurrentTown();
+  const townResidents = useResidents();
   const theme = THEMES[currentTown];
   const [showWorld, setShowWorld] = useState(false);
   const [traveling, setTraveling] = useState(false);
@@ -701,7 +702,7 @@ export default function Home() {
       ) : (
         /* ============ 町（トップダウン） ============ */
         <>
-          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} themeIndex={currentTown} />
+          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} themeIndex={currentTown} residents={townResidents[currentTown] ?? []} />
 
           {/* フリック / スワイプ / ドラッグで移動（十字キーの代わり） */}
           <FlickControls onPress={press} onRelease={release} />

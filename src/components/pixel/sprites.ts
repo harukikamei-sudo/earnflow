@@ -168,8 +168,12 @@ export type Rarity = "N" | "R" | "SR" | "SSR" | "UR";
 export interface CharacterDef {
   id: string;
   name: string;
-  /** 歩行フレーム（2コマ＝歩いて見える / 1コマ＝静止） */
+  /** 下向き（正面）の歩行フレーム（2コマ） */
   frames: Sprite[];
+  /** 上向き（背面）の歩行フレーム（2コマ） */
+  up: Sprite[];
+  /** 横向き（左向き。右はミラー）の歩行フレーム（2コマ） */
+  side: Sprite[];
   /** レア度（未指定は N 扱い） */
   rarity?: Rarity;
 }
@@ -183,6 +187,29 @@ function walker(headBody: string[], palette: Sprite["palette"]): Sprite[] {
     { grid: [...headBody, ...HD_LEGS_A], palette },
     { grid: [...headBody, ...HD_LEGS_B], palette },
   ];
+}
+
+/** 背面（上向き）の顔＝後頭部（髪で覆う） */
+const BACK_FACE = ["....oHHHHHHo....", "....oHHHHHHo....", "....oHHHHHHo...."];
+/** 横向き（左向き）の顔＝プロフィール（目は片方） */
+const SIDE_FACE = ["...oSSSSo.......", "..oSKSSo........", "...oSssSo......."];
+
+/**
+ * トルソー（頭4+顔3+胴4＝11行）から、下/上/横の3方向ぶんの歩行フレームを作る。
+ * 顔の3行だけを差し替えて向きを表現する（頭・胴はそのまま）。
+ */
+function dirSets(torso: string[], palette: Sprite["palette"]): {
+  frames: Sprite[];
+  up: Sprite[];
+  side: Sprite[];
+} {
+  const head = torso.slice(0, 4);
+  const body = torso.slice(7, 11);
+  return {
+    frames: walker([...head, ...FACE, ...body], palette),
+    up: walker([...head, ...BACK_FACE, ...body], palette),
+    side: walker([...head, ...SIDE_FACE, ...body], palette),
+  };
 }
 
 const HERO_TORSO = [
@@ -234,27 +261,27 @@ export const CHARACTERS: CharacterDef[] = [
   {
     id: "char:warrior",
     name: "戦士",
-    frames: walker(WARRIOR_TORSO, { o: "#1a1026", H: "#b9bec9", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#8a8f9e", B: "#5a5f6a", g: "#3a3f4a" }),
+    ...dirSets(WARRIOR_TORSO, { o: "#1a1026", H: "#b9bec9", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#8a8f9e", B: "#5a5f6a", g: "#3a3f4a" }),
   },
   {
     id: "char:priest",
     name: "僧侶",
-    frames: walker(PRIEST_TORSO, { o: "#1a1026", W: "#efe9d6", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#efe9d6", B: "#e0d8bf", g: "#6b4423" }),
+    ...dirSets(PRIEST_TORSO, { o: "#1a1026", W: "#efe9d6", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#efe9d6", B: "#e0d8bf", g: "#6b4423" }),
   },
   {
     id: "char:hero",
     name: "勇者",
-    frames: walker(HERO_TORSO, { o: "#1a1026", H: "#d3d7e2", Y: "#f6c945", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#3a6ee0", B: "#3a6ee0", g: "#6b4423" }),
+    ...dirSets(HERO_TORSO, { o: "#1a1026", H: "#d3d7e2", Y: "#f6c945", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#3a6ee0", B: "#3a6ee0", g: "#6b4423" }),
   },
   {
     id: "char:salaryman",
     name: "社会人",
-    frames: walker(SUIT_TORSO, { o: "#1a1026", H: "#2a2a2a", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#313a4a", W: "#ececec", R: "#c0392b", B: "#313a4a", g: "#1a1a1a" }),
+    ...dirSets(SUIT_TORSO, { o: "#1a1026", H: "#2a2a2a", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#313a4a", W: "#ececec", R: "#c0392b", B: "#313a4a", g: "#1a1a1a" }),
   },
   {
     id: "char:student",
     name: "学生",
-    frames: walker(SUIT_TORSO, { o: "#1a1026", H: "#5a3a22", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#2f3a6a", W: "#ffffff", R: "#c0392b", B: "#3a3f4a", g: "#2a2a2a" }),
+    ...dirSets(SUIT_TORSO, { o: "#1a1026", H: "#5a3a22", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#2f3a6a", W: "#ffffff", R: "#c0392b", B: "#3a3f4a", g: "#2a2a2a" }),
   },
 ];
 
@@ -336,7 +363,7 @@ for (const role of ROLE_NAMES) {
     CHARACTERS.push({
       id: `char:role${i}`,
       name: `${ROLE_TIERS[tIdx]}${role}`,
-      frames: walker(makeTorso(head, body), palette),
+      ...dirSets(makeTorso(head, body), palette),
       rarity,
     });
   }

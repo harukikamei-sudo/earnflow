@@ -1,7 +1,7 @@
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
-import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
+import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE, type HeroDir } from "@/components/pixel/sprites";
 import { HOUSE, MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
 import { THEMES, themeForLevel, type StageTheme } from "@/game/themes";
 import { useCharacter, useMapRows, useProps } from "@/game/mapStore";
@@ -239,7 +239,25 @@ interface OverworldProps {
   level?: number;
   /** 表示する町テーマのインデックス（指定時はレベルでなくこの町の見た目にする） */
   themeIndex?: number;
+  /** この町に派遣されている住民キャラのID群（町に立って表示する） */
+  residents?: string[];
 }
+
+/** 住民を立たせる場所（建物・水を避けたタイル座標と向き） */
+const RESIDENT_SPOTS: { x: number; y: number; dir: HeroDir }[] = [
+  { x: 4, y: 6, dir: "down" },
+  { x: 8, y: 6, dir: "left" },
+  { x: 19, y: 5, dir: "down" },
+  { x: 23, y: 13, dir: "up" },
+  { x: 8, y: 14, dir: "right" },
+  { x: 16, y: 13, dir: "down" },
+  { x: 20, y: 11, dir: "left" },
+  { x: 13, y: 6, dir: "right" },
+  { x: 18, y: 16, dir: "up" },
+  { x: 24, y: 5, dir: "down" },
+  { x: 14, y: 9, dir: "right" },
+  { x: 9, y: 15, dir: "down" },
+];
 
 /** トップダウンのマップ描画＋カメラ追従。 */
 export function Overworld({
@@ -251,6 +269,7 @@ export function Overworld({
   showLandmarks,
   level = 1,
   themeIndex,
+  residents = [],
 }: OverworldProps) {
   const viewRef = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(360);
@@ -288,6 +307,10 @@ export function Overworld({
       ? HERO_TOPDOWN.up
       : HERO_TOPDOWN.down;
   const heroSprite = frames[snap.frame] ?? frames[0];
+
+  // 着せ替えキャラの向き別フレーム（上/横/下）
+  const charDef = character ? getBuiltinCharacter(character) : null;
+  const charFrames = charDef ? (isSide ? charDef.side : snap.dir === "up" ? charDef.up : charDef.frames) : null;
 
   function handlePointer(e: React.PointerEvent) {
     if (!editMode || !onTileClick) return;
@@ -335,6 +358,39 @@ export function Overworld({
           />
         ))}
 
+        {/* 派遣された住民（町に立つ） */}
+        {!editMode &&
+          residents.map((id, i) => {
+            const spot = RESIDENT_SPOTS[i % RESIDENT_SPOTS.length];
+            const def = getBuiltinCharacter(id);
+            const frame = def
+              ? spot.dir === "up"
+                ? def.up[0]
+                : spot.dir === "left" || spot.dir === "right"
+                  ? def.side[0]
+                  : def.frames[0]
+              : null;
+            return (
+              <div
+                key={`res-${id}-${i}`}
+                className="absolute"
+                style={{ left: spot.x * TILE, top: spot.y * TILE - 6, width: TILE, height: TILE + 6 }}
+              >
+                <div className="absolute bottom-1 left-1/2 h-1.5 w-6 -translate-x-1/2 rounded-full bg-black/30" />
+                <div
+                  className="anim-hero-bob absolute bottom-1 left-1/2"
+                  style={{ transform: spot.dir === "right" ? "translateX(-50%) scaleX(-1)" : "translateX(-50%)" }}
+                >
+                  {frame ? (
+                    <PixelSprite sprite={frame} scale={2} />
+                  ) : (
+                    <PixelImage src={id} style={{ width: TILE + 4, height: "auto" }} />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
         {/* 編集グリッド */}
         {editMode && (
           <div
@@ -364,8 +420,8 @@ export function Overworld({
             >
               {!character ? (
                 <PixelSprite sprite={heroSprite} scale={2} />
-              ) : getBuiltinCharacter(character) ? (
-                <PixelAnim frames={getBuiltinCharacter(character)!.frames} fps={7} playing={snap.moving} scale={2} />
+              ) : charFrames ? (
+                <PixelAnim frames={charFrames} fps={7} playing={snap.moving} scale={2} />
               ) : (
                 <PixelImage src={character} style={{ width: TILE + 4, height: "auto" }} />
               )}
