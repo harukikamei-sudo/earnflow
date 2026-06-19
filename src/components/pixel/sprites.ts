@@ -191,12 +191,23 @@ function walker(headBody: string[], palette: Sprite["palette"]): Sprite[] {
 
 /** 背面（上向き）の顔＝後頭部（髪で覆う） */
 const BACK_FACE = ["....oHHHHHHo....", "....oHHHHHHo....", "....oHHHHHHo...."];
-/** 横向き（左向き）の顔＝プロフィール（目は片方） */
-const SIDE_FACE = ["...oSSSSo.......", "..oSKSSo........", "...oSssSo......."];
+/**
+ * 横向き（左向き）の頭＋顔（7行）。正面の頭に小さい顔を重ねると歪むので、
+ * 横顔は頭ごとプロフィール形にして差し替える（右向きは描画側でミラー）。
+ */
+const SIDE_HEAD = [
+  ".....oooo.......",
+  "....oHHHHo......",
+  "...oHHHHHo......",
+  "...oHHHHHo......",
+  "..oSSSSo........",
+  "..oSKSso........",
+  "..oSSSSo........",
+];
 
 /**
  * トルソー（頭4+顔3+胴4＝11行）から、下/上/横の3方向ぶんの歩行フレームを作る。
- * 顔の3行だけを差し替えて向きを表現する（頭・胴はそのまま）。
+ * 下/上は正面の頭のまま顔3行を差し替え、横は頭ごと横顔プロフィールに差し替える。
  */
 function dirSets(torso: string[], palette: Sprite["palette"]): {
   frames: Sprite[];
@@ -208,7 +219,7 @@ function dirSets(torso: string[], palette: Sprite["palette"]): {
   return {
     frames: walker([...head, ...FACE, ...body], palette),
     up: walker([...head, ...BACK_FACE, ...body], palette),
-    side: walker([...head, ...SIDE_FACE, ...body], palette),
+    side: walker([...SIDE_HEAD, ...body], palette),
   };
 }
 
