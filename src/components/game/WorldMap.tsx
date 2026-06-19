@@ -8,10 +8,17 @@ import {
   assignResident,
   removeResident,
   townOfResident,
+  townDevLevel,
+  useGoldPerHour,
+  isTownGoalMet,
+  isTownGoalClaimed,
+  claimTownGoal,
+  townGoalReward,
+  TOWN_GOAL_RESIDENTS,
   useCurrentTown,
   useResidents,
 } from "@/game/townStore";
-import { useOwned } from "@/game/playerStore";
+import { addGold, useOwned } from "@/game/playerStore";
 import { playSE } from "@/audio/engine";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -43,6 +50,7 @@ export function WorldMap({ level, onTravel, onClose }: WorldMapProps) {
   const residents = useResidents();
   const owned = useOwned();
   const maxUnlocked = themeIndexForLevel(level);
+  const goldPerHr = useGoldPerHour();
   const [managing, setManaging] = useState<number | null>(null);
 
   const pct = (n: number) => `+${Math.round(n * 100)}%`;
@@ -56,7 +64,12 @@ export function WorldMap({ level, onTravel, onClose }: WorldMapProps) {
     <div className="fixed inset-0 z-50 flex flex-col bg-black/70 px-3 py-4">
       <div className="mx-auto flex h-full w-full max-w-md flex-col">
         <div className="mb-2 flex items-center justify-between pr-14">
-          <h2 className="font-pixel text-lg font-bold text-gold-gradient">{t("world.title")}</h2>
+          <div>
+            <h2 className="font-pixel text-lg font-bold text-gold-gradient">{t("world.title")}</h2>
+            {goldPerHr > 0 && (
+              <p className="font-pixel text-[10px] text-gold">🏘 {t("town.income", { n: goldPerHr })}</p>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -90,8 +103,30 @@ export function WorldMap({ level, onTravel, onClose }: WorldMapProps) {
                           🎉 {t("world.liveliness")} {pct(boost)}
                         </p>
                         <p className="font-pixel text-[10px] text-white/60">
-                          👥 {t("world.residents")} {count}
+                          👥 {t("world.residents")} {count} ・ 🏠Lv{townDevLevel(i)}
                         </p>
+                        {/* 町ごとの目標 */}
+                        {isTownGoalClaimed(i) ? (
+                          <p className="font-pixel mt-1 text-[10px] text-gold">🏆 {t("world.goalDone")}</p>
+                        ) : isTownGoalMet(i) ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const r = claimTownGoal(i);
+                              if (r > 0) {
+                                playSE("levelup");
+                                addGold(r);
+                              }
+                            }}
+                            className="font-pixel mt-1 w-full rounded bg-gold px-2 py-1 text-[10px] font-bold text-black"
+                          >
+                            🎁 {t("world.goalClaim", { n: townGoalReward(i) })}
+                          </button>
+                        ) : (
+                          <p className="font-pixel mt-1 text-[10px] text-white/50">
+                            🎯 {t("world.goal", { n: TOWN_GOAL_RESIDENTS })}（{count}/{TOWN_GOAL_RESIDENTS}）
+                          </p>
+                        )}
                         <div className="mt-2 flex gap-1">
                           {here ? (
                             <span className="font-pixel flex-1 rounded bg-gold/20 px-2 py-1 text-center text-[11px] font-bold text-gold">

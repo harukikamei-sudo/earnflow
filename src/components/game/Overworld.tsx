@@ -241,6 +241,31 @@ interface OverworldProps {
   themeIndex?: number;
   /** この町に派遣されている住民キャラのID群（町に立って表示する） */
   residents?: string[];
+  /** 町の発展レベル0〜3。にぎわうほど建物が増える */
+  devLevel?: number;
+}
+
+/** にぎわいで増える建物の場所（最大6軒） */
+const DEV_BUILDING_SPOTS: { x: number; y: number; roof: string }[] = [
+  { x: 2, y: 7, roof: "#c0392b" },
+  { x: 6, y: 3, roof: "#2980b9" },
+  { x: 21, y: 4, roof: "#e67e22" },
+  { x: 25, y: 10, roof: "#16a085" },
+  { x: 3, y: 18, roof: "#8e44ad" },
+  { x: 20, y: 18, roof: "#27ae60" },
+];
+
+/** にぎわいで建つ小さな家 */
+function DevHouse({ x, y, roof }: { x: number; y: number; roof: string }) {
+  const w = TILE * 1.4;
+  return (
+    <div className="pointer-events-none absolute" style={{ left: x * TILE, top: y * TILE - TILE * 0.5, width: w, height: w }}>
+      <div className="absolute left-0 top-0 w-full" style={{ height: "45%", background: roof, clipPath: "polygon(50% 0,100% 100%,0 100%)" }} />
+      <div className="absolute inset-x-1 bottom-0" style={{ top: "42%", background: "#e3c9a0", border: "2px solid #6b4423" }}>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-t" style={{ width: "34%", height: "55%", background: "#6b4423" }} />
+      </div>
+    </div>
+  );
 }
 
 /** 住民を立たせる場所（建物・水を避けたタイル座標と向き） */
@@ -270,6 +295,7 @@ export function Overworld({
   level = 1,
   themeIndex,
   residents = [],
+  devLevel = 0,
 }: OverworldProps) {
   const viewRef = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(360);
@@ -347,6 +373,12 @@ export function Overworld({
             <HouseBuilding />
           </>
         )}
+
+        {/* にぎわいで増える家（発展レベル×2軒） */}
+        {!editMode &&
+          DEV_BUILDING_SPOTS.slice(0, Math.min(6, devLevel * 2)).map((b, i) => (
+            <DevHouse key={`dev-${i}`} x={b.x} y={b.y} roof={b.roof} />
+          ))}
 
         {/* 配置された画像プロップ */}
         {props.map((p) => (

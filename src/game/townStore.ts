@@ -125,3 +125,79 @@ export function getTownBoost(): number {
 export function useTownBoost(): number {
   return useSyncExternalStore(subscribe, getTownBoost, getTownBoost);
 }
+
+/* ---------------- 発展段階（にぎわいで見た目が育つ） ---------------- */
+
+/** 住民数に応じた町の発展レベル 0〜3（建物の数に反映） */
+export function townDevLevel(i: number): number {
+  const n = residentsOf(i).length;
+  if (n >= 6) return 3;
+  if (n >= 3) return 2;
+  if (n >= 1) return 1;
+  return 0;
+}
+export function useTownDevLevel(i: number): number {
+  return useSyncExternalStore(subscribe, () => townDevLevel(i), () => townDevLevel(i));
+}
+
+/* ---------------- 住民の特殊効果：ゴールド生産（idle収入） ---------------- */
+
+/** レア度ごとの生産量（ゴールド/時） */
+const RARITY_GOLD_PER_HR: Record<Rarity, number> = { N: 2, R: 5, SR: 12, SSR: 30, UR: 80 };
+const goldRateOf = (id: string) => RARITY_GOLD_PER_HR[getBuiltinCharacter(id)?.rarity ?? "N"];
+
+/** 全住民の合計ゴールド生産（/時） */
+export function goldPerHour(): number {
+  let total = 0;
+  for (const k of Object.keys(residents)) {
+    total += residents[Number(k)].reduce((s, id) => s + goldRateOf(id), 0);
+  }
+  return total;
+}
+export function useGoldPerHour(): number {
+  return useSyncExternalStore(subscribe, goldPerHour, goldPerHour);
+}
+
+const COLLECT_KEY = "earnflow.townCollect";
+const MAX_IDLE_HOURS = 8; // ためられる上限
+let lastCollect: number = load<number>(COLLECT_KEY, Date.now());
+
+/**
+ * 前回からの経過ぶんの「町からの仕送り」を計算して回収する（上限8時間）。
+ * 返り値のゴールドは呼び出し側で wallet に加算する。
+ */
+export function collectIdleGold(): number {
+  const now = Date.now();
+  const hours = Math.min(MAX_IDLE_HOURS, Math.max(0, (now - lastCollect) / 3_600_000));
+  const amount = Math.floor(goldPerHour() * hours);
+  lastCollect = now;
+  save(COLLECT_KEY, lastCollect);
+  return amount;
+}
+
+/* ---------------- 町ごとの目標 ---------------- */
+
+/** 目標：住民をこの人数そろえる */
+export const TOWN_GOAL_RESIDENTS = 5;
+/** 達成報酬（後の町ほど多い） */
+export function townGoalReward(i: number): number {
+  return 800 + i * 400;
+}
+
+const GOALS_KEY = "earnflow.townGoals";
+let claimedGoals: Record<number, boolean> = load<Record<number, boolean>>(GOALS_KEY, {});
+
+export function isTownGoalMet(i: number): boolean {
+  return residentsOf(i).length >= TOWN_GOAL_RESIDENTS;
+}
+export function isTownGoalClaimed(i: number): boolean {
+  return !!claimedGoals[i];
+}
+/** 目標達成報酬を受け取る。受け取れたらゴールド額、無理なら0 */
+export function claimTownGoal(i: number): number {
+  if (!isTownGoalMet(i) || claimedGoals[i]) return 0;
+  claimedGoals = { ...claimedGoals, [i]: true };
+  save(GOALS_KEY, claimedGoals);
+  emit();
+  return townGoalReward(i);
+}

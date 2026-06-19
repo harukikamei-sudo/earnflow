@@ -36,7 +36,7 @@ import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
 import { THEMES } from "@/game/themes";
-import { useCurrentTown, setCurrentTown, useResidents } from "@/game/townStore";
+import { useCurrentTown, setCurrentTown, useResidents, townDevLevel, collectIdleGold } from "@/game/townStore";
 import { WorldMap } from "@/components/game/WorldMap";
 import { cn, formatDuration, formatYen, formatYenPrecise, toDateKey, uid } from "@/lib/utils";
 
@@ -142,6 +142,18 @@ export default function Home() {
     const id = window.setTimeout(() => setThemeBanner(null), 2800);
     return () => window.clearTimeout(id);
   }, [theme.id, theme.name, theme.emoji]);
+
+  // 町の住民が稼いだ「仕送り」を起動時に回収（idle収入）
+  const [idleGold, setIdleGold] = useState(0);
+  useEffect(() => {
+    const g = collectIdleGold();
+    if (g > 0) {
+      addGold(g);
+      setIdleGold(g);
+      const id = window.setTimeout(() => setIdleGold(0), 3500);
+      return () => window.clearTimeout(id);
+    }
+  }, []);
 
   // ワールドマップで別の町へ移動（暗転フェード → 切替）
   function travelTo(townIndex: number) {
@@ -702,7 +714,7 @@ export default function Home() {
       ) : (
         /* ============ 町（トップダウン） ============ */
         <>
-          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} themeIndex={currentTown} residents={townResidents[currentTown] ?? []} />
+          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} themeIndex={currentTown} residents={townResidents[currentTown] ?? []} devLevel={townDevLevel(currentTown)} />
 
           {/* フリック / スワイプ / ドラッグで移動（十字キーの代わり） */}
           <FlickControls onPress={press} onRelease={release} />
@@ -818,6 +830,15 @@ export default function Home() {
             </div>
             <p className="font-pixel mt-2 text-right text-[11px] text-white/50">{t("daily.close")}</p>
           </DQWindow>
+        </div>
+      )}
+
+      {/* 町からの仕送り（idle収入）トースト */}
+      {idleGold > 0 && (
+        <div className="pointer-events-none fixed inset-x-0 top-16 z-50 grid place-items-center px-6">
+          <div className="dq-window anim-dq-pop font-pixel px-4 py-2 text-sm text-gold">
+            🏘 {t("town.idle", { n: idleGold })}
+          </div>
         </div>
       )}
 

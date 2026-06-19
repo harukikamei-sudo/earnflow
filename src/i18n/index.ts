@@ -87,6 +87,11 @@ const STRINGS: Record<string, Dict> = {
   "world.ownNone": { ja: "ガチャでキャラを当てよう！", en: "Win characters from the gacha!", es: "¡Consigue personajes en la gacha!", fr: "Gagnez des personnages à la gacha !", zh: "去扭蛋抽角色吧！", ko: "뽑기로 캐릭터를 모으자!", ru: "Получайте героев в гаче!" },
   "world.movedFrom": { ja: "から移動", en: " (move)", es: " (mover)", fr: " (déplacer)", zh: " 移动", ko: " 이동", ru: " (переезд)" },
   "world.unlockAt": { ja: "で解放", en: "to unlock", es: "para abrir", fr: "pour débloquer", zh: "解锁", ko: "에 해제", ru: "откроется" },
+  "world.goal": { ja: "目標 住民{n}人", en: "Goal: {n} residents", es: "Meta: {n} residentes", fr: "Objectif : {n} habitants", zh: "目标 {n}名居民", ko: "목표 주민 {n}명", ru: "Цель: {n} жителей" },
+  "world.goalClaim": { ja: "目標達成！{n}G受取", en: "Goal! Claim {n} G", es: "¡Meta! {n} G", fr: "Objectif ! {n} G", zh: "达成！领取{n}G", ko: "달성! {n}G 받기", ru: "Цель! Забрать {n} G" },
+  "world.goalDone": { ja: "目標 達成ずみ", en: "Goal complete", es: "Meta cumplida", fr: "Objectif atteint", zh: "目标已达成", ko: "목표 달성", ru: "Цель выполнена" },
+  "town.idle": { ja: "町からの仕送り +{n}G", en: "Income from towns +{n} G", es: "Ingresos de pueblos +{n} G", fr: "Revenu des villes +{n} G", zh: "城镇汇款 +{n}G", ko: "마을 송금 +{n}G", ru: "Доход с городов +{n} G" },
+  "town.income": { ja: "住民の生産 +{n}G/時", en: "Residents earn +{n} G/h", es: "Residentes +{n} G/h", fr: "Habitants +{n} G/h", zh: "居民产出 +{n}G/时", ko: "주민 생산 +{n}G/시", ru: "Жители +{n} G/ч" },
 
   "house.name": { ja: "わが家", en: "Home", es: "Casa", fr: "Maison", zh: "我家", ko: "우리 집", ru: "Дом" },
   "house.enter": { ja: "中に入る", en: "Enter", es: "Entrar", fr: "Entrer", zh: "进入", ko: "들어가기", ru: "Войти" },
