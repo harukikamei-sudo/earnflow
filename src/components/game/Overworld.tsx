@@ -1,10 +1,10 @@
-import { memo, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE, type HeroDir } from "@/components/pixel/sprites";
 import { HOUSE, MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
-import { THEMES, themeForLevel, type StageTheme } from "@/game/themes";
-import { useCharacter, useMapRows, useProps } from "@/game/mapStore";
+import { THEMES, themeForLevel, townBuildings, type StageTheme } from "@/game/themes";
+import { isWalkable, useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
 
@@ -225,6 +225,133 @@ function HouseBuilding() {
   );
 }
 
+/** 派遣住民を町なかで不規則に歩かせるレイヤー */
+interface ResidentState {
+  id: string;
+  cur: { x: number; y: number };
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  t0: number;
+  moving: boolean;
+  dir: HeroDir;
+  toggle: number;
+  frame: number;
+  px: number;
+  py: number;
+  nextAt: number;
+}
+const RVEC: Record<HeroDir, { x: number; y: number }> = {
+  down: { x: 0, y: 1 },
+  up: { x: 0, y: -1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
+const STEP_MS = 420;
+
+const TownResidents = memo(function TownResidents({ ids }: { ids: string[] }) {
+  const ref = useRef<ResidentState[]>([]);
+  const [, force] = useState(0);
+  const idsKey = ids.join(",");
+
+  useEffect(() => {
+    ref.current = ids.map((id, i) => {
+      const s = RESIDENT_SPOTS[i % RESIDENT_SPOTS.length];
+      return {
+        id,
+        cur: { x: s.x, y: s.y },
+        from: { x: s.x, y: s.y },
+        to: { x: s.x, y: s.y },
+        t0: 0,
+        moving: false,
+        dir: s.dir,
+        toggle: 0,
+        frame: 0,
+        px: s.x,
+        py: s.y,
+        nextAt: 0,
+      };
+    });
+    force((v) => v + 1);
+  }, [idsKey]);
+
+  useEffect(() => {
+    let raf = 0;
+    const loop = (now: number) => {
+      let changed = false;
+      for (const r of ref.current) {
+        if (r.moving) {
+          const p = Math.min(1, (now - r.t0) / STEP_MS);
+          r.px = r.from.x + (r.to.x - r.from.x) * p;
+          r.py = r.from.y + (r.to.y - r.from.y) * p;
+          r.frame = p < 0.5 ? r.toggle : 1 - r.toggle;
+          if (p >= 1) {
+            r.cur = { ...r.to };
+            r.moving = false;
+            r.px = r.cur.x;
+            r.py = r.cur.y;
+            r.nextAt = now + 300 + Math.random() * 1800; // 不規則な休止
+          }
+          changed = true;
+        } else if (now >= r.nextAt) {
+          const dirs: HeroDir[] = ["down", "up", "left", "right"].sort(() => Math.random() - 0.5) as HeroDir[];
+          let moved = false;
+          for (const d of dirs) {
+            const v = RVEC[d];
+            const nx = Math.round(r.cur.x) + v.x;
+            const ny = Math.round(r.cur.y) + v.y;
+            if (isWalkable(nx, ny)) {
+              r.from = { ...r.cur };
+              r.to = { x: nx, y: ny };
+              r.t0 = now;
+              r.moving = true;
+              r.dir = d;
+              r.toggle ^= 1;
+              moved = true;
+              break;
+            }
+          }
+          if (!moved) r.nextAt = now + 800 + Math.random() * 1200;
+          changed = true;
+        }
+      }
+      if (changed) force((v) => v + 1);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  return (
+    <>
+      {ref.current.map((r) => {
+        const def = getBuiltinCharacter(r.id);
+        const isSide = r.dir === "left" || r.dir === "right";
+        const set = def ? (r.dir === "up" ? def.up : isSide ? def.side : def.frames) : null;
+        const sprite = set ? set[r.frame] ?? set[0] : null;
+        return (
+          <div
+            key={r.id}
+            className="absolute"
+            style={{ left: r.px * TILE, top: r.py * TILE - 6, width: TILE, height: TILE + 6 }}
+          >
+            <div className="absolute bottom-1 left-1/2 h-1.5 w-6 -translate-x-1/2 rounded-full bg-black/30" />
+            <div
+              className="absolute bottom-1 left-1/2"
+              style={{ transform: r.dir === "right" ? "translateX(-50%) scaleX(-1)" : "translateX(-50%)" }}
+            >
+              {sprite ? (
+                <PixelSprite sprite={sprite} scale={2} />
+              ) : (
+                <PixelImage src={r.id} style={{ width: TILE + 4, height: "auto" }} />
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+});
+
 interface OverworldProps {
   snap: OverworldSnap;
   className?: string;
@@ -244,16 +371,6 @@ interface OverworldProps {
   /** 町の発展レベル0〜3。にぎわうほど建物が増える */
   devLevel?: number;
 }
-
-/** にぎわいで増える建物の場所（最大6軒） */
-const DEV_BUILDING_SPOTS: { x: number; y: number; roof: string }[] = [
-  { x: 2, y: 7, roof: "#c0392b" },
-  { x: 6, y: 3, roof: "#2980b9" },
-  { x: 21, y: 4, roof: "#e67e22" },
-  { x: 25, y: 10, roof: "#16a085" },
-  { x: 3, y: 18, roof: "#8e44ad" },
-  { x: 20, y: 18, roof: "#27ae60" },
-];
 
 /** にぎわいで建つ小さな家 */
 function DevHouse({ x, y, roof }: { x: number; y: number; roof: string }) {
@@ -374,11 +491,15 @@ export function Overworld({
           </>
         )}
 
-        {/* にぎわいで増える家（発展レベル×2軒） */}
+        {/* 国ごとに異なる建物レイアウト。発展レベルで軒数が増える */}
         {!editMode &&
-          DEV_BUILDING_SPOTS.slice(0, Math.min(6, devLevel * 2)).map((b, i) => (
-            <DevHouse key={`dev-${i}`} x={b.x} y={b.y} roof={b.roof} />
-          ))}
+          (() => {
+            const layout = townBuildings(themeIndex ?? 0);
+            const shown = Math.min(layout.length, 2 + devLevel * 2);
+            return layout.slice(0, shown).map((b, i) => (
+              <DevHouse key={`dev-${i}`} x={b.x} y={b.y} roof={b.roof} />
+            ));
+          })()}
 
         {/* 配置された画像プロップ */}
         {props.map((p) => (
@@ -390,38 +511,8 @@ export function Overworld({
           />
         ))}
 
-        {/* 派遣された住民（町に立つ） */}
-        {!editMode &&
-          residents.map((id, i) => {
-            const spot = RESIDENT_SPOTS[i % RESIDENT_SPOTS.length];
-            const def = getBuiltinCharacter(id);
-            const frame = def
-              ? spot.dir === "up"
-                ? def.up[0]
-                : spot.dir === "left" || spot.dir === "right"
-                  ? def.side[0]
-                  : def.frames[0]
-              : null;
-            return (
-              <div
-                key={`res-${id}-${i}`}
-                className="absolute"
-                style={{ left: spot.x * TILE, top: spot.y * TILE - 6, width: TILE, height: TILE + 6 }}
-              >
-                <div className="absolute bottom-1 left-1/2 h-1.5 w-6 -translate-x-1/2 rounded-full bg-black/30" />
-                <div
-                  className="anim-hero-bob absolute bottom-1 left-1/2"
-                  style={{ transform: spot.dir === "right" ? "translateX(-50%) scaleX(-1)" : "translateX(-50%)" }}
-                >
-                  {frame ? (
-                    <PixelSprite sprite={frame} scale={2} />
-                  ) : (
-                    <PixelImage src={id} style={{ width: TILE + 4, height: "auto" }} />
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        {/* 派遣された住民（町なかを不規則に歩く） */}
+        {!editMode && residents.length > 0 && <TownResidents ids={residents} />}
 
         {/* 編集グリッド */}
         {editMode && (

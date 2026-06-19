@@ -53,13 +53,6 @@ export function WorldMap({ level, onTravel, onClose }: WorldMapProps) {
   const goldPerHr = useGoldPerHour();
   const [managing, setManaging] = useState<number | null>(null);
 
-  const pct = (n: number) => `+${Math.round(n * 100)}%`;
-  const townBoostOf = (i: number) =>
-    (residents[i] ?? []).reduce((s, id) => {
-      const r = getBuiltinCharacter(id)?.rarity ?? "N";
-      return s + ({ N: 0.01, R: 0.02, SR: 0.04, SSR: 0.07, UR: 0.12 } as Record<string, number>)[r];
-    }, 0);
-
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/70 px-3 py-4">
       <div className="mx-auto flex h-full w-full max-w-md flex-col">
@@ -89,7 +82,6 @@ export function WorldMap({ level, onTravel, onClose }: WorldMapProps) {
               {THEMES.map((th, i) => {
                 const locked = i > maxUnlocked;
                 const here = i === current;
-                const boost = townBoostOf(i);
                 const count = (residents[i] ?? []).length;
                 return (
                   <DQWindow key={th.id} className={cn("!px-3 !py-2", locked && "opacity-60")}>
@@ -99,10 +91,7 @@ export function WorldMap({ level, onTravel, onClose }: WorldMapProps) {
                     </div>
                     {!locked && (
                       <>
-                        <p className="font-pixel mt-1 text-[11px] text-gold">
-                          🎉 {t("world.liveliness")} {pct(boost)}
-                        </p>
-                        <p className="font-pixel text-[10px] text-white/60">
+                        <p className="font-pixel mt-1 text-[10px] text-white/60">
                           👥 {t("world.residents")} {count} ・ 🏠Lv{townDevLevel(i)}
                         </p>
                         {/* 町ごとの目標 */}

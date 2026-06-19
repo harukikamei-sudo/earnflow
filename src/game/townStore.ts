@@ -15,9 +15,6 @@ const KEYS = {
   residents: "earnflow.townResidents",
 } as const;
 
-/** レア度ごとの収入アップ寄与（住民1人あたり） */
-const RARITY_BOOST: Record<Rarity, number> = { N: 0.01, R: 0.02, SR: 0.04, SSR: 0.07, UR: 0.12 };
-
 function load<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -104,26 +101,6 @@ export function townOfResident(id: string): number {
     if (residents[Number(k)].includes(id)) return Number(k);
   }
   return -1;
-}
-
-const boostOf = (id: string) => RARITY_BOOST[getBuiltinCharacter(id)?.rarity ?? "N"];
-
-/** その町のにぎわいによる収入アップ率（0.0〜） */
-export function townBoost(i: number): number {
-  return residentsOf(i).reduce((s, id) => s + boostOf(id), 0);
-}
-
-/** 全町合計の収入アップ率（収入計算に反映） */
-export function getTownBoost(): number {
-  let total = 0;
-  for (const k of Object.keys(residents)) {
-    total += residents[Number(k)].reduce((s, id) => s + boostOf(id), 0);
-  }
-  return total;
-}
-
-export function useTownBoost(): number {
-  return useSyncExternalStore(subscribe, getTownBoost, getTownBoost);
 }
 
 /* ---------------- 発展段階（にぎわいで見た目が育つ） ---------------- */

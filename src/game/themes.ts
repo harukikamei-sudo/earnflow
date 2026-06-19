@@ -164,6 +164,41 @@ export const THEMES: StageTheme[] = [
   },
 ];
 
+/** 装飾建物の配置候補（中心の主要建物・水を避けたタイル座標） */
+const BUILD_SPOTS = [
+  { x: 2, y: 7 }, { x: 6, y: 3 }, { x: 21, y: 4 }, { x: 25, y: 10 },
+  { x: 3, y: 18 }, { x: 20, y: 18 }, { x: 24, y: 14 }, { x: 2, y: 11 },
+  { x: 8, y: 6 }, { x: 18, y: 6 }, { x: 13, y: 7 }, { x: 22, y: 16 },
+];
+const ROOFS = ["#c0392b", "#2980b9", "#e67e22", "#16a085", "#8e44ad", "#27ae60", "#d35400", "#2c3e50", "#c0a020", "#9b59b6"];
+
+export interface TownBuilding {
+  x: number;
+  y: number;
+  roof: string;
+}
+
+/**
+ * 町（テーマ）ごとに異なる建物レイアウトを返す。
+ * テーマindexで開始位置・間隔・軒数・屋根色を変え、国ごとに配置が変わるようにする。
+ */
+export function townBuildings(themeIndex: number): TownBuilding[] {
+  const n = BUILD_SPOTS.length;
+  const offset = (themeIndex * 5) % n;
+  const step = 2 + (themeIndex % 3); // 2〜4
+  const count = 5 + (themeIndex % 4); // 5〜8
+  const used = new Set<number>();
+  const out: TownBuilding[] = [];
+  for (let k = 0; k < count; k++) {
+    const idx = (offset + k * step) % n;
+    if (used.has(idx)) continue;
+    used.add(idx);
+    const s = BUILD_SPOTS[idx];
+    out.push({ x: s.x, y: s.y, roof: ROOFS[(themeIndex + k * 3) % ROOFS.length] });
+  }
+  return out;
+}
+
 /** レベル → 解放済みテーマ（町）の最大インデックス。 */
 export function themeIndexForLevel(level: number): number {
   return Math.min(THEMES.length - 1, Math.floor(Math.max(0, level - 1) / LEVELS_PER_THEME));
