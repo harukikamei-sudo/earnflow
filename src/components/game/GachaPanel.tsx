@@ -4,7 +4,7 @@ import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { CHARACTERS, getBuiltinCharacter, HERO_DOWN_A } from "@/components/pixel/sprites";
 import { DQWindow } from "@/components/pixel/DQWindow";
 import { setCharacter, useAssets, useCharacter } from "@/game/mapStore";
-import { gachaPull, isOwned, useOwned, useWallet, type GachaResult } from "@/game/playerStore";
+import { gachaPull, useOwned, useWallet, type GachaResult } from "@/game/playerStore";
 import { playSE } from "@/audio/engine";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ function Thumb({ id, scale = 2 }: { id: string; scale?: number }) {
 
 function nameOf(id: string, t: (k: string) => string): string {
   if (id === "") return t("costume.default");
-  return getBuiltinCharacter(id) ? t(`char.${id}`) : basename(id);
+  return getBuiltinCharacter(id)?.name ?? basename(id);
 }
 
 /**
@@ -37,7 +37,7 @@ export function GachaPanel() {
   const t = useT();
   const assets = useAssets();
   const wallet = useWallet();
-  useOwned(); // 所持変化で再描画
+  const ownedIds = useOwned(); // 所持変化で再描画
   const character = useCharacter();
 
   const [result, setResult] = useState<GachaResult | null>(null);
@@ -64,10 +64,12 @@ export function GachaPanel() {
     }, 800);
   }
 
-  const collection = [
+  // コレクションは「所持済み」のみ表示（全365体を描画すると重いため）
+  const total = pool.length;
+  const got = pool.filter((id) => ownedIds.includes(id)).length;
+  const ownedCollection = [
     { src: "", name: t("costume.default") },
-    ...CHARACTERS.map((c) => ({ src: c.id, name: t(`char.${c.id}`) })),
-    ...assets.map((s) => ({ src: s, name: basename(s) })),
+    ...pool.filter((id) => ownedIds.includes(id)).map((id) => ({ src: id, name: nameOf(id, t) })),
   ];
 
   return (
@@ -116,29 +118,26 @@ export function GachaPanel() {
         )}
       </DQWindow>
 
-      {/* コレクション（着替え） */}
+      {/* コレクション（所持分のみ・着替え可） */}
       <DQWindow title={t("gacha.collection")}>
+        <p className="font-pixel mb-2 text-xs text-gold">{got} / {total}</p>
         <div className="grid grid-cols-3 gap-2">
-          {collection.map((c) => {
-            const owned = isOwned(c.src);
+          {ownedCollection.map((c) => {
             const equipped = character === c.src;
             return (
               <button
                 key={c.src || "default"}
                 type="button"
-                disabled={!owned}
-                onClick={() => owned && setCharacter(c.src)}
+                onClick={() => setCharacter(c.src)}
                 className={cn(
                   "flex flex-col items-center gap-1 rounded p-1.5 transition-colors",
-                  equipped ? "bg-gold/20 ring-1 ring-gold" : owned ? "bg-white/10 hover:bg-white/20" : "bg-white/5",
+                  equipped ? "bg-gold/20 ring-1 ring-gold" : "bg-white/10 hover:bg-white/20",
                 )}
               >
                 <div className="grid h-12 w-12 place-items-center">
-                  {owned ? <Thumb id={c.src} /> : <span className="text-2xl text-white/30">？</span>}
+                  <Thumb id={c.src} />
                 </div>
-                <span className="font-pixel w-full truncate text-center text-[10px] text-white">
-                  {owned ? c.name : "？？？"}
-                </span>
+                <span className="font-pixel w-full truncate text-center text-[10px] text-white">{c.name}</span>
                 {equipped && (
                   <span className="font-pixel text-[9px] font-bold text-gold">{t("costume.equipped")}</span>
                 )}

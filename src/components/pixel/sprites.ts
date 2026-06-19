@@ -253,6 +253,56 @@ export const CHARACTERS: CharacterDef[] = [
   },
 ];
 
+/* -------- 自動生成キャラ（職場ロール × 称号で〜360体）。デザインは後で調整可能 -------- */
+
+const ROLE_TORSOS = [HERO_TORSO, WARRIOR_TORSO, PRIEST_TORSO, SUIT_TORSO];
+const G_SKINS: [string, string][] = [
+  ["#f3c98b", "#d99a5b"],
+  ["#e8b07a", "#c98a50"],
+  ["#caa06a", "#a87c45"],
+  ["#8a5a32", "#6b4423"],
+  ["#f7d9b0", "#e0b485"],
+];
+const G_HAIRS = ["#2a2a2a", "#5a3a22", "#b9bec9", "#d3d7e2", "#efe9d6", "#c0392b", "#3a6ee0", "#8e44ad", "#e67e22", "#1e824c", "#f6c945", "#7f8c8d"];
+const G_CLOTHES = ["#3a6ee0", "#c0392b", "#1e824c", "#8e44ad", "#e67e22", "#16a085", "#2c3e50", "#d35400", "#2980b9", "#27ae60", "#c0a020", "#34495e", "#9b59b6", "#e84393", "#0984e3"];
+const G_ACCENTS = ["#f6c945", "#ffffff", "#ff7675", "#74b9ff", "#55efc4", "#fdcb6e"];
+const G_PANTS = ["#313a4a", "#5a3a22", "#2c3e50", "#3a3f4a", "#4a3520"];
+const G_SHOES = ["#1a1a1a", "#3a3f4a", "#6b4423", "#222831"];
+
+const ROLE_TIERS = ["見習い", "駆け出し", "一人前", "中堅", "熟練", "ベテラン", "エース", "カリスマ", "伝説の", "神", "最強の", "究極の"];
+const ROLE_NAMES = [
+  "新人", "アルバイト", "パートさん", "フリーター", "バイトリーダー", "接客リーダー", "レジ担当",
+  "品出し担当", "キッチン担当", "ホール担当", "配達ドライバー", "在庫管理", "シフトリーダー",
+  "トレーナー", "副店長", "店長", "主任", "係長", "課長", "次長", "部長", "本部長", "マネージャー",
+  "エリアマネージャー", "エリートマネージャー", "スーパーバイザー", "統括マネージャー", "取締役", "社長", "会長",
+];
+
+let _rIdx = 0;
+for (const role of ROLE_NAMES) {
+  for (const tier of ROLE_TIERS) {
+    const i = _rIdx++;
+    const skin = G_SKINS[(i * 5) % G_SKINS.length];
+    const palette: Sprite["palette"] = {
+      o: "#1a1026",
+      K: "#1a1026",
+      S: skin[0],
+      s: skin[1],
+      H: G_HAIRS[i % G_HAIRS.length],
+      W: "#ececec",
+      Y: G_ACCENTS[(i * 3) % G_ACCENTS.length],
+      C: G_CLOTHES[(i * 7) % G_CLOTHES.length],
+      R: "#c0392b",
+      B: G_PANTS[(i * 2) % G_PANTS.length],
+      g: G_SHOES[i % G_SHOES.length],
+    };
+    CHARACTERS.push({
+      id: `char:role${i}`,
+      name: `${tier}${role}`,
+      frames: walker(ROLE_TORSOS[i % ROLE_TORSOS.length], palette),
+    });
+  }
+}
+
 const BUILTIN_CHARACTERS: Record<string, CharacterDef> = Object.fromEntries(
   CHARACTERS.map((c) => [c.id, c]),
 );
