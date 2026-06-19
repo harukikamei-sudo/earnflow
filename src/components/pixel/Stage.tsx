@@ -14,6 +14,7 @@ import {
   type Sprite,
 } from "./sprites";
 import { themeForLevel } from "@/game/themes";
+import { usePageVisible } from "@/hooks/usePageVisible";
 import { cn } from "@/lib/utils";
 
 export interface StageCoin {
@@ -142,7 +143,9 @@ export function Stage({ walking, level, nowTs, coins, buffed, characterSrc }: St
   const phase = useMemo(() => phaseOf(new Date(nowTs).getHours()), [nowTs]);
   const monster = useMemo(() => monsterForLevel(level), [level]);
   const theme = useMemo(() => themeForLevel(level), [level]);
-  const playState = walking ? "running" : "paused";
+  const visible = usePageVisible();
+  // バックグラウンド（非表示）ではアニメを止めて電池を節約
+  const playState = walking && visible ? "running" : "paused";
   const isNight = phase === "night" || phase === "dusk";
 
   return (

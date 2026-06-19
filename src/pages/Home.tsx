@@ -28,6 +28,7 @@ import { dailyLine } from "@/game/dailyLines";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { useIsTouch } from "@/hooks/useIsTouch";
+import { usePageVisible } from "@/hooks/usePageVisible";
 import { VolumeButton } from "@/components/game/VolumeButton";
 import { useBgm } from "@/audio/useAudio";
 import { playSE } from "@/audio/engine";
@@ -155,12 +156,15 @@ export default function Home() {
   const { snap, press, release } = overworld;
   const isTouch = useIsTouch();
 
-  // 時刻（時間帯・バフ用）
+  // 時刻（時間帯・バフ用）。バックグラウンドでは更新を止めて電池を節約
   const [nowTs, setNowTs] = useState(() => Date.now());
+  const pageVisible = usePageVisible();
   useEffect(() => {
+    if (!pageVisible) return;
+    setNowTs(Date.now());
     const id = window.setInterval(() => setNowTs(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [pageVisible]);
 
   const activeWp = working ? engine.runningWorkplace : null;
   const multiplier = activeWp ? multiplierAt(new Date(nowTs), activeWp.timeRules) : 1;

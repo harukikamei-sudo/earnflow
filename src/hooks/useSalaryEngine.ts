@@ -12,6 +12,7 @@ import type { Workplace } from "@/lib/types";
 import { currentEarnings, finalizeSession, sumEarnings } from "@/lib/earnings";
 import { addSession, getSessions, getWorkplaces } from "@/lib/store";
 import { getEarningBoost } from "@/game/playerStore";
+import { usePageVisible } from "@/hooks/usePageVisible";
 
 export type EngineStatus = "idle" | "running" | "stopped";
 
@@ -80,6 +81,7 @@ export function useSalaryEngine(): SalaryEngine {
   const [stoppedEarnings, setStoppedEarnings] = useState<number>(0);
 
   const tickRef = useRef<number | null>(null);
+  const visible = usePageVisible();
 
   // 参照先のバイト先が消えている等で復帰できなかった場合、古いアクティブ情報を掃除する
   useEffect(() => {
@@ -89,16 +91,19 @@ export function useSalaryEngine(): SalaryEngine {
     }
   }, []);
 
-  // 計測中だけ時刻を更新するタイマー
+  // 計測中だけ時刻を更新するタイマー。
+  // バックグラウンド（非表示）では止めて電池を節約する。収入はタイムスタンプから
+  // 計算するので、再表示時に setNow で一括して正しい値に復帰する。
   useEffect(() => {
-    if (status !== "running") return;
+    if (status !== "running" || !visible) return;
+    setNow(Date.now()); // 再表示時に即追いつく
     const id = window.setInterval(() => setNow(Date.now()), 100);
     tickRef.current = id;
     return () => {
       window.clearInterval(id);
       tickRef.current = null;
     };
-  }, [status]);
+  }, [status, visible]);
 
   const sessionEarnings =
     status === "stopped"
