@@ -4,7 +4,7 @@ import { DQCommand, DQWindow } from "@/components/pixel/DQWindow";
 import { Overworld } from "@/components/game/Overworld";
 import { FlickControls } from "@/components/game/FlickControls";
 import { WorkMenu } from "@/components/game/WorkMenu";
-import { CostumePanel } from "@/components/game/CostumePanel";
+import { GachaPanel } from "@/components/game/GachaPanel";
 import { CalendarBoard } from "@/components/game/CalendarBoard";
 import { EarningsChart } from "@/components/game/EarningsChart";
 import { GoalSettings } from "@/components/game/GoalSettings";
@@ -680,7 +680,7 @@ export default function Home() {
             </button>
           </div>
 
-          <CostumePanel />
+          <GachaPanel />
         </div>
       ) : (
         /* ============ 町（トップダウン） ============ */

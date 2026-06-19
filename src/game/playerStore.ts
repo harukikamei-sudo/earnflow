@@ -73,6 +73,33 @@ export function buy(idOrSrc: string, price: number): boolean {
   return true;
 }
 
+export interface GachaResult {
+  /** 出たコスチュームのID/画像src */
+  id: string;
+  /** 新規獲得なら true、ダブりなら false */
+  isNew: boolean;
+}
+
+/**
+ * ガチャを1回引く。所持金が足りなければ null。
+ * プールからランダムに1つ出し、新規なら所持に追加、ダブりなら dupRefund を返金する。
+ */
+export function gachaPull(price: number, pool: string[], dupRefund: number): GachaResult | null {
+  if (wallet < price || pool.length === 0) return null;
+  wallet -= price;
+  const id = pool[Math.floor(Math.random() * pool.length)];
+  const isNew = !owned.includes(id);
+  if (isNew) {
+    owned = [...owned, id];
+    save(KEYS.owned, owned);
+  } else {
+    wallet += dupRefund;
+  }
+  save(KEYS.wallet, wallet);
+  emit();
+  return { id, isNew };
+}
+
 /** 所持アイテムによる収入倍率（1.0 = 等倍）。非リアクティブ読み取り（エンジン用） */
 export function getEarningBoost(): number {
   let boost = 1;

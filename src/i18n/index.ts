@@ -63,6 +63,14 @@ const STRINGS: Record<string, Dict> = {
   "costume.revert": { ja: "もとに戻す", en: "Revert", es: "Revertir", fr: "Rétablir", zh: "还原", ko: "되돌리기", ru: "Вернуть" },
   "costume.buy": { ja: "{n}G で買う", en: "Buy for {n} G", es: "Comprar por {n} G", fr: "Acheter {n} G", zh: "{n}G 购买", ko: "{n}G 구매", ru: "Купить за {n} G" },
 
+  "gacha.title": { ja: "きせかえガチャ", en: "Costume Gacha", es: "Gacha de disfraces", fr: "Gacha de costumes", zh: "换装扭蛋", ko: "코스튬 뽑기", ru: "Гача костюмов" },
+  "gacha.lead": { ja: "回すと すがたが ランダムで出る！", en: "Spin for a random costume!", es: "¡Gira por un disfraz al azar!", fr: "Tournez pour un costume aléatoire !", zh: "转一下随机获得造型！", ko: "돌리면 랜덤 코스튬 등장!", ru: "Крути — выпадет случайный костюм!" },
+  "gacha.pull": { ja: "ガチャを回す（{n}G）", en: "Spin ({n} G)", es: "Girar ({n} G)", fr: "Tourner ({n} G)", zh: "扭一发（{n}G）", ko: "뽑기 ({n}G)", ru: "Крутить ({n} G)" },
+  "gacha.new": { ja: "NEW！ ゲット！", en: "NEW! Got it!", es: "¡NUEVO! ¡Conseguido!", fr: "NOUVEAU ! Obtenu !", zh: "NEW！获得！", ko: "NEW! 획득!", ru: "NEW! Получено!" },
+  "gacha.dup": { ja: "ダブり… {n}G 返金", en: "Duplicate… {n} G refunded", es: "Repetido… {n} G devueltos", fr: "Doublon… {n} G remboursés", zh: "重复…返还 {n}G", ko: "중복… {n}G 환불", ru: "Повтор… возврат {n} G" },
+  "gacha.collection": { ja: "コレクション", en: "Collection", es: "Colección", fr: "Collection", zh: "收藏", ko: "컬렉션", ru: "Коллекция" },
+  "gacha.notEnough": { ja: "ゴールドが足りない…", en: "Not enough gold…", es: "Oro insuficiente…", fr: "Pas assez d'or…", zh: "金币不足…", ko: "골드가 부족해…", ru: "Не хватает золота…" },
+
   "house.name": { ja: "わが家", en: "Home", es: "Casa", fr: "Maison", zh: "我家", ko: "우리 집", ru: "Дом" },
   "house.enter": { ja: "中に入る", en: "Enter", es: "Entrar", fr: "Entrer", zh: "进入", ko: "들어가기", ru: "Войти" },
   "house.enterAsk": { ja: "家で カレンダーと ノルマを 確認できる。", en: "Check your calendar and quota at home.", es: "Consulta el calendario y tu meta en casa.", fr: "Consultez le calendrier et l'objectif chez vous.", zh: "在家可以查看日历和目标。", ko: "집에서 달력과 목표를 확인할 수 있어.", ru: "Дома можно посмотреть календарь и цель." },
