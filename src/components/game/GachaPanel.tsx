@@ -30,6 +30,17 @@ function basename(src: string): string {
   return src.split("/").pop() ?? src;
 }
 
+/** 端末バイブ（対応端末＝主にAndroid。非対応は無視） */
+function vibrate(pattern: number[]): void {
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      navigator.vibrate(pattern);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 function Thumb({ id, scale = 2 }: { id: string; scale?: number }) {
   if (id === "") return <PixelSprite sprite={HERO_DOWN_A} scale={scale} />;
   const builtin = getBuiltinCharacter(id);
@@ -108,6 +119,7 @@ export function GachaPanel() {
     setRolling(true);
     setResult(null);
     playSE("confirm");
+    vibrate([0, 40, 70, 40, 70, 40, 70, 40, 70, 40]); // 回している間ガタガタ振動（対応端末のみ）
     window.setTimeout(() => {
       const groups: GachaGroup[] = RARITY_ORDER.map((r) => ({
         rarity: r,
@@ -120,8 +132,9 @@ export function GachaPanel() {
       if (res) {
         setResult(res);
         if (res.isNew) setCharacter(res.id); // 新規は自動で着用
-        // SR以上は派手な効果音
-        playSE(res.rarity === "SR" || res.rarity === "SSR" || res.rarity === "UR" ? "levelup" : "confirm");
+        const rare = res.rarity === "SR" || res.rarity === "SSR" || res.rarity === "UR";
+        playSE(rare ? "levelup" : "confirm");
+        vibrate(rare ? [0, 200, 80, 200] : [0, 60]); // 排出時の振動（レアは強め）
       }
     }, 1700);
   }
@@ -164,7 +177,7 @@ export function GachaPanel() {
                   />
                 )}
                 <div
-                  className={cn("relative grid place-items-center rounded-lg p-2", result.rarity === "UR" && "anim-hero-bob")}
+                  className="anim-reveal-spin relative grid place-items-center rounded-lg p-2"
                   style={{ boxShadow: rs.glow === "transparent" ? undefined : `0 0 18px 4px ${rs.glow}` }}
                 >
                   <Thumb id={result.id} scale={3} />
