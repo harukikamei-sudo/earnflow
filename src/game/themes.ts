@@ -199,6 +199,17 @@ export function townBuildings(themeIndex: number): TownBuilding[] {
   return out;
 }
 
+/** 街ごとの「抜け道（門）」の位置候補（外周付近の通行可タイル） */
+const EXIT_SPOTS = [
+  { x: 14, y: 1 }, { x: 8, y: 1 }, { x: 20, y: 1 }, { x: 1, y: 10 },
+  { x: 26, y: 13 }, { x: 14, y: 18 }, { x: 1, y: 5 }, { x: 26, y: 5 },
+];
+
+/** その街の抜け道（となり街へ抜けられる門）の位置。街ごとに違う場所。 */
+export function townExit(themeIndex: number): { x: number; y: number } {
+  return EXIT_SPOTS[themeIndex % EXIT_SPOTS.length];
+}
+
 /** レベル → 解放済みテーマ（町）の最大インデックス。 */
 export function themeIndexForLevel(level: number): number {
   return Math.min(THEMES.length - 1, Math.floor(Math.max(0, level - 1) / LEVELS_PER_THEME));

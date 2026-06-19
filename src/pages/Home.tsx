@@ -35,7 +35,7 @@ import { isHoliday } from "@/lib/holiday";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
-import { THEMES } from "@/game/themes";
+import { THEMES, townExit } from "@/game/themes";
 import { useCurrentTown, setCurrentTown, useResidents, townDevLevel, collectIdleGold } from "@/game/townStore";
 import { WorldMap } from "@/components/game/WorldMap";
 import { cn, formatDuration, formatYen, formatYenPrecise, toDateKey, uid } from "@/lib/utils";
@@ -192,6 +192,23 @@ export default function Home() {
     isTown && !working && settled && !nearShop && !nearMarket && man(HOUSE_DOOR.x, HOUSE_DOOR.y) <= 1;
   const nearSign =
     isTown && !working && settled && !nearShop && !nearMarket && !nearHouse && man(SIGN_POS.x, SIGN_POS.y) <= 1;
+  // 抜け道（となり街へ抜ける門）に接近
+  const exitPos = townExit(currentTown);
+  const nearExit = isTown && !working && settled && man(exitPos.x, exitPos.y) <= 1;
+
+  // 抜け道に触れたらワールドマップを開く（退出直後の再オープンは離れるまで抑止）
+  const exitGuard = useRef(false);
+  useEffect(() => {
+    if (scene !== "roam") return;
+    if (!nearExit) {
+      exitGuard.current = false;
+      return;
+    }
+    if (exitGuard.current || showWorld) return;
+    exitGuard.current = true;
+    playSE("door");
+    setShowWorld(true);
+  }, [scene, nearExit, showWorld]);
 
   // 我が家・道具屋は触れたら自動で入る。退出直後の再入場を防ぐため、
   // 一度ドアから離れる（near がすべて false になる）まで再入場しないようガードする。

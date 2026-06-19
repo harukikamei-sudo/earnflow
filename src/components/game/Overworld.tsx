@@ -3,7 +3,7 @@ import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE, type HeroDir } from "@/components/pixel/sprites";
 import { HOUSE, MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
-import { THEMES, themeForLevel, townBuildings, type StageTheme } from "@/game/themes";
+import { THEMES, themeForLevel, townBuildings, townExit, type StageTheme } from "@/game/themes";
 import { isWalkable, useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
@@ -490,6 +490,20 @@ export function Overworld({
             <HouseBuilding />
           </>
         )}
+
+        {/* 抜け道（となり街へ抜けられる門） */}
+        {showLandmarks && themeIndex != null && (() => {
+          const ex = townExit(themeIndex);
+          return (
+            <div className="pointer-events-none absolute" style={{ left: ex.x * TILE - TILE * 0.2, top: ex.y * TILE - TILE * 0.55, width: TILE * 1.4, height: TILE * 1.5 }}>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-sm" style={{ width: TILE, height: TILE * 0.5, background: "#caa869" }} />
+              <div className="absolute left-0 top-0 h-[70%] w-1.5 rounded-sm bg-[#7a4a2b]" />
+              <div className="absolute right-0 top-0 h-[70%] w-1.5 rounded-sm bg-[#7a4a2b]" />
+              <div className="absolute left-0 top-0 h-1.5 w-full rounded-sm bg-[#a0623a]" />
+              <div className="anim-hero-bob absolute left-1/2 top-1 -translate-x-1/2 text-sm">🚪</div>
+            </div>
+          );
+        })()}
 
         {/* 国ごとに異なる建物レイアウト。発展レベルで軒数が増える */}
         {!editMode &&
