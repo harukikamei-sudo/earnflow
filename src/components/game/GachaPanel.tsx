@@ -42,6 +42,40 @@ function nameOf(id: string, t: (k: string) => string): string {
   return getBuiltinCharacter(id)?.name ?? basename(id);
 }
 
+/** ドット風ガチャポン機（大きめ） */
+const CAPSULES = [
+  { l: 16, t: 16, c: "#ff6b6b" },
+  { l: 44, t: 10, c: "#ffd93b" },
+  { l: 64, t: 20, c: "#5ec4ff" },
+  { l: 22, t: 40, c: "#7bd88a" },
+  { l: 50, t: 42, c: "#c78bff" },
+  { l: 12, t: 34, c: "#ffa94d" },
+  { l: 66, t: 46, c: "#ff8fc7" },
+];
+function GachaMachine({ shaking }: { shaking?: boolean }) {
+  return (
+    <div className={cn("relative", shaking && "anim-gacha-shake")} style={{ width: 104, height: 134, imageRendering: "pixelated" }}>
+      {/* ガラス球 */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2"
+        style={{ top: 0, width: 96, height: 86, borderRadius: "50%", background: "radial-gradient(circle at 34% 28%, #ffffffcc, #cfeaff 55%, #9fd0f5)", border: "4px solid #2a2f4a", boxShadow: "inset 0 -6px 0 rgba(0,0,0,0.12)" }}
+      >
+        {CAPSULES.map((c, i) => (
+          <span key={i} className="absolute" style={{ left: c.l, top: c.t, width: 16, height: 16, borderRadius: "50%", background: c.c, boxShadow: "inset 0 -3px 0 rgba(0,0,0,0.22)" }} />
+        ))}
+      </div>
+      {/* 本体 */}
+      <div
+        className="absolute bottom-0 left-1/2 -translate-x-1/2"
+        style={{ width: 100, height: 64, background: "linear-gradient(#e23b3b,#a81f1f)", border: "4px solid #2a2f4a", borderRadius: "6px" }}
+      >
+        <div className="absolute left-1/2 top-2 -translate-x-1/2" style={{ width: 22, height: 22, borderRadius: "50%", background: "#f6c945", border: "3px solid #2a2f4a" }} />
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2" style={{ width: 50, height: 18, background: "#1c1f27", border: "3px solid #2a2f4a", borderRadius: "3px" }} />
+      </div>
+    </div>
+  );
+}
+
 /**
  * どうぐ屋のガチャポン。レア度の重み付き抽選（激レア0.5%）でコスチュームが出る。
  * 同じキャラがかぶることもある（ダブりは一部返金）。新規はその場で着用、所持品は着替え可能。
@@ -101,10 +135,10 @@ export function GachaPanel() {
           <span className="text-gold">💰 {wallet} G</span>
         </div>
 
-        {/* 結果表示 / カプセル */}
-        <div className="mb-3 grid min-h-[140px] place-items-center rounded-md bg-black/30 p-3">
+        {/* 結果表示 / ガチャ機 */}
+        <div className="mb-3 grid min-h-[170px] place-items-center rounded-md bg-black/30 p-3">
           {rolling ? (
-            <div className="anim-hero-bob text-4xl">🥚</div>
+            <GachaMachine shaking />
           ) : result && rs ? (
             <div className="anim-dq-pop flex flex-col items-center gap-1.5 text-center">
               <div
@@ -129,7 +163,7 @@ export function GachaPanel() {
               )}
             </div>
           ) : (
-            <div className="text-5xl">🎰</div>
+            <GachaMachine />
           )}
         </div>
 

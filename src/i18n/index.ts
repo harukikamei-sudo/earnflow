@@ -4,6 +4,20 @@
  */
 
 import { useSyncExternalStore } from "react";
+import deDict from "./locales/de";
+import itDict from "./locales/it";
+import ptDict from "./locales/pt";
+import arDict from "./locales/ar";
+import hiDict from "./locales/hi";
+import idDict from "./locales/id";
+import thDict from "./locales/th";
+import viDict from "./locales/vi";
+import trDict from "./locales/tr";
+import plDict from "./locales/pl";
+import nlDict from "./locales/nl";
+import ukDict from "./locales/uk";
+import bnDict from "./locales/bn";
+import filDict from "./locales/fil";
 
 // 対応言語。未訳の文字列は英語→日本語の順にフォールバックする。
 export type Locale =
@@ -41,6 +55,13 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 type Dict = Partial<Record<Locale, string>>;
+
+/** 追加言語の全文辞書（key→訳）。STRINGSより優先して使う */
+const EXTRA: Partial<Record<Locale, Record<string, string>>> = {
+  de: deDict, it: itDict, pt: ptDict, ar: arDict, hi: hiDict, id: idDict,
+  th: thDict, vi: viDict, tr: trDict, pl: plDict, nl: nlDict, uk: ukDict,
+  bn: bnDict, fil: filDict,
+};
 
 /** 主要UIの訳語。{x} はプレースホルダ */
 const STRINGS: Record<string, Dict> = {
@@ -218,7 +239,7 @@ export function useLocale(): Locale {
 
 function translate(loc: Locale, key: string, vars?: Record<string, string | number>): string {
   const entry = STRINGS[key];
-  let s = entry ? entry[loc] ?? entry.en ?? entry.ja ?? key : key;
+  let s = EXTRA[loc]?.[key] ?? (entry ? entry[loc] ?? entry.en ?? entry.ja ?? key : key);
   if (vars) for (const k of Object.keys(vars)) s = s.replace(`{${k}}`, String(vars[k]));
   return s;
 }

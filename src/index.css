@@ -207,6 +207,15 @@
   .anim-dq-pop {
     animation: dq-pop 0.25s ease-out;
   }
+
+  .anim-gacha-shake {
+    animation: gacha-shake 0.35s ease-in-out infinite;
+  }
+  @keyframes gacha-shake {
+    0%, 100% { transform: rotate(0deg) translateY(0); }
+    25% { transform: rotate(-5deg) translateY(-2px); }
+    75% { transform: rotate(5deg) translateY(-2px); }
+  }
   @keyframes dq-pop {
     0% {
       transform: scale(0.7);
