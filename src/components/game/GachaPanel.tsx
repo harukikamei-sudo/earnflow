@@ -123,7 +123,7 @@ export function GachaPanel() {
         // SR以上は派手な効果音
         playSE(res.rarity === "SR" || res.rarity === "SSR" || res.rarity === "UR" ? "levelup" : "confirm");
       }
-    }, 1100);
+    }, 1700);
   }
 
   const ownedCollection = [
@@ -154,12 +154,12 @@ export function GachaPanel() {
                   <div
                     className="anim-rays absolute"
                     style={{
-                      width: 156,
-                      height: 156,
+                      width: 188,
+                      height: 188,
                       borderRadius: "50%",
-                      background: `repeating-conic-gradient(${rs.color}66 0deg 10deg, transparent 10deg 20deg)`,
-                      WebkitMaskImage: "radial-gradient(transparent 34%, #000 58%)",
-                      maskImage: "radial-gradient(transparent 34%, #000 58%)",
+                      background: `repeating-conic-gradient(${rs.color}aa 0deg 5deg, transparent 5deg 11deg)`,
+                      WebkitMaskImage: "radial-gradient(transparent 30%, #000 60%)",
+                      maskImage: "radial-gradient(transparent 30%, #000 60%)",
                     }}
                   />
                 )}
@@ -170,7 +170,7 @@ export function GachaPanel() {
                   <Thumb id={result.id} scale={3} />
                 </div>
                 {isRare && (
-                  <div className="anim-flash pointer-events-none absolute" style={{ width: 120, height: 120, borderRadius: "50%", background: rs.color }} />
+                  <div className="anim-flash pointer-events-none absolute" style={{ width: 150, height: 150, borderRadius: "50%", background: rs.color, boxShadow: `0 0 40px 16px ${rs.color}` }} />
                 )}
               </div>
               <span
