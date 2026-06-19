@@ -164,11 +164,12 @@ export const THEMES: StageTheme[] = [
   },
 ];
 
+/** レベル → 解放済みテーマ（町）の最大インデックス。 */
+export function themeIndexForLevel(level: number): number {
+  return Math.min(THEMES.length - 1, Math.floor(Math.max(0, level - 1) / LEVELS_PER_THEME));
+}
+
 /** レベル → ステージテーマ。LEVELS_PER_THEME ごとに進み、最後で打ち止め。 */
 export function themeForLevel(level: number): StageTheme {
-  const idx = Math.min(
-    THEMES.length - 1,
-    Math.floor(Math.max(0, level - 1) / LEVELS_PER_THEME),
-  );
-  return THEMES[idx];
+  return THEMES[themeIndexForLevel(level)];
 }

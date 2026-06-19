@@ -3,7 +3,7 @@ import { PixelAnim, PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE } from "@/components/pixel/sprites";
 import { HOUSE, MAP_H, MAP_W, MARKET, SHOP, TILE } from "@/game/map";
-import { themeForLevel, type StageTheme } from "@/game/themes";
+import { THEMES, themeForLevel, type StageTheme } from "@/game/themes";
 import { useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
@@ -237,6 +237,8 @@ interface OverworldProps {
   showLandmarks?: boolean;
   /** プレイヤーレベル（ステージ演出に使う） */
   level?: number;
+  /** 表示する町テーマのインデックス（指定時はレベルでなくこの町の見た目にする） */
+  themeIndex?: number;
 }
 
 /** トップダウンのマップ描画＋カメラ追従。 */
@@ -248,6 +250,7 @@ export function Overworld({
   cameraCenter,
   showLandmarks,
   level = 1,
+  themeIndex,
 }: OverworldProps) {
   const viewRef = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(360);
@@ -255,7 +258,7 @@ export function Overworld({
   const rows = useMapRows();
   const props = useProps();
   const character = useCharacter();
-  const theme = themeForLevel(level);
+  const theme = themeIndex != null ? THEMES[themeIndex] : themeForLevel(level);
 
   useLayoutEffect(() => {
     const el = viewRef.current;

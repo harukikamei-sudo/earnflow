@@ -7,6 +7,7 @@
 
 import { useSyncExternalStore } from "react";
 import { SHOP_ITEMS } from "./items";
+import { getTownBoost } from "./townStore";
 
 const KEYS = {
   wallet: "earnflow.wallet",
@@ -131,6 +132,7 @@ export function getEarningBoost(): number {
   for (const item of SHOP_ITEMS) {
     if (owned.includes(item.id)) boost += item.boost;
   }
+  boost += getTownBoost(); // 町おこし（住民）による収入アップ
   return boost;
 }
 /** リアクティブ版（表示用） */

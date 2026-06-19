@@ -35,7 +35,9 @@ import { isHoliday } from "@/lib/holiday";
 import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
-import { themeForLevel } from "@/game/themes";
+import { THEMES } from "@/game/themes";
+import { useCurrentTown, setCurrentTown } from "@/game/townStore";
+import { WorldMap } from "@/components/game/WorldMap";
 import { cn, formatDuration, formatYen, formatYenPrecise, toDateKey, uid } from "@/lib/utils";
 
 type Scene = "title" | "roam" | "work" | "home" | "shop";
@@ -125,8 +127,11 @@ export default function Home() {
   }, [scene, nowTs]);
   useBgm(bgmKey);
 
-  // レベルに応じたステージテーマ（12カ国）。上がると見た目がガラッと変わる
-  const theme = useMemo(() => themeForLevel(level.level), [level.level]);
+  // 現在滞在中の町（テーマ）。ワールドマップで移動すると切り替わる
+  const currentTown = useCurrentTown();
+  const theme = THEMES[currentTown];
+  const [showWorld, setShowWorld] = useState(false);
+  const [traveling, setTraveling] = useState(false);
   const [themeBanner, setThemeBanner] = useState<{ name: string; emoji: string } | null>(null);
   const prevThemeRef = useRef(theme.id);
   useEffect(() => {
@@ -136,6 +141,17 @@ export default function Home() {
     const id = window.setTimeout(() => setThemeBanner(null), 2800);
     return () => window.clearTimeout(id);
   }, [theme.id, theme.name, theme.emoji]);
+
+  // ワールドマップで別の町へ移動（暗転フェード → 切替）
+  function travelTo(townIndex: number) {
+    playSE("door");
+    setShowWorld(false);
+    setTraveling(true);
+    window.setTimeout(() => {
+      setCurrentTown(townIndex);
+      window.setTimeout(() => setTraveling(false), 350);
+    }, 350);
+  }
 
   // 主人公の「今日のひとこと」（1日1回・町に入った時に表示）
   const [greeting, setGreeting] = useState<string | null>(null);
@@ -685,7 +701,7 @@ export default function Home() {
       ) : (
         /* ============ 町（トップダウン） ============ */
         <>
-          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} />
+          <Overworld snap={snap} className="absolute inset-0" showLandmarks={isTown} level={level.level} themeIndex={currentTown} />
 
           {/* フリック / スワイプ / ドラッグで移動（十字キーの代わり） */}
           <FlickControls onPress={press} onRelease={release} />
@@ -702,6 +718,17 @@ export default function Home() {
                 <ExpBar progress={level.progress} thin />
               </div>
             </div>
+            {/* 町を出る → ワールドマップ */}
+            <button
+              type="button"
+              onClick={() => {
+                playSE("confirm");
+                setShowWorld(true);
+              }}
+              className="dq-window pointer-events-auto mr-14 flex items-center gap-1 px-3 py-1.5 font-pixel text-xs text-white"
+            >
+              🗺 {t("world.exit")}
+            </button>
           </div>
 
           {/* バイト先に接近 → 選択肢（複数選択・追加・削除） */}
@@ -792,6 +819,19 @@ export default function Home() {
           </DQWindow>
         </div>
       )}
+
+      {/* ワールドマップ（町移動・町おこし） */}
+      {showWorld && (
+        <WorldMap level={level.level} onTravel={travelTo} onClose={() => setShowWorld(false)} />
+      )}
+
+      {/* 移動中の暗転フェード */}
+      <div
+        className={cn(
+          "pointer-events-none fixed inset-0 z-[60] bg-black transition-opacity duration-300",
+          traveling ? "opacity-100" : "opacity-0",
+        )}
+      />
 
       {/* 音量ボタン（右上・全シーン共通） */}
       <VolumeButton />
