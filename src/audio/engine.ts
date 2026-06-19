@@ -175,6 +175,7 @@ let bgm: BgmChannel[] = [];
 let activeIdx = 0;
 let curTrack: TrackName | null = null;
 let curSrc: string | null = null;
+let firstPlay = true; // 初回はフェードせず瞬時に鳴らす
 
 function initBgm() {
   const c = ensureCtx();
@@ -235,7 +236,14 @@ export function playBgm(name: TrackName | null): void {
   void nx.el
     .play()
     .then(() => {
-      fadeGain(nx.gain, 1); // チャンネルは全開。音量はマスターで制御
+      // 初回（オープニング）はフェードせず即フル音量で鳴らす＝瞬時に流れる
+      if (firstPlay) {
+        firstPlay = false;
+        nx.gain.gain.cancelScheduledValues(ctx ? ctx.currentTime : 0);
+        nx.gain.gain.value = 1;
+      } else {
+        fadeGain(nx.gain, 1); // チャンネルは全開。音量はマスターで制御
+      }
       if (prev && !prev.el.paused) fadeGain(prev.gain, 0, () => prev.el.pause());
       activeIdx = next;
     })
