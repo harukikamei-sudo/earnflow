@@ -69,7 +69,14 @@ function GachaMachine({ shaking }: { shaking?: boolean }) {
         className="absolute bottom-0 left-1/2 -translate-x-1/2"
         style={{ width: 100, height: 64, background: "linear-gradient(#e23b3b,#a81f1f)", border: "4px solid #2a2f4a", borderRadius: "6px" }}
       >
-        <div className="absolute left-1/2 top-2 -translate-x-1/2" style={{ width: 22, height: 22, borderRadius: "50%", background: "#f6c945", border: "3px solid #2a2f4a" }} />
+        {/* 回すハンドル（回転中はくるくる回る） */}
+        <div className="absolute left-1/2 top-2 -translate-x-1/2 grid place-items-center" style={{ width: 24, height: 24, borderRadius: "50%", background: "#f6c945", border: "3px solid #2a2f4a" }}>
+          <div className={cn("grid place-items-center", shaking && "anim-gacha-handle")} style={{ width: "100%", height: "100%" }}>
+            <div style={{ width: 16, height: 4, background: "#2a2f4a", borderRadius: 2 }} />
+            <div className="absolute" style={{ width: 4, height: 16, background: "#2a2f4a", borderRadius: 2 }} />
+          </div>
+        </div>
+        {/* 取り出し口 */}
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2" style={{ width: 50, height: 18, background: "#1c1f27", border: "3px solid #2a2f4a", borderRadius: "3px" }} />
       </div>
     </div>
@@ -116,7 +123,7 @@ export function GachaPanel() {
         // SR以上は派手な効果音
         playSE(res.rarity === "SR" || res.rarity === "SSR" || res.rarity === "UR" ? "levelup" : "confirm");
       }
-    }, 800);
+    }, 1100);
   }
 
   const ownedCollection = [
@@ -125,6 +132,7 @@ export function GachaPanel() {
   ];
 
   const rs = result ? RARITY_STYLE[(result.rarity as Rarity) ?? "N"] : null;
+  const isRare = !!result && (result.rarity === "SR" || result.rarity === "SSR" || result.rarity === "UR");
 
   return (
     <>
@@ -141,11 +149,29 @@ export function GachaPanel() {
             <GachaMachine shaking />
           ) : result && rs ? (
             <div className="anim-dq-pop flex flex-col items-center gap-1.5 text-center">
-              <div
-                className={cn("grid place-items-center rounded-lg p-2", result.rarity === "UR" && "anim-hero-bob")}
-                style={{ boxShadow: rs.glow === "transparent" ? undefined : `0 0 18px 4px ${rs.glow}` }}
-              >
-                <Thumb id={result.id} scale={3} />
+              <div className="relative grid place-items-center" style={{ width: 104, height: 104 }}>
+                {isRare && (
+                  <div
+                    className="anim-rays absolute"
+                    style={{
+                      width: 156,
+                      height: 156,
+                      borderRadius: "50%",
+                      background: `repeating-conic-gradient(${rs.color}66 0deg 10deg, transparent 10deg 20deg)`,
+                      WebkitMaskImage: "radial-gradient(transparent 34%, #000 58%)",
+                      maskImage: "radial-gradient(transparent 34%, #000 58%)",
+                    }}
+                  />
+                )}
+                <div
+                  className={cn("relative grid place-items-center rounded-lg p-2", result.rarity === "UR" && "anim-hero-bob")}
+                  style={{ boxShadow: rs.glow === "transparent" ? undefined : `0 0 18px 4px ${rs.glow}` }}
+                >
+                  <Thumb id={result.id} scale={3} />
+                </div>
+                {isRare && (
+                  <div className="anim-flash pointer-events-none absolute" style={{ width: 120, height: 120, borderRadius: "50%", background: rs.color }} />
+                )}
               </div>
               <span
                 className="font-pixel rounded px-2 py-0.5 text-[11px] font-bold"
