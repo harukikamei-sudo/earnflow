@@ -2,20 +2,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, type StageCoin } from "@/components/pixel/Stage";
 import { DQCommand, DQWindow } from "@/components/pixel/DQWindow";
 import { Overworld } from "@/components/game/Overworld";
-import { TouchControls } from "@/components/game/TouchControls";
 import { FlickControls } from "@/components/game/FlickControls";
 import { WorkMenu } from "@/components/game/WorkMenu";
-import { MapEditor, type Brush } from "@/components/game/MapEditor";
 import { CostumePanel } from "@/components/game/CostumePanel";
 import { CalendarBoard } from "@/components/game/CalendarBoard";
 import { EarningsChart } from "@/components/game/EarningsChart";
 import { GoalSettings } from "@/components/game/GoalSettings";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { PixelImage } from "@/components/pixel/PixelImage";
-import { getBuiltinCharacter, HERO_DOWN_A, SHOPKEEPER, type HeroDir } from "@/components/pixel/sprites";
+import { getBuiltinCharacter, HERO_DOWN_A, SHOPKEEPER } from "@/components/pixel/sprites";
 import { useOverworld } from "@/game/useOverworld";
-import { DOOR, HOUSE_DOOR, MAP_H, MAP_W, MARKET_DOOR, SIGN_POS, TOWN_ID, type TileChar } from "@/game/map";
-import { addProp, paintTile, resetTile, useActiveId, useCharacter } from "@/game/mapStore";
+import { DOOR, HOUSE_DOOR, MARKET_DOOR, SIGN_POS, TOWN_ID } from "@/game/map";
+import { useActiveId, useCharacter } from "@/game/mapStore";
 import { addGold, useEarningBoost, useWallet } from "@/game/playerStore";
 import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
 import { addSession, getGoal, getSessions } from "@/lib/store";
@@ -79,69 +77,6 @@ export default function Home() {
   const reminder = useReminder();
   useReminderScheduler(t("notify.title"), t("notify.body"));
 
-  // 編集モード（ダッシュボード）。公開時はこの一式を外すだけ
-  const [editMode, setEditMode] = useState(false);
-  const [brush, setBrush] = useState<Brush>({ kind: "tile", ch: "P" as TileChar });
-  const [editCam, setEditCam] = useState({ x: MAP_W / 2, y: MAP_H / 2 });
-  function handleTileClick(x: number, y: number) {
-    if (brush.kind === "tile") paintTile(x, y, brush.ch);
-    else if (brush.kind === "erase") resetTile(x, y);
-    else if (brush.kind === "prop") addProp({ id: uid(), src: brush.src, x, y, w: 3 });
-  }
-
-  // 編集中のカメラ移動（D-pad / 矢印キーで視点を動かす）
-  const panRef = useRef<Set<HeroDir>>(new Set());
-  const panPress = (d: HeroDir) => panRef.current.add(d);
-  const panRelease = (d: HeroDir) => panRef.current.delete(d);
-  useEffect(() => {
-    if (!editMode) return;
-    const dirs = panRef.current;
-    let raf = 0;
-    const loop = () => {
-      if (dirs.size > 0) {
-        setEditCam((c) => {
-          const sp = 0.25;
-          let { x, y } = c;
-          if (dirs.has("left")) x -= sp;
-          if (dirs.has("right")) x += sp;
-          if (dirs.has("up")) y -= sp;
-          if (dirs.has("down")) y += sp;
-          return { x: Math.max(0, Math.min(MAP_W, x)), y: Math.max(0, Math.min(MAP_H, y)) };
-        });
-      }
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => {
-      cancelAnimationFrame(raf);
-      dirs.clear();
-    };
-  }, [editMode]);
-  useEffect(() => {
-    if (!editMode) return;
-    const keyMap: Record<string, HeroDir> = {
-      ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
-      w: "up", s: "down", a: "left", d: "right",
-    };
-    const kd = (e: KeyboardEvent) => {
-      const dir = keyMap[e.key];
-      if (dir) {
-        e.preventDefault();
-        panRef.current.add(dir);
-      }
-    };
-    const ku = (e: KeyboardEvent) => {
-      const dir = keyMap[e.key];
-      if (dir) panRef.current.delete(dir);
-    };
-    window.addEventListener("keydown", kd);
-    window.addEventListener("keyup", ku);
-    return () => {
-      window.removeEventListener("keydown", kd);
-      window.removeEventListener("keyup", ku);
-    };
-  }, [editMode]);
-
   // バイト先（無ければ既定を1件作って保存）
   const [workplaces, setWorkplaces] = useState<Workplace[]>(() => {
     const ws = getWorkplaces();
@@ -152,7 +87,7 @@ export default function Home() {
   });
   const refresh = () => setWorkplaces(getWorkplaces());
 
-  const overworld = useOverworld({ enabled: scene === "roam" && !editMode, resetKey: activeId });
+  const overworld = useOverworld({ enabled: scene === "roam", resetKey: activeId });
   const { snap, press, release } = overworld;
   const isTouch = useIsTouch();
 
@@ -222,12 +157,12 @@ export default function Home() {
   const hy = Math.round(snap.py);
   const settled = !snap.moving;
   const man = (ax: number, ay: number) => Math.abs(hx - ax) + Math.abs(hy - ay);
-  const nearShop = isTown && !working && !editMode && settled && man(DOOR.x, DOOR.y) <= 1;
-  const nearMarket = isTown && !working && !editMode && settled && !nearShop && man(MARKET_DOOR.x, MARKET_DOOR.y) <= 1;
+  const nearShop = isTown && !working && settled && man(DOOR.x, DOOR.y) <= 1;
+  const nearMarket = isTown && !working && settled && !nearShop && man(MARKET_DOOR.x, MARKET_DOOR.y) <= 1;
   const nearHouse =
-    isTown && !working && !editMode && settled && !nearShop && !nearMarket && man(HOUSE_DOOR.x, HOUSE_DOOR.y) <= 1;
+    isTown && !working && settled && !nearShop && !nearMarket && man(HOUSE_DOOR.x, HOUSE_DOOR.y) <= 1;
   const nearSign =
-    isTown && !working && !editMode && settled && !nearShop && !nearMarket && !nearHouse && man(SIGN_POS.x, SIGN_POS.y) <= 1;
+    isTown && !working && settled && !nearShop && !nearMarket && !nearHouse && man(SIGN_POS.x, SIGN_POS.y) <= 1;
 
   // 我が家・道具屋は触れたら自動で入る。退出直後の再入場を防ぐため、
   // 一度ドアから離れる（near がすべて false になる）まで再入場しないようガードする。
@@ -456,28 +391,6 @@ export default function Home() {
           <DQWindow title="コマンド">
             <DQCommand label={t("cmd.stopWork")} active accent="red" se="cancel" onClick={stopWork} />
           </DQWindow>
-        </div>
-      ) : editMode ? (
-        /* ============ 編集モード（左プレビュー／右パネル） ============ */
-        <div className="flex h-full">
-          <div className="relative flex-1">
-            <Overworld
-              snap={snap}
-              className="absolute inset-0"
-              editMode
-              onTileClick={handleTileClick}
-              cameraCenter={editCam}
-              showLandmarks={isTown}
-              level={level.level}
-            />
-            <TouchControls onPress={panPress} onRelease={panRelease} />
-            <div className="dq-window pointer-events-none absolute left-2 top-2 px-2 py-1 font-pixel text-[11px] text-white/80">
-              十字キーで視点移動・タップで{brush.kind === "prop" ? "画像配置" : brush.kind === "erase" ? "消す" : "タイル"}
-            </div>
-          </div>
-          <div className="dq-window no-scrollbar h-full w-[min(62%,360px)] shrink-0 overflow-y-auto rounded-none border-y-0 border-r-0">
-            <MapEditor brush={brush} setBrush={setBrush} onClose={() => setEditMode(false)} />
-          </div>
         </div>
       ) : scene === "home" ? (
         /* ============ わが家（室内・3ページ） ============ */
@@ -788,17 +701,6 @@ export default function Home() {
               <div className="mt-1 w-28">
                 <ExpBar progress={level.progress} thin />
               </div>
-            </div>
-            <div className="pointer-events-auto mr-14 flex gap-1">
-              <button
-                type="button"
-                onClick={() => setEditMode(true)}
-                className="dq-window grid h-9 w-9 place-items-center text-sm"
-                aria-label="編集モード"
-                title="編集モード（公開時は外す）"
-              >
-                🛠
-              </button>
             </div>
           </div>
 
