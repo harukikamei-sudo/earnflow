@@ -514,7 +514,7 @@ export function Overworld({
           const lm = landmarkSpot(L);
           return (
             <>
-              <TownLandmark id={theme.id} x={lm.x} y={lm.y} />
+              <TownLandmark id={theme.landmark} x={lm.x} y={lm.y} />
               <ShopBuilding castle={level >= 60} rect={L.shop} />
               <MarketBuilding rect={L.market} />
               <HouseBuilding rect={L.house} />

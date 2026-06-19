@@ -7,6 +7,8 @@
  * 労働シーンの土の色を持つ。
  */
 
+import { COUNTRIES, type CountryCat } from "./countries";
+
 export interface StageTheme {
   id: string;
   /** 国名（日本語） */
@@ -25,144 +27,104 @@ export interface StageTheme {
   objectFilter?: string;
   /** 労働シーンの土の道の色 */
   dirt: string;
+  /** ランドマークの種類（TownLandmarkが解釈） */
+  landmark: string;
 }
 
 /** レベル1つのテーマが続く幅（レベル数）。8ごとに新しい街(国)が開放される */
 export const LEVELS_PER_THEME = 8;
 
-export const THEMES: StageTheme[] = [
-  {
-    id: "japan",
-    name: "ニッポン",
-    emoji: "🗾",
-    bg: "#3f9e44",
-    grass: ["#3f9e44", "#43a548"],
-    path: ["#caa869", "#c19f60"],
-    water: ["#2f6fd0", "#3577da"],
-    dirt: "#7a5230",
-  },
-  {
-    id: "italy",
-    name: "イタリア",
-    emoji: "🇮🇹",
-    bg: "#7a8b3a",
-    grass: ["#7a8b3a", "#83953f"],
-    path: ["#b5552f", "#a84a28"], // レンガ・テラコッタ
-    water: ["#2f8fc8", "#3a98d0"],
-    objectFilter: "sepia(0.35) saturate(1.2) hue-rotate(-8deg)",
-    dirt: "#9b5b34",
-  },
-  {
-    id: "egypt",
-    name: "エジプト",
-    emoji: "🇪🇬",
-    bg: "#d9c08a",
-    grass: ["#d9c08a", "#cfb47e"], // 砂漠
-    path: ["#c2a062", "#b8965a"],
-    water: ["#2fa6c0", "#37afc8"], // オアシス
-    objectFilter: "sepia(0.55) saturate(1.3) hue-rotate(-25deg)",
-    dirt: "#c2a062",
-  },
-  {
-    id: "nordic",
-    name: "ほくおう",
-    emoji: "🇳🇴",
-    bg: "#e7eef5",
-    grass: ["#e7eef5", "#dbe6f0"], // 雪原
-    path: ["#b9c6d6", "#aebccd"],
-    water: ["#6fa8d8", "#79b1de"],
-    objectFilter: "grayscale(0.4) brightness(1.22)",
-    dirt: "#aebccd",
-  },
-  {
-    id: "brazil",
-    name: "ブラジル",
-    emoji: "🇧🇷",
-    bg: "#2f8a3a",
-    grass: ["#2f8a3a", "#359a40"], // ジャングル
-    path: ["#b58a4a", "#aa8042"],
-    water: ["#1fae8f", "#26b897"],
-    objectFilter: "saturate(1.55) hue-rotate(-8deg)",
-    dirt: "#7d5a2c",
-  },
-  {
-    id: "greece",
-    name: "ギリシャ",
-    emoji: "🇬🇷",
-    bg: "#dfe3e8",
-    grass: ["#dfe3e8", "#d2d8df"], // 白い石畳の島
-    path: ["#c7ccd2", "#bcc2c9"],
-    water: ["#1f7fe0", "#2f8fef"], // エーゲ海
-    objectFilter: "brightness(0.95) hue-rotate(8deg)",
-    dirt: "#b6bcc4",
-  },
-  {
-    id: "china",
-    name: "ちゅうごく",
-    emoji: "🇨🇳",
-    bg: "#4a9a44",
-    grass: ["#4a9a44", "#4fa349"],
-    path: ["#b23b32", "#a8332b"], // 朱色
-    water: ["#2f86c0", "#3790c8"],
-    objectFilter: "sepia(0.2) saturate(1.2)",
-    dirt: "#8a4a2c",
-  },
-  {
-    id: "france",
-    name: "フランス",
-    emoji: "🇫🇷",
-    bg: "#8a7ad0",
-    grass: ["#8a7ad0", "#9384d6"], // ラベンダー畑
-    path: ["#9a9aa6", "#8f8f9c"], // 石畳
-    water: ["#3f7fd0", "#4a88d6"],
-    objectFilter: "hue-rotate(40deg) saturate(1.25)",
-    dirt: "#7e7488",
-  },
-  {
-    id: "mexico",
-    name: "メキシコ",
-    emoji: "🇲🇽",
-    bg: "#c2a35a",
-    grass: ["#c2a35a", "#b89850"], // 乾いた大地
-    path: ["#b5713a", "#aa6833"],
-    water: ["#2fb0a0", "#37b9a8"],
-    objectFilter: "hue-rotate(-30deg) saturate(1.5)",
-    dirt: "#a8632f",
-  },
-  {
-    id: "india",
-    name: "インド",
-    emoji: "🇮🇳",
-    bg: "#cf9a3a",
-    grass: ["#cf9a3a", "#c7912f"], // サフラン色の大地
-    path: ["#b06a2f", "#a66029"],
-    water: ["#2f9fb0", "#37a8b8"],
-    objectFilter: "sepia(0.4) hue-rotate(-15deg) saturate(1.35)",
-    dirt: "#a8632f",
-  },
-  {
-    id: "russia",
-    name: "ロシア",
-    emoji: "🇷🇺",
-    bg: "#dfe7f0",
-    grass: ["#dfe7f0", "#d3dded"], // 雪の都
-    path: ["#b3bdcc", "#a8b3c4"],
-    water: ["#5f8fc8", "#6998d0"],
-    objectFilter: "grayscale(0.3) brightness(1.12)",
-    dirt: "#a8b3c4",
-  },
-  {
-    id: "canyon",
-    name: "だいきょうこく",
-    emoji: "🏜️",
-    bg: "#b5613a",
-    grass: ["#b5613a", "#aa5832"], // 赤い岩の大峡谷
-    path: ["#d39a5a", "#c89152"],
-    water: ["#2f8fc8", "#3798d0"],
-    objectFilter: "sepia(0.5) hue-rotate(-25deg) saturate(1.3)",
-    dirt: "#8a4426",
-  },
-];
+/* ---------------- 国カテゴリ → 配色パレット（複数バリエーション）＋既定ランドマーク ---------------- */
+
+interface CatPalette {
+  bg: string;
+  grass: [string, string];
+  path: [string, string];
+  water: [string, string];
+  dirt: string;
+  objectFilter?: string;
+}
+
+const CAT_PALETTES: Record<CountryCat, CatPalette[]> = {
+  asia: [
+    { bg: "#3f9e44", grass: ["#3f9e44", "#43a548"], path: ["#caa869", "#c19f60"], water: ["#2f6fd0", "#3577da"], dirt: "#7a5230" },
+    { bg: "#4a9a44", grass: ["#4a9a44", "#4fa349"], path: ["#b23b32", "#a8332b"], water: ["#2f86c0", "#3790c8"], dirt: "#8a4a2c", objectFilter: "sepia(0.2) saturate(1.2)" },
+  ],
+  tropical: [
+    { bg: "#2f8a3a", grass: ["#2f8a3a", "#359a40"], path: ["#b58a4a", "#aa8042"], water: ["#1fae8f", "#26b897"], dirt: "#7d5a2c", objectFilter: "saturate(1.5) hue-rotate(-8deg)" },
+    { bg: "#27913f", grass: ["#27913f", "#2ea047"], path: ["#c08a4a", "#b07f40"], water: ["#16b0a0", "#1fbcab"], dirt: "#6b4a26", objectFilter: "saturate(1.6)" },
+  ],
+  desert: [
+    { bg: "#d9c08a", grass: ["#d9c08a", "#cfb47e"], path: ["#c2a062", "#b8965a"], water: ["#2fa6c0", "#37afc8"], dirt: "#c2a062", objectFilter: "sepia(0.5) saturate(1.3) hue-rotate(-25deg)" },
+    { bg: "#cf9a3a", grass: ["#cf9a3a", "#c7912f"], path: ["#b06a2f", "#a66029"], water: ["#2f9fb0", "#37a8b8"], dirt: "#a8632f", objectFilter: "sepia(0.4) hue-rotate(-15deg) saturate(1.3)" },
+  ],
+  snow: [
+    { bg: "#e7eef5", grass: ["#e7eef5", "#dbe6f0"], path: ["#b9c6d6", "#aebccd"], water: ["#6fa8d8", "#79b1de"], dirt: "#aebccd", objectFilter: "grayscale(0.4) brightness(1.22)" },
+    { bg: "#dfe7f0", grass: ["#dfe7f0", "#d3dded"], path: ["#b3bdcc", "#a8b3c4"], water: ["#5f8fc8", "#6998d0"], dirt: "#a8b3c4", objectFilter: "grayscale(0.3) brightness(1.12)" },
+  ],
+  europe: [
+    { bg: "#5a9e4a", grass: ["#5a9e4a", "#62a851"], path: ["#9a9aa6", "#8f8f9c"], water: ["#3f7fd0", "#4a88d6"], dirt: "#7e7488" },
+    { bg: "#6a9c54", grass: ["#6a9c54", "#72a65b"], path: ["#a98b5b", "#9e8252"], water: ["#3a78c8", "#4382d0"], dirt: "#8a6a3a" },
+  ],
+  med: [
+    { bg: "#dfe3e8", grass: ["#dfe3e8", "#d2d8df"], path: ["#c7ccd2", "#bcc2c9"], water: ["#1f7fe0", "#2f8fef"], dirt: "#b6bcc4", objectFilter: "brightness(0.95) hue-rotate(8deg)" },
+    { bg: "#e3dccb", grass: ["#e3dccb", "#d8d0bc"], path: ["#cbb98f", "#c0ae83"], water: ["#1f8fe0", "#2f9bef"], dirt: "#b59a6a" },
+  ],
+  africa: [
+    { bg: "#b89a4a", grass: ["#b89a4a", "#ad9043"], path: ["#a8732f", "#9c6a2a"], water: ["#2f9fb0", "#37a8b8"], dirt: "#8a5a2c", objectFilter: "sepia(0.3) saturate(1.3)" },
+    { bg: "#c2a35a", grass: ["#c2a35a", "#b89850"], path: ["#a8632f", "#9c5a2a"], water: ["#2fb0a0", "#37b9a8"], dirt: "#8a4a2c", objectFilter: "sepia(0.35) saturate(1.2)" },
+  ],
+  latin: [
+    { bg: "#c2a35a", grass: ["#c2a35a", "#b89850"], path: ["#b5713a", "#aa6833"], water: ["#2fb0a0", "#37b9a8"], dirt: "#a8632f", objectFilter: "hue-rotate(-30deg) saturate(1.5)" },
+    { bg: "#b5613a", grass: ["#b5613a", "#aa5832"], path: ["#d39a5a", "#c89152"], water: ["#2f8fc8", "#3798d0"], dirt: "#8a4426", objectFilter: "sepia(0.5) hue-rotate(-25deg) saturate(1.3)" },
+  ],
+  america: [
+    { bg: "#4f9e58", grass: ["#4f9e58", "#57a860"], path: ["#9a9aa6", "#8f8f9c"], water: ["#2f7fd0", "#3788d8"], dirt: "#6b5a3a" },
+    { bg: "#5aa84a", grass: ["#5aa84a", "#62b051"], path: ["#b58a4a", "#aa8042"], water: ["#2f86c8", "#3790d0"], dirt: "#7a5230" },
+  ],
+  oceania: [
+    { bg: "#37b0a0", grass: ["#37b0a0", "#3fbaaa"], path: ["#e8d59a", "#dcc98e"], water: ["#1fbfe0", "#2fc9ef"], dirt: "#d8c08a", objectFilter: "saturate(1.4) hue-rotate(-6deg)" },
+    { bg: "#2fae8f", grass: ["#2fae8f", "#36b897"], path: ["#e3cf9a", "#d8c48e"], water: ["#22c5d8", "#2fcfe0"], dirt: "#cab584", objectFilter: "saturate(1.5)" },
+  ],
+  mideast: [
+    { bg: "#cbb07a", grass: ["#cbb07a", "#c0a570"], path: ["#b88a4a", "#ad8042"], water: ["#2f9fc0", "#37a8c8"], dirt: "#a87a3a", objectFilter: "sepia(0.4) hue-rotate(-12deg)" },
+    { bg: "#d9c08a", grass: ["#d9c08a", "#cfb47e"], path: ["#c2924a", "#b8884a"], water: ["#2fa6c0", "#37afc8"], dirt: "#b07e1e", objectFilter: "sepia(0.45) saturate(1.2)" },
+  ],
+};
+
+/** カテゴリ既定のランドマーク */
+const CAT_LANDMARK: Record<CountryCat, string> = {
+  asia: "pagoda",
+  tropical: "palm",
+  desert: "pyramid",
+  snow: "snow",
+  europe: "cathedral",
+  med: "parthenon",
+  africa: "acacia",
+  latin: "steppyramid",
+  america: "skyscraper",
+  oceania: "palm",
+  mideast: "dome",
+};
+
+/** 国データから全テーマを生成する */
+export const THEMES: StageTheme[] = COUNTRIES.map((c, i) => {
+  const pals = CAT_PALETTES[c.cat];
+  const p = pals[i % pals.length];
+  return {
+    id: `cty${i}`,
+    name: c.name,
+    emoji: c.emoji,
+    bg: p.bg,
+    grass: p.grass,
+    path: p.path,
+    water: p.water,
+    objectFilter: p.objectFilter,
+    dirt: p.dirt,
+    landmark: c.lm ?? CAT_LANDMARK[c.cat],
+  };
+});
+
 
 /** 装飾建物の配置候補（中心の主要建物・水を避けたタイル座標） */
 export const DECO_SPOTS = [
