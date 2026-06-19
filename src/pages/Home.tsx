@@ -28,7 +28,6 @@ import { dailyLine } from "@/game/dailyLines";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { useIsTouch } from "@/hooks/useIsTouch";
-import { AudioControl } from "@/components/game/AudioControl";
 import { useBgm } from "@/audio/useAudio";
 import { playSE } from "@/audio/engine";
 import { multiplierAt } from "@/lib/earnings";
@@ -745,8 +744,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* 画面上の音量コントロール（全シーン共通・右下） */}
-      <AudioControl />
     </div>
   );
 }

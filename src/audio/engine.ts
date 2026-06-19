@@ -23,10 +23,9 @@ function loadPrefs(): AudioPrefs {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const p = JSON.parse(raw) as Partial<AudioPrefs>;
-      return {
-        volume: typeof p.volume === "number" ? Math.min(1, Math.max(0, p.volume)) : 0.6,
-        muted: !!p.muted,
-      };
+      const v = typeof p.volume === "number" ? Math.min(1, Math.max(0, p.volume)) : 0.6;
+      // 音量UIを廃止したため、過去のミュート/音量0で無音にならないよう補正する
+      return { volume: v > 0 ? v : 0.6, muted: false };
     }
   } catch {
     /* ignore */
