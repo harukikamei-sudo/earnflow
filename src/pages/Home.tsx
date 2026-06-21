@@ -782,7 +782,7 @@ export default function Home() {
             </button>
           </div>
 
-          <GachaPanel />
+          <GachaPanel level={level.level} />
         </div>
       ) : (
         /* ============ 町（トップダウン） ============ */

@@ -110,6 +110,7 @@ const STRINGS: Record<string, Dict> = {
   "gacha.dup": { ja: "ダブり…（すでに所持）", en: "Duplicate (already owned)", es: "Repetido (ya lo tienes)", fr: "Doublon (déjà obtenu)", zh: "重复（已拥有）", ko: "중복(이미 보유)", ru: "Повтор (уже есть)" },
   "gacha.collection": { ja: "コレクション", en: "Collection", es: "Colección", fr: "Collection", zh: "收藏", ko: "컬렉션", ru: "Коллекция" },
   "gacha.notEnough": { ja: "ゴールドが足りない…", en: "Not enough gold…", es: "Oro insuficiente…", fr: "Pas assez d'or…", zh: "金币不足…", ko: "골드가 부족해…", ru: "Не хватает золота…" },
+  "gacha.unlocked": { ja: "対象キャラ {n}体（レベルで増える）", en: "{n} characters available (more with levels)", es: "{n} personajes disponibles (más al subir de nivel)", fr: "{n} personnages dispo (plus en montant de niveau)", zh: "可抽 {n} 个角色（升级解锁更多）", ko: "대상 {n}명 (레벨로 증가)", ru: "Доступно {n} персонажей (больше с уровнем)" },
 
   "world.exit": { ja: "町を出る", en: "Leave town", es: "Salir del pueblo", fr: "Quitter la ville", zh: "离开城镇", ko: "마을을 나가기", ru: "Покинуть город" },
   "world.title": { ja: "ワールドマップ", en: "World Map", es: "Mapa del mundo", fr: "Carte du monde", zh: "世界地图", ko: "월드맵", ru: "Карта мира" },

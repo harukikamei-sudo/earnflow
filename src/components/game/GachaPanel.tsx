@@ -98,7 +98,7 @@ function GachaMachine({ shaking }: { shaking?: boolean }) {
  * どうぐ屋のガチャポン。レア度の重み付き抽選（激レア0.5%）でコスチュームが出る。
  * 同じキャラがかぶることもある（ダブりは一部返金）。新規はその場で着用、所持品は着替え可能。
  */
-export function GachaPanel() {
+export function GachaPanel({ level = 1 }: { level?: number }) {
   const t = useT();
   const assets = useAssets();
   const wallet = useWallet();
@@ -108,7 +108,11 @@ export function GachaPanel() {
   const [result, setResult] = useState<GachaResult | null>(null);
   const [rolling, setRolling] = useState(false);
 
-  // 全コスチューム（抽選プール）と所持数
+  // レベルで開放されるガチャ対象数（初め15体、5レベルごとに+15体）
+  const unlocked = Math.min(CHARACTERS.length, 15 + Math.floor(Math.max(0, level - 1) / 5) * 15);
+  const unlockedChars = CHARACTERS.slice(0, unlocked);
+
+  // 全コスチューム（コレクション総数）と所持数
   const pool = [...CHARACTERS.map((c) => c.id), ...assets];
   const total = pool.length;
   const got = pool.filter((id) => ownedIds.includes(id)).length;
@@ -124,7 +128,7 @@ export function GachaPanel() {
       const groups: GachaGroup[] = RARITY_ORDER.map((r) => ({
         rarity: r,
         weight: RARITY_WEIGHT[r],
-        ids: CHARACTERS.filter((c) => (c.rarity ?? "N") === r).map((c) => c.id),
+        ids: unlockedChars.filter((c) => (c.rarity ?? "N") === r).map((c) => c.id),
       }));
       groups[0].ids.push(...assets); // 追加画像はノーマル枠
       const res = gachaPull(PRICE, groups, DUP_REFUND);
@@ -155,6 +159,7 @@ export function GachaPanel() {
           <span>{t("gacha.lead")}</span>
           <span className="text-gold">💰 {wallet} G</span>
         </div>
+        <p className="font-pixel mb-2 text-[10px] text-white/50">{t("gacha.unlocked", { n: unlocked })}</p>
 
         {/* 結果表示 / ガチャ機 */}
         <div className="mb-3 grid min-h-[170px] place-items-center rounded-md bg-black/30 p-3">
