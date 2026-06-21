@@ -23,6 +23,7 @@ import { LanguageSelect } from "@/components/game/LanguageSelect";
 import { notifyBlocked, requestNotifyPermission, setReminderEnabled, setDayConfig, WEEKDAY_LABELS, useReminder, useReminderScheduler } from "@/game/reminder";
 import { useLocale, useT } from "@/i18n";
 import { dailyLine } from "@/game/dailyLines";
+import { randomShopLine } from "@/game/shopLines";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
 import { useSalaryEngine } from "@/hooks/useSalaryEngine";
 import { useIsTouch } from "@/hooks/useIsTouch";
@@ -166,6 +167,12 @@ export default function Home() {
       window.setTimeout(() => setTraveling(false), 350);
     }, 350);
   }
+
+  // ガチャ店主のセリフ（店に入るたびにランダム）
+  const [shopLine, setShopLine] = useState(randomShopLine);
+  useEffect(() => {
+    if (scene === "shop") setShopLine(randomShopLine());
+  }, [scene]);
 
   // 主人公の「今日のひとこと」（1日1回・町に入った時に表示）
   const [greeting, setGreeting] = useState<string | null>(null);
@@ -757,7 +764,7 @@ export default function Home() {
 
           {/* 店主のセリフ */}
           <DQWindow className="anim-dq-pop">
-            <p className="font-pixel text-sm leading-relaxed text-white">{t("shop.keeper")}</p>
+            <p className="font-pixel text-sm leading-relaxed text-white">{shopLine}</p>
           </DQWindow>
 
           <div className="flex items-center justify-between pr-14">

@@ -89,7 +89,7 @@ const STRINGS: Record<string, Dict> = {
   "levelup.gotTitle": { ja: "「{rank}」になった！", en: 'Became "{rank}"!', es: '¡Ahora eres "{rank}"!', fr: 'Devenu "{rank}" !', zh: '成为了「{rank}」！', ko: '"{rank}" 이(가) 되었다!', ru: 'Стал "{rank}"!' },
   "levelup.gold": { ja: "💰 ゴールドを {n}G てにいれた！", en: "💰 Got {n} G!", es: "💰 ¡Conseguiste {n} G!", fr: "💰 {n} G obtenus !", zh: "💰 获得了 {n} G！", ko: "💰 골드 {n}G 획득!", ru: "💰 Получено {n} G!" },
 
-  "shop.name": { ja: "どうぐ屋", en: "Item Shop", es: "Tienda", fr: "Boutique", zh: "道具店", ko: "도구점", ru: "Магазин" },
+  "shop.name": { ja: "ガチャ", en: "Gacha", es: "Gacha", fr: "Gacha", zh: "扭蛋", ko: "가챠", ru: "Гача" },
   "shop.keeper": { ja: "おつかれさまでした、今日は何をおかいもとめになりますか？", en: "Welcome back! What would you like to buy today?", es: "¡Bienvenido! ¿Qué desea comprar hoy?", fr: "Bonjour ! Que souhaitez-vous acheter aujourd'hui ?", zh: "辛苦了，今天想买点什么？", ko: "수고하셨습니다. 오늘은 무엇을 사시겠어요?", ru: "Здравствуйте! Что хотите купить сегодня?" },
   "shop.ask": { ja: "ゴールドで すがたを 変えられるよ！", en: "Change your look with gold!", es: "¡Cambia tu aspecto con oro!", fr: "Changez d'apparence avec de l'or !", zh: "用金币改变外形吧！", ko: "골드로 모습을 바꿀 수 있어!", ru: "Сменить облик за золото!" },
   "shop.enter": { ja: "店に入る", en: "Enter shop", es: "Entrar", fr: "Entrer", zh: "进入商店", ko: "가게에 들어가기", ru: "Войти в магазин" },

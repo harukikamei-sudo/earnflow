@@ -172,7 +172,7 @@ function MarketBuilding({ rect }: { rect: Rect }) {
         style={{ top: TILE * 0.7, background: "#e3c9a0", border: "3px solid #6b4423" }}
       >
         <div className="font-pixel absolute -top-2 rounded-sm bg-[#2a2f4a] px-1 text-[10px] font-bold text-white">
-          どうぐ屋
+          ガチャ
         </div>
         {/* カウンター窓 */}
         <div className="mb-2 h-[20px] w-[60%] rounded-sm" style={{ background: "#3a2f24", boxShadow: "inset 0 0 0 2px #2a190c" }} />
