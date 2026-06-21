@@ -20,7 +20,7 @@ import { addSession, getGoal, getSessions } from "@/lib/store";
 import { downloadSessionsCsv } from "@/game/exportCsv";
 import { resetProgress } from "@/game/resetProgress";
 import { LanguageSelect } from "@/components/game/LanguageSelect";
-import { notifyBlocked, requestNotifyPermission, setReminder, useReminder, useReminderScheduler } from "@/game/reminder";
+import { notifyBlocked, requestNotifyPermission, setReminderEnabled, setDayConfig, WEEKDAY_LABELS, useReminder, useReminderScheduler } from "@/game/reminder";
 import { useLocale, useT } from "@/i18n";
 import { dailyLine } from "@/game/dailyLines";
 import { createWorkplace, makeTimeRule } from "@/game/workplace";
@@ -661,7 +661,7 @@ export default function Home() {
             <EarningsChart key={dataVersion} />
           </DQWindow>
 
-          {/* リマインダー */}
+          {/* リマインダー（曜日ごとに時刻設定） */}
           <DQWindow title={t("rem.title")}>
             <div className="flex items-center justify-between gap-2 font-pixel text-sm text-white">
               <span>{t("rem.enable")}</span>
@@ -677,7 +677,7 @@ export default function Home() {
                       return;
                     }
                   }
-                  setReminder({ enabled: !reminder.enabled });
+                  setReminderEnabled(!reminder.enabled);
                 }}
                 className={cn(
                   "font-pixel shrink-0 rounded px-4 py-1.5 text-sm font-bold transition-colors",
@@ -687,16 +687,39 @@ export default function Home() {
                 {reminder.enabled ? "ON" : "OFF"}
               </button>
             </div>
-            <div className="mt-2 flex items-center justify-between font-pixel text-sm text-white">
-              <span>{t("rem.time")}</span>
-              <input
-                type="time"
-                value={reminder.time}
-                onChange={(e) => setReminder({ time: e.target.value })}
-                className="font-pixel rounded bg-white/10 px-2 py-1 text-white"
-              />
+
+            {/* 曜日ごとの時刻 */}
+            <div className={cn("mt-2 flex flex-col gap-1", !reminder.enabled && "opacity-50")}>
+              {reminder.days.map((d, i) => (
+                <div key={i} className="flex items-center gap-2 font-pixel text-sm text-white">
+                  <button
+                    type="button"
+                    onClick={() => setDayConfig(i, { enabled: !d.enabled })}
+                    className={cn(
+                      "grid h-7 w-7 shrink-0 place-items-center rounded text-xs font-bold transition-colors",
+                      i === 0 ? "" : i === 6 ? "" : "",
+                      d.enabled ? "bg-gold text-black" : "bg-white/10 text-white/50",
+                    )}
+                  >
+                    {WEEKDAY_LABELS[i]}
+                  </button>
+                  <input
+                    type="time"
+                    value={d.time}
+                    disabled={!d.enabled}
+                    onChange={(e) => setDayConfig(i, { time: e.target.value })}
+                    className={cn(
+                      "font-pixel flex-1 rounded bg-white/10 px-2 py-1 text-white",
+                      !d.enabled && "opacity-40",
+                    )}
+                  />
+                </div>
+              ))}
             </div>
-            <p className="font-pixel mt-1 text-[10px] text-white/40">{t("rem.note")}{notifyBlocked() ? ` / ${t("rem.denied")}` : ""}</p>
+            <p className="font-pixel mt-1 text-[10px] text-white/40">
+              {t("rem.note")}
+              {notifyBlocked() ? ` / ${t("rem.denied")}` : ""}
+            </p>
           </DQWindow>
 
           {/* データ書き出し */}
