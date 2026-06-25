@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
 import { getSessions } from "@/lib/store";
+import { shiftDatesInMonth, useShifts } from "@/game/shifts";
 import { formatYen } from "@/lib/utils";
 
 const WEEK = ["日", "月", "火", "水", "木", "金", "土"];
@@ -15,6 +16,7 @@ function pad(n: number): string {
  */
 export function CalendarBoard() {
   const [offset, setOffset] = useState(0); // 今月からの月数オフセット
+  useShifts(); // 予定の変化で再描画
 
   const view = useMemo(() => {
     const now = new Date();
@@ -29,6 +31,7 @@ export function CalendarBoard() {
       month,
       total: sumEarnings(monthSessions),
       byDay,
+      shiftDays: shiftDatesInMonth(year, month),
       firstDow: new Date(year, month, 1).getDay(),
       days: new Date(year, month + 1, 0).getDate(),
     };
@@ -60,14 +63,16 @@ export function CalendarBoard() {
           if (day === null) return <div key={`b${i}`} />;
           const key = `${view.year}-${pad(view.month + 1)}-${pad(day)}`;
           const earned = view.byDay[key] ?? 0;
+          const hasShift = view.shiftDays.has(key);
           return (
             <div
               key={key}
               className={
-                "flex aspect-square flex-col items-center justify-center rounded-sm " +
-                (earned > 0 ? "bg-gold/20 ring-1 ring-gold/40" : "bg-white/5")
+                "relative flex aspect-square flex-col items-center justify-center rounded-sm " +
+                (earned > 0 ? "bg-gold/20 ring-1 ring-gold/40" : hasShift ? "bg-sky-400/20 ring-1 ring-sky-300/50" : "bg-white/5")
               }
             >
+              {hasShift && <span className="absolute right-0.5 top-0 text-[8px]">📌</span>}
               <span className="text-[10px] text-white/80">{day}</span>
               {earned > 0 && <span className="text-[8px] font-bold leading-tight text-gold">{formatYen(earned, false)}</span>}
             </div>

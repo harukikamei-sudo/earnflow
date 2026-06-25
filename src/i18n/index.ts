@@ -158,6 +158,15 @@ const STRINGS: Record<string, Dict> = {
   "manual.add": { ja: "この日に追加する", en: "Add to this day", es: "Añadir a este día", fr: "Ajouter à ce jour", zh: "添加到这一天", ko: "이 날에 추가", ru: "Добавить на этот день" },
   "manual.hint": { ja: "アプリの外で稼いだぶんもここで記録できる。", en: "Log earnings you made outside the app.", es: "Registra ingresos hechos fuera de la app.", fr: "Enregistrez les revenus hors de l'appli.", zh: "记录在应用外赚到的收入。", ko: "앱 밖에서 번 수입도 기록할 수 있어.", ru: "Запишите доход, полученный вне приложения." },
 
+  "shift.title": { ja: "バイトの予定", en: "Shift schedule", es: "Turnos", fr: "Planning", zh: "打工排班", ko: "근무 일정", ru: "Смены" },
+  "shift.add": { ja: "予定を追加", en: "Add shift", es: "Añadir turno", fr: "Ajouter", zh: "添加排班", ko: "일정 추가", ru: "Добавить смену" },
+  "shift.labelPlaceholder": { ja: "バイト名・メモ（任意）", en: "Job name / note (optional)", es: "Nombre / nota (opcional)", fr: "Nom / note (option)", zh: "名称/备注（可选）", ko: "이름/메모(선택)", ru: "Название / заметка" },
+  "shift.note": { ja: "開始の1時間前に通知でお知らせします。", en: "You'll be notified 1 hour before.", es: "Avisaremos 1 hora antes.", fr: "Rappel 1 h avant.", zh: "开始前1小时提醒。", ko: "시작 1시간 전에 알립니다.", ru: "Напомним за 1 час." },
+  "shift.upcoming": { ja: "これからの予定", en: "Upcoming", es: "Próximos", fr: "À venir", zh: "即将到来", ko: "예정", ru: "Предстоящие" },
+  "shift.none": { ja: "予定はまだありません。", en: "No shifts yet.", es: "Sin turnos.", fr: "Aucun.", zh: "暂无排班。", ko: "일정 없음.", ru: "Нет смен." },
+  "shift.work": { ja: "バイト", en: "Shift", es: "Turno", fr: "Travail", zh: "打工", ko: "근무", ru: "Смена" },
+  "shift.remindBody": { ja: "あと1時間で {time} に「{name}」があるよ！", en: "{name} starts in 1 hour at {time}!", es: "¡{name} empieza en 1 h a las {time}!", fr: "{name} commence dans 1 h à {time} !", zh: "1小时后 {time} 有「{name}」！", ko: "1시간 후 {time}에 「{name}」!", ru: "Через час в {time}: «{name}»!" },
+
   "ot.title": { ja: "残業代を自己申告", en: "Report overtime pay", es: "Declarar horas extra", fr: "Déclarer heures sup.", zh: "申报加班费", ko: "야근수당 신고", ru: "Заявить сверхурочные" },
   "ot.hours": { ja: "残業時間", en: "Overtime hours", es: "Horas extra", fr: "Heures sup.", zh: "加班时长", ko: "야근 시간", ru: "Сверхурочные часы" },
   "ot.unitHours": { ja: "時間", en: "h", es: "h", fr: "h", zh: "小时", ko: "시간", ru: "ч" },
