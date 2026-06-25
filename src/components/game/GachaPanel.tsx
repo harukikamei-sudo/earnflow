@@ -4,7 +4,7 @@ import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { CHARACTERS, getBuiltinCharacter, HERO_DOWN_A, type Rarity } from "@/components/pixel/sprites";
 import { DQWindow } from "@/components/pixel/DQWindow";
 import { setCharacter, useAssets, useCharacter } from "@/game/mapStore";
-import { gachaPull, useOwned, useWallet, type GachaGroup, type GachaResult } from "@/game/playerStore";
+import { gachaPull, useOwned, useTickets, useTicketOne, useWallet, type GachaGroup, type GachaResult } from "@/game/playerStore";
 import { playSE } from "@/audio/engine";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -102,6 +102,7 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
   const t = useT();
   const assets = useAssets();
   const wallet = useWallet();
+  const tickets = useTickets();
   const ownedIds = useOwned(); // 所持変化で再描画
   const character = useCharacter();
 
@@ -117,9 +118,16 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
   const total = pool.length;
   const got = pool.filter((id) => ownedIds.includes(id)).length;
   const canRoll = wallet >= PRICE && !rolling;
+  const canFree = tickets > 0 && !rolling;
 
-  function roll() {
-    if (!canRoll) return;
+  function roll(free = false) {
+    if (rolling) return;
+    if (free) {
+      if (tickets <= 0) return;
+      if (!useTicketOne()) return; // チケット消費
+    } else if (wallet < PRICE) {
+      return;
+    }
     setRolling(true);
     setResult(null);
     playSE("confirm");
@@ -131,7 +139,7 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
         ids: unlockedChars.filter((c) => (c.rarity ?? "N") === r).map((c) => c.id),
       }));
       groups[0].ids.push(...assets); // 追加画像はノーマル枠
-      const res = gachaPull(PRICE, groups, DUP_REFUND);
+      const res = gachaPull(free ? 0 : PRICE, groups, DUP_REFUND); // 無料時はゴールド消費なし
       setRolling(false);
       if (res) {
         setResult(res);
@@ -157,7 +165,7 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
       <DQWindow title={t("gacha.title")}>
         <div className="mb-2 flex items-center justify-between font-pixel text-sm">
           <span>{t("gacha.lead")}</span>
-          <span className="text-gold">💰 {wallet} G</span>
+          <span className="text-gold">💰 {wallet} G{tickets > 0 ? ` ・ 🎟${tickets}` : ""}</span>
         </div>
         <p className="font-pixel mb-2 text-[10px] text-white/50">{t("gacha.unlocked", { n: unlocked })}</p>
 
@@ -211,10 +219,25 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
           )}
         </div>
 
+        {/* 無料チケットがあれば無料で回せる */}
+        {tickets > 0 && (
+          <button
+            type="button"
+            disabled={!canFree}
+            onClick={() => roll(true)}
+            className={cn(
+              "font-pixel mb-2 w-full rounded py-2.5 text-base font-bold transition-colors",
+              canFree ? "bg-emerald-400 text-black hover:brightness-110" : "bg-white/10 text-white/40",
+            )}
+          >
+            {rolling ? "..." : t("gacha.pullFree", { n: tickets })}
+          </button>
+        )}
+
         <button
           type="button"
           disabled={!canRoll}
-          onClick={roll}
+          onClick={() => roll(false)}
           className={cn(
             "font-pixel w-full rounded py-2.5 text-base font-bold transition-colors",
             canRoll ? "bg-gold text-black hover:brightness-110" : "bg-white/10 text-white/40",
@@ -222,7 +245,7 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
         >
           {rolling ? "..." : t("gacha.pull", { n: PRICE })}
         </button>
-        {wallet < PRICE && !rolling && (
+        {wallet < PRICE && tickets === 0 && !rolling && (
           <p className="font-pixel mt-1 text-center text-[10px] text-white/40">{t("gacha.notEnough")}</p>
         )}
       </DQWindow>

@@ -76,6 +76,7 @@ const STRINGS: Record<string, Dict> = {
   "daily.title": { ja: "きょうの ひとこと", en: "A word from the hero", es: "Unas palabras del héroe", fr: "Un mot du héros", zh: "今日寄语", ko: "오늘의 한마디", ru: "Слово героя" },
   "login.title": { ja: "ログインボーナス", en: "Login Bonus", es: "Bono diario", fr: "Bonus de connexion", zh: "登录奖励", ko: "출석 보너스", ru: "Бонус за вход" },
   "login.bonus": { ja: "ログインボーナス {n}G ゲット！", en: "Got {n} G login bonus!", es: "¡{n} G de bono!", fr: "Bonus de {n} G !", zh: "获得登录奖励 {n}G！", ko: "로그인 보너스 {n}G!", ru: "Бонус {n} G!" },
+  "login.ticket": { ja: "無料ガチャチケット ゲット！", en: "Got a free gacha ticket!", es: "¡Ticket de gacha gratis!", fr: "Ticket gacha gratuit !", zh: "获得免费扭蛋券！", ko: "무료 뽑기권 획득!", ru: "Бесплатный билет гачи!" },
   "daily.close": { ja: "▼ タップでとじる", en: "▼ Tap to close", es: "▼ Toca para cerrar", fr: "▼ Touchez pour fermer", zh: "▼ 点击关闭", ko: "▼ 탭하여 닫기", ru: "▼ Нажмите, чтобы закрыть" },
 
   "prompt.workAsk": { ja: "ここで はたらきますか？", en: "Work here?", es: "¿Trabajar aquí?", fr: "Travailler ici ?", zh: "在这里工作吗？", ko: "여기서 일할까요?", ru: "Работать здесь?" },
@@ -113,6 +114,8 @@ const STRINGS: Record<string, Dict> = {
   "gacha.collection": { ja: "コレクション", en: "Collection", es: "Colección", fr: "Collection", zh: "收藏", ko: "컬렉션", ru: "Коллекция" },
   "gacha.notEnough": { ja: "ゴールドが足りない…", en: "Not enough gold…", es: "Oro insuficiente…", fr: "Pas assez d'or…", zh: "金币不足…", ko: "골드가 부족해…", ru: "Не хватает золота…" },
   "gacha.unlocked": { ja: "対象キャラ {n}体（レベルで増える）", en: "{n} characters available (more with levels)", es: "{n} personajes disponibles (más al subir de nivel)", fr: "{n} personnages dispo (plus en montant de niveau)", zh: "可抽 {n} 个角色（升级解锁更多）", ko: "대상 {n}명 (레벨로 증가)", ru: "Доступно {n} персонажей (больше с уровнем)" },
+  "gacha.pullFree": { ja: "🎟 無料で回す（{n}）", en: "🎟 Free spin ({n})", es: "🎟 Gratis ({n})", fr: "🎟 Tour gratuit ({n})", zh: "🎟 免费抽（{n}）", ko: "🎟 무료 뽑기 ({n})", ru: "🎟 Бесплатно ({n})" },
+  "shop.keeperName": { ja: "店主", en: "Shopkeeper", es: "Tendero", fr: "Marchand", zh: "店主", ko: "점주", ru: "Хозяин" },
 
   "world.exit": { ja: "町を出る", en: "Leave town", es: "Salir del pueblo", fr: "Quitter la ville", zh: "离开城镇", ko: "마을을 나가기", ru: "Покинуть город" },
   "world.title": { ja: "ワールドマップ", en: "World Map", es: "Mapa del mundo", fr: "Carte du monde", zh: "世界地图", ko: "월드맵", ru: "Карта мира" },

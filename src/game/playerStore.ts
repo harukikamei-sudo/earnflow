@@ -11,6 +11,7 @@ import { SHOP_ITEMS } from "./items";
 const KEYS = {
   wallet: "earnflow.wallet",
   owned: "earnflow.owned",
+  tickets: "earnflow.tickets",
 } as const;
 
 function load<T>(key: string, fallback: T): T {
@@ -31,6 +32,7 @@ function save<T>(key: string, value: T): void {
 
 let wallet: number = load<number>(KEYS.wallet, 0);
 let owned: string[] = load<string[]>(KEYS.owned, []);
+let tickets: number = load<number>(KEYS.tickets, 0);
 
 const listeners = new Set<() => void>();
 function emit() {
@@ -44,6 +46,29 @@ function subscribe(cb: () => void) {
 export function useWallet(): number {
   return useSyncExternalStore(subscribe, () => wallet, () => wallet);
 }
+/* ---------------- 無料ガチャチケット ---------------- */
+
+export function useTickets(): number {
+  return useSyncExternalStore(subscribe, () => tickets, () => tickets);
+}
+export function getTickets(): number {
+  return tickets;
+}
+export function addTicket(n = 1): void {
+  if (n <= 0) return;
+  tickets += n;
+  save(KEYS.tickets, tickets);
+  emit();
+}
+/** チケットを1枚使う。使えたら true */
+export function useTicketOne(): boolean {
+  if (tickets <= 0) return false;
+  tickets -= 1;
+  save(KEYS.tickets, tickets);
+  emit();
+  return true;
+}
+
 export function useOwned(): string[] {
   return useSyncExternalStore(subscribe, () => owned, () => owned);
 }

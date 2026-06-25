@@ -14,7 +14,7 @@ import { getBuiltinCharacter, HERO_DOWN_A, SHOPKEEPER } from "@/components/pixel
 import { useOverworld } from "@/game/useOverworld";
 import { SIGN_POS, TOWN_ID, townLayout } from "@/game/map";
 import { useActiveId, useCharacter } from "@/game/mapStore";
-import { addGold, getOwned, useEarningBoost, useWallet } from "@/game/playerStore";
+import { addGold, addTicket, getOwned, useEarningBoost, useWallet } from "@/game/playerStore";
 import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
 import { addSession, getGoal, getSessions } from "@/lib/store";
 import { downloadSessionsCsv } from "@/game/exportCsv";
@@ -178,14 +178,20 @@ export default function Home() {
     if (scene === "shop") setShopLine(randomShopLine());
   }, [scene]);
 
-  // ログインボーナス（1日1回・町に入った時）。所持キャラの誰かがセリフ＋ゴールド
-  const [login, setLogin] = useState<{ id: string; name: string; line: string; gold: number } | null>(null);
+  // ログインボーナス（1日1回・町に入った時）。所持キャラの誰かがセリフ＋ゴールド。
+  // 3日に1回(3回目ごと)、無料ガチャチケットを配布。
+  const [login, setLogin] = useState<{ id: string; name: string; line: string; gold: number; ticket: boolean } | null>(null);
   useEffect(() => {
     if (scene !== "roam") return;
     try {
       const today = toDateKey(new Date());
       if (localStorage.getItem("earnflow.lastGreetDate") === today) return;
       localStorage.setItem("earnflow.lastGreetDate", today);
+      // ログイン回数（日数）をカウント
+      const count = (Number(localStorage.getItem("earnflow.loginCount")) || 0) + 1;
+      localStorage.setItem("earnflow.loginCount", String(count));
+      const gotTicket = count % 3 === 0;
+      if (gotTicket) addTicket(1);
       // 所持している組み込みキャラから1体（いなければ装備中／既定の勇者）
       const ownedChars = getOwned().filter((id) => getBuiltinCharacter(id));
       const pickId =
@@ -202,6 +208,7 @@ export default function Home() {
         name: def?.name ?? "ゆうしゃ",
         line: def?.line ?? dailyLine(locale),
         gold,
+        ticket: gotTicket,
       });
     } catch {
       /* ignore */
@@ -781,9 +788,17 @@ export default function Home() {
             <div className="absolute inset-x-0 bottom-0 h-8" style={{ background: "repeating-linear-gradient(90deg,#8a5a2b 0 14px,#754c22 14px 28px)", borderTop: "3px solid #3a2f24" }} />
           </div>
 
-          {/* 店主のセリフ */}
+          {/* 店主のセリフ（店主が話しかけてくる） */}
           <DQWindow className="anim-dq-pop">
-            <p className="font-pixel text-sm leading-relaxed text-white">{shopLine}</p>
+            <div className="flex items-center gap-3">
+              <div className="shrink-0">
+                <PixelSprite sprite={SHOPKEEPER} scale={2} />
+              </div>
+              <div className="flex-1">
+                <p className="font-pixel text-[11px] text-gold">{t("shop.keeperName")}</p>
+                <p className="font-pixel text-sm leading-relaxed text-white">{shopLine}</p>
+              </div>
+            </div>
           </DQWindow>
 
           <div className="flex items-center justify-between pr-14">
@@ -938,6 +953,9 @@ export default function Home() {
             <p className="font-pixel mt-2 text-center text-sm font-bold text-gold">
               💰 {t("login.bonus", { n: login.gold })}
             </p>
+            {login.ticket && (
+              <p className="font-pixel mt-1 text-center text-sm font-bold text-gold">🎟 {t("login.ticket")}</p>
+            )}
             <p className="font-pixel mt-1 text-right text-[11px] text-white/50">{t("daily.close")}</p>
           </DQWindow>
         </div>
