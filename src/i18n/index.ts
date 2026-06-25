@@ -74,6 +74,8 @@ const STRINGS: Record<string, Dict> = {
   "hint.moveTouch": { ja: "スワイプ（フリック）で移動", en: "Swipe to move", es: "Desliza para moverte", fr: "Glissez pour vous déplacer", zh: "滑动移动", ko: "스와이프로 이동", ru: "Свайп для движения" },
   "stage.arrived": { ja: "{name} に とうちゃく！", en: "Arrived in {name}!", es: "¡Llegaste a {name}!", fr: "Arrivée à {name} !", zh: "抵达了{name}！", ko: "{name}에 도착!", ru: "Прибытие в {name}!" },
   "daily.title": { ja: "きょうの ひとこと", en: "A word from the hero", es: "Unas palabras del héroe", fr: "Un mot du héros", zh: "今日寄语", ko: "오늘의 한마디", ru: "Слово героя" },
+  "login.title": { ja: "ログインボーナス", en: "Login Bonus", es: "Bono diario", fr: "Bonus de connexion", zh: "登录奖励", ko: "출석 보너스", ru: "Бонус за вход" },
+  "login.bonus": { ja: "ログインボーナス {n}G ゲット！", en: "Got {n} G login bonus!", es: "¡{n} G de bono!", fr: "Bonus de {n} G !", zh: "获得登录奖励 {n}G！", ko: "로그인 보너스 {n}G!", ru: "Бонус {n} G!" },
   "daily.close": { ja: "▼ タップでとじる", en: "▼ Tap to close", es: "▼ Toca para cerrar", fr: "▼ Touchez pour fermer", zh: "▼ 点击关闭", ko: "▼ 탭하여 닫기", ru: "▼ Нажмите, чтобы закрыть" },
 
   "prompt.workAsk": { ja: "ここで はたらきますか？", en: "Work here?", es: "¿Trabajar aquí?", fr: "Travailler ici ?", zh: "在这里工作吗？", ko: "여기서 일할까요?", ru: "Работать здесь?" },

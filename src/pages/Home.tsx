@@ -14,7 +14,7 @@ import { getBuiltinCharacter, HERO_DOWN_A, SHOPKEEPER } from "@/components/pixel
 import { useOverworld } from "@/game/useOverworld";
 import { SIGN_POS, TOWN_ID, townLayout } from "@/game/map";
 import { useActiveId, useCharacter } from "@/game/mapStore";
-import { addGold, useEarningBoost, useWallet } from "@/game/playerStore";
+import { addGold, getOwned, useEarningBoost, useWallet } from "@/game/playerStore";
 import { sessionsInMonth, sumEarnings } from "@/lib/earnings";
 import { addSession, getGoal, getSessions } from "@/lib/store";
 import { downloadSessionsCsv } from "@/game/exportCsv";
@@ -178,20 +178,35 @@ export default function Home() {
     if (scene === "shop") setShopLine(randomShopLine());
   }, [scene]);
 
-  // 主人公の「今日のひとこと」（1日1回・町に入った時に表示）
-  const [greeting, setGreeting] = useState<string | null>(null);
+  // ログインボーナス（1日1回・町に入った時）。所持キャラの誰かがセリフ＋ゴールド
+  const [login, setLogin] = useState<{ id: string; name: string; line: string; gold: number } | null>(null);
   useEffect(() => {
     if (scene !== "roam") return;
     try {
       const today = toDateKey(new Date());
-      if (localStorage.getItem("earnflow.lastGreetDate") !== today) {
-        localStorage.setItem("earnflow.lastGreetDate", today);
-        setGreeting(dailyLine(locale));
-      }
+      if (localStorage.getItem("earnflow.lastGreetDate") === today) return;
+      localStorage.setItem("earnflow.lastGreetDate", today);
+      // 所持している組み込みキャラから1体（いなければ装備中／既定の勇者）
+      const ownedChars = getOwned().filter((id) => getBuiltinCharacter(id));
+      const pickId =
+        ownedChars.length > 0
+          ? ownedChars[Math.floor(Math.random() * ownedChars.length)]
+          : character && getBuiltinCharacter(character)
+            ? character
+            : "";
+      const def = pickId ? getBuiltinCharacter(pickId) : null;
+      const gold = 100;
+      addGold(gold);
+      setLogin({
+        id: pickId,
+        name: def?.name ?? "ゆうしゃ",
+        line: def?.line ?? dailyLine(locale),
+        gold,
+      });
     } catch {
       /* ignore */
     }
-  }, [scene, locale]);
+  }, [scene, locale, character]);
 
   // 接近判定（バイト先 / 看板）
   const hx = Math.round(snap.px);
@@ -894,30 +909,36 @@ export default function Home() {
         </div>
       )}
 
-      {/* 主人公の「今日のひとこと」（毎日1回） */}
-      {greeting && (
+      {/* ログインボーナス（毎日1回・所持キャラのセリフ＋ゴールド） */}
+      {login && (
         <div
           onClick={() => {
             playSE("confirm");
-            setGreeting(null);
+            setLogin(null);
           }}
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 pb-8"
         >
-          <DQWindow title={t("daily.title")} className="anim-dq-pop w-full max-w-sm">
+          <DQWindow title={t("login.title")} className="anim-dq-pop w-full max-w-sm">
             <div className="flex items-start gap-3">
               <div className="shrink-0">
                 <PixelSprite
                   sprite={
-                    character && getBuiltinCharacter(character)
-                      ? getBuiltinCharacter(character)!.frames[0]
+                    login.id && getBuiltinCharacter(login.id)
+                      ? getBuiltinCharacter(login.id)!.frames[0]
                       : HERO_DOWN_A
                   }
                   scale={3}
                 />
               </div>
-              <p className="font-pixel flex-1 text-sm leading-relaxed text-white">{greeting}</p>
+              <div className="flex-1">
+                <p className="font-pixel text-[11px] text-gold">{login.name}</p>
+                <p className="font-pixel text-sm leading-relaxed text-white">{login.line}</p>
+              </div>
             </div>
-            <p className="font-pixel mt-2 text-right text-[11px] text-white/50">{t("daily.close")}</p>
+            <p className="font-pixel mt-2 text-center text-sm font-bold text-gold">
+              💰 {t("login.bonus", { n: login.gold })}
+            </p>
+            <p className="font-pixel mt-1 text-right text-[11px] text-white/50">{t("daily.close")}</p>
           </DQWindow>
         </div>
       )}
