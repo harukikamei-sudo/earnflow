@@ -21,7 +21,6 @@ import { downloadSessionsCsv } from "@/game/exportCsv";
 import { resetProgress } from "@/game/resetProgress";
 import { LanguageSelect } from "@/components/game/LanguageSelect";
 import { notifyBlocked, requestNotifyPermission, setReminderEnabled, setDayConfig, WEEKDAY_LABELS, useReminder, useReminderScheduler } from "@/game/reminder";
-import { ShiftPlanner } from "@/components/game/ShiftPlanner";
 import { useShiftReminder, type Shift } from "@/game/shifts";
 import { useLocale, useT } from "@/i18n";
 import { dailyLine } from "@/game/dailyLines";
@@ -660,13 +659,10 @@ export default function Home() {
 
             {/* ▼ページ2：カレンダー */}
             <section className="no-scrollbar flex w-full shrink-0 snap-start flex-col gap-3 overflow-y-auto px-0.5 pb-2">
-          {/* カレンダー */}
+          {/* カレンダー（日付タップで予定を組める） */}
           <DQWindow title={t("house.calendar")}>
             <CalendarBoard key={dataVersion} />
           </DQWindow>
-
-          {/* バイトの予定（シフト） */}
-          <ShiftPlanner />
             </section>
 
             {/* ▼ページ3：その他 */}
