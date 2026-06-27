@@ -30,6 +30,14 @@ function basename(src: string): string {
   return src.split("/").pop() ?? src;
 }
 
+/** id からレア度を求める（既定/画像はノーマル） */
+function rarityOf(id: string): Rarity {
+  if (id === "") return "N";
+  return getBuiltinCharacter(id)?.rarity ?? "N";
+}
+const RARITY_CODE: Record<Rarity, string> = { N: "N", R: "R", SR: "SR", SSR: "SSR", UR: "UR" };
+const HIGH_RARITY: Rarity[] = ["SR", "SSR", "UR"];
+
 /** 端末バイブ（対応端末＝主にAndroid。非対応は無視） */
 function vibrate(pattern: number[]): void {
   try {
@@ -256,23 +264,49 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
         <div className="grid grid-cols-3 gap-2">
           {ownedCollection.map((c) => {
             const equipped = character === c.src;
+            const r = rarityOf(c.src);
+            const rstyle = RARITY_STYLE[r];
+            const rare = r !== "N";
+            const high = HIGH_RARITY.includes(r);
             return (
               <button
                 key={c.src || "default"}
                 type="button"
                 onClick={() => setCharacter(c.src)}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded p-1.5 transition-colors",
-                  equipped ? "bg-gold/20 ring-1 ring-gold" : "bg-white/10 hover:bg-white/20",
+                  "relative flex flex-col items-center gap-1 overflow-hidden rounded p-1.5 transition-colors",
+                  equipped ? "bg-gold/20" : "bg-white/10 hover:bg-white/20",
+                  high && "anim-rare-shine",
                 )}
+                style={{
+                  boxShadow: rare ? `0 0 9px 1px ${rstyle.glow}` : undefined,
+                  outline: `2px solid ${equipped ? "#f6c945" : rare ? rstyle.color : "transparent"}`,
+                  outlineOffset: -2,
+                }}
               >
-                <div className="grid h-12 w-12 place-items-center">
+                {/* レア度の発光（裏面でやわらかく光る） */}
+                {rare && (
+                  <span
+                    className={cn("pointer-events-none absolute inset-2 rounded", high && "anim-rare-glow")}
+                    style={{ boxShadow: `0 0 14px 3px ${rstyle.glow}` }}
+                  />
+                )}
+                {/* レア度バッジ */}
+                {rare && (
+                  <span
+                    className="font-pixel absolute left-0.5 top-0.5 z-10 rounded px-1 text-[8px] font-bold"
+                    style={{ background: rstyle.color, color: "#1a1026" }}
+                  >
+                    {RARITY_CODE[r]}
+                  </span>
+                )}
+                <div className="relative z-10 grid h-12 w-12 place-items-center">
                   <Thumb id={c.src} />
                 </div>
-                <span className="font-pixel w-full truncate text-center text-[10px] text-white">{c.name}</span>
-                {equipped && (
-                  <span className="font-pixel text-[9px] font-bold text-gold">{t("costume.equipped")}</span>
-                )}
+                <span className="font-pixel relative z-10 w-full truncate text-center text-[10px] text-white">{c.name}</span>
+                <span className="font-pixel relative z-10 text-[9px] font-bold" style={{ color: equipped ? "#f6c945" : rstyle.color }}>
+                  {equipped ? t("costume.equipped") : rare ? rstyle.label : ""}
+                </span>
               </button>
             );
           })}
