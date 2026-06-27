@@ -16,7 +16,7 @@ export const BGM: Record<string, { src: string; gain?: number }> = {
   /** どうぐ屋（専用BGM） */
   shop: { src: "/audio/bgm_shop.mp3" },
   /** わが家（室内BGM） */
-  home: { src: "/audio/bgm_indoor.mp3" },
+  home: { src: "/audio/MusMus-BGM-104.mp3" },
 };
 
 export type TrackName = keyof typeof BGM;
