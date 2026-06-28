@@ -499,35 +499,43 @@ export default function Home() {
       ) : scene === "home" ? (
         /* ============ わが家（室内・3ページ） ============ */
         <div className="mx-auto flex h-full max-w-md flex-col gap-3 px-4 py-4">
-          {/* 室内シーン（2D空間・家具つき。机の本にさわると詳細が開く） */}
-          <div className="pixel-frame relative h-56 overflow-hidden rounded-md">
-            {/* 壁と床 */}
-            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,#7a5c44,#6b4f3a)" }} />
-            <div className="absolute inset-x-0 bottom-0 h-[34%]" style={{ background: "repeating-linear-gradient(90deg,#caa869 0 18px,#bd9a57 18px 36px)", borderTop: "3px solid #4a3a28" }} />
-            {/* 窓 */}
-            <div className="absolute left-5 top-5 h-12 w-16 rounded-sm ring-2 ring-[#3a2f24]" style={{ background: "linear-gradient(180deg,#9ad0ff,#cdeaff)" }}>
+          {/* 室内シーン（斜め見下ろし視点：パースの床＋立った家具） */}
+          <div className="pixel-frame relative h-60 overflow-hidden rounded-md" style={{ background: "#3a2c20" }}>
+            {/* 奥の壁 */}
+            <div className="absolute inset-x-0 top-0 h-[42%]" style={{ background: "repeating-linear-gradient(90deg,#9a7a58 0 22px,#8e7050 22px 44px)" }} />
+            <div className="absolute inset-x-0" style={{ top: "42%", height: 3, background: "#4a3a28" }} />
+            {/* 窓（壁） */}
+            <div className="absolute left-6 top-5 h-12 w-16 rounded-sm ring-2 ring-[#3a2f24]" style={{ background: "linear-gradient(180deg,#9ad0ff,#cdeaff)" }}>
               <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-[#3a2f24]/60" />
               <div className="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-[#3a2f24]/60" />
             </div>
-            {/* ラグ */}
-            <div className="absolute bottom-3 left-1/2 h-5 w-28 -translate-x-1/2 rounded-[50%]" style={{ background: "#b5613a", boxShadow: "inset 0 0 0 3px #8a4426" }} />
 
-            {/* ベッド（左） */}
-            <div className="absolute bottom-[34%] left-3" style={{ width: 86, height: 40 }}>
-              <div className="absolute inset-0 rounded-sm" style={{ background: "#6b4423", boxShadow: "0 4px 0 #4a2f17" }} />
-              <div className="absolute left-1 right-1 top-1 bottom-2 rounded-sm" style={{ background: "#3a6ee0" }} />
-              <div className="absolute left-1.5 top-1.5 h-5 w-7 rounded-sm bg-white" />
+            {/* 斜め見下ろしの床（パース） */}
+            <div className="absolute bottom-0 left-1/2 h-[64%] w-[150%] -translate-x-1/2" style={{ transformOrigin: "bottom center", transform: "perspective(360px) rotateX(56deg)", background: "repeating-conic-gradient(#caa869 0% 25%, #bd9a57 0% 50%) 0 / 36px 36px" }} />
+
+            {/* ラグ（床の上・パースに合わせて平たく） */}
+            <div className="absolute bottom-4 left-1/2 h-6 w-32 -translate-x-1/2 rounded-[50%]" style={{ background: "#b5613a", boxShadow: "inset 0 0 0 3px #8a4426" }} />
+
+            {/* ベッド（左・立体箱） */}
+            <div className="absolute bottom-[26%] left-4" style={{ width: 78, height: 30 }}>
+              <div className="absolute -bottom-2 left-1/2 h-2 w-20 -translate-x-1/2 rounded-[50%] bg-black/30" />
+              {/* 上面（マット） */}
+              <div className="absolute left-0 top-0 h-5 w-full rounded-sm" style={{ background: "#3a6ee0", transform: "skewX(-26deg)" }} />
+              <div className="absolute left-1 top-0.5 h-3.5 w-6 rounded-sm bg-white" style={{ transform: "skewX(-26deg)" }} />
+              {/* 前面（フレーム） */}
+              <div className="absolute left-0 top-4 h-4 w-full rounded-b-sm" style={{ background: "#5a3a1e" }} />
             </div>
 
-            {/* 机＋椅子（右） */}
-            <div className="absolute bottom-[34%] right-4" style={{ width: 76, height: 46 }}>
+            {/* 机＋椅子（右・立体箱） */}
+            <div className="absolute bottom-[26%] right-5" style={{ width: 66, height: 30 }}>
+              <div className="absolute -bottom-2 left-1/2 h-2 w-20 -translate-x-1/2 rounded-[50%] bg-black/30" />
               {/* 椅子 */}
-              <div className="absolute bottom-0 left-[-14px] h-7 w-5 rounded-sm bg-[#7a5230]" />
-              <div className="absolute bottom-5 left-[-14px] h-6 w-1.5 rounded bg-[#5a3a1e]" />
-              {/* 机 */}
-              <div className="absolute bottom-0 right-2 h-7 w-1.5 bg-[#5a3a1e]" />
-              <div className="absolute bottom-0 left-2 h-7 w-1.5 bg-[#5a3a1e]" />
-              <div className="absolute bottom-7 left-0 right-0 h-2 rounded-sm bg-[#8a5a2b]" />
+              <div className="absolute -left-4 bottom-0 h-6 w-4 rounded-sm bg-[#7a5230]" />
+              {/* 天板（上面） */}
+              <div className="absolute left-0 top-0 h-4 w-full rounded-sm" style={{ background: "#a06a32", transform: "skewX(-26deg)" }} />
+              {/* 脚（前面） */}
+              <div className="absolute left-1 top-3.5 h-5 w-1.5 bg-[#5a3a1e]" />
+              <div className="absolute right-1 top-3.5 h-5 w-1.5 bg-[#5a3a1e]" />
               {/* 机の上の本（タップで詳細） */}
               <button
                 type="button"
@@ -535,25 +543,28 @@ export default function Home() {
                   playSE("confirm");
                   setHomeOpen(true);
                 }}
-                className="anim-hero-bob absolute bottom-[34px] right-3 grid h-7 w-6 place-items-center rounded-[2px] text-xs"
-                style={{ background: "linear-gradient(180deg,#c0392b,#8a1f1f)", boxShadow: "0 0 10px 2px rgba(246,201,69,.7), inset -2px 0 0 rgba(0,0,0,.35)" }}
+                className="anim-hero-bob absolute -top-4 left-1/2 grid h-7 w-6 -translate-x-1/2 place-items-center rounded-[2px] text-xs"
+                style={{ background: "linear-gradient(180deg,#c0392b,#8a1f1f)", boxShadow: "0 0 10px 2px rgba(246,201,69,.75), inset -2px 0 0 rgba(0,0,0,.35)" }}
                 aria-label="つくえの本"
                 title="ノルマ・詳細"
               >
                 📖
               </button>
-              <span className="font-pixel absolute -bottom-1 right-0 whitespace-nowrap text-[8px] text-gold">ノルマ</span>
+              <span className="font-pixel absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] text-gold">ノルマ</span>
             </div>
 
-            {/* キャラ（床に立つ） */}
-            <div className="anim-hero-bob absolute bottom-[30%] left-1/2 z-10 -translate-x-1/2">
-              {!character ? (
-                <PixelSprite sprite={HERO_DOWN_A} scale={4} />
-              ) : getBuiltinCharacter(character) ? (
-                <PixelSprite sprite={getBuiltinCharacter(character)!.frames[0]} scale={4} />
-              ) : (
-                <PixelImage src={character} style={{ height: 64, width: "auto" }} />
-              )}
+            {/* キャラ（床に立つ・影つき） */}
+            <div className="absolute bottom-[24%] left-1/2 z-10 -translate-x-1/2">
+              <div className="absolute -bottom-1 left-1/2 h-2 w-10 -translate-x-1/2 rounded-[50%] bg-black/30" />
+              <div className="anim-hero-bob">
+                {!character ? (
+                  <PixelSprite sprite={HERO_DOWN_A} scale={4} />
+                ) : getBuiltinCharacter(character) ? (
+                  <PixelSprite sprite={getBuiltinCharacter(character)!.frames[0]} scale={4} />
+                ) : (
+                  <PixelImage src={character} style={{ height: 64, width: "auto" }} />
+                )}
+              </div>
             </div>
           </div>
 
