@@ -3,7 +3,7 @@ import { PixelImage } from "@/components/pixel/PixelImage";
 import { PixelSprite } from "@/components/pixel/PixelSprite";
 import { CHARACTERS, getBuiltinCharacter, HERO_DOWN_A, type Rarity } from "@/components/pixel/sprites";
 import { DQWindow } from "@/components/pixel/DQWindow";
-import { setCharacter, useAssets, useCharacter } from "@/game/mapStore";
+import { setCharacter, useAssets } from "@/game/mapStore";
 import { gachaPull, useOwned, useTickets, useTicketOne, useWallet, type GachaGroup, type GachaResult } from "@/game/playerStore";
 import { playSE } from "@/audio/engine";
 import { useT } from "@/i18n";
@@ -30,15 +30,6 @@ function basename(src: string): string {
   return src.split("/").pop() ?? src;
 }
 
-/** id からレア度を求める（既定/画像はノーマル） */
-function rarityOf(id: string): Rarity {
-  if (id === "") return "N";
-  return getBuiltinCharacter(id)?.rarity ?? "N";
-}
-const RARITY_CODE: Record<Rarity, string> = { N: "N", R: "R", SR: "SR", SSR: "SSR", UR: "UR" };
-const HIGH_RARITY: Rarity[] = ["SR", "SSR", "UR"];
-/** 図鑑の並び順（レアが上） */
-const DEX_ORDER: Rarity[] = ["UR", "SSR", "SR", "R", "N"];
 
 /** 端末バイブ（対応端末＝主にAndroid。非対応は無視） */
 function vibrate(pattern: number[]): void {
@@ -114,7 +105,6 @@ export function GachaPanel({ level = 1, onOpenDex }: { level?: number; onOpenDex
   const wallet = useWallet();
   const tickets = useTickets();
   const ownedIds = useOwned(); // 所持変化で再描画
-  const character = useCharacter();
 
   const [result, setResult] = useState<GachaResult | null>(null);
   const [rolling, setRolling] = useState(false);
@@ -160,59 +150,6 @@ export function GachaPanel({ level = 1, onOpenDex }: { level?: number; onOpenDex
       }
     }, 1700);
   }
-
-  const ownedCollection = [
-    { src: "", name: t("costume.default") },
-    ...pool.filter((id) => ownedIds.includes(id)).map((id) => ({ src: id, name: nameOf(id, t) })),
-  ];
-
-  // 図鑑セル（1キャラ）。レア度で光る＆バッジ表示。
-  const renderCell = (c: { src: string; name: string }) => {
-    const equipped = character === c.src;
-    const r = rarityOf(c.src);
-    const rstyle = RARITY_STYLE[r];
-    const rare = r !== "N";
-    const high = HIGH_RARITY.includes(r);
-    return (
-      <button
-        key={c.src || "default"}
-        type="button"
-        onClick={() => setCharacter(c.src)}
-        className={cn(
-          "relative flex flex-col items-center gap-1 overflow-hidden rounded p-1.5 transition-colors",
-          equipped ? "bg-gold/20" : "bg-white/10 hover:bg-white/20",
-          high && "anim-rare-shine",
-        )}
-        style={{
-          boxShadow: rare ? `0 0 9px 1px ${rstyle.glow}` : undefined,
-          outline: `2px solid ${equipped ? "#f6c945" : rare ? rstyle.color : "transparent"}`,
-          outlineOffset: -2,
-        }}
-      >
-        {rare && (
-          <span
-            className={cn("pointer-events-none absolute inset-2 rounded", high && "anim-rare-glow")}
-            style={{ boxShadow: `0 0 14px 3px ${rstyle.glow}` }}
-          />
-        )}
-        {rare && (
-          <span
-            className="font-pixel absolute left-0.5 top-0.5 z-10 rounded px-1 text-[8px] font-bold"
-            style={{ background: rstyle.color, color: "#1a1026" }}
-          >
-            {RARITY_CODE[r]}
-          </span>
-        )}
-        <div className="relative z-10 grid h-12 w-12 place-items-center">
-          <Thumb id={c.src} />
-        </div>
-        <span className="font-pixel relative z-10 w-full truncate text-center text-[10px] text-white">{c.name}</span>
-        <span className="font-pixel relative z-10 text-[9px] font-bold" style={{ color: equipped ? "#f6c945" : rstyle.color }}>
-          {equipped ? t("costume.equipped") : rare ? rstyle.label : ""}
-        </span>
-      </button>
-    );
-  };
 
   const rs = result ? RARITY_STYLE[(result.rarity as Rarity) ?? "N"] : null;
   const isRare = !!result && (result.rarity === "SR" || result.rarity === "SSR" || result.rarity === "UR");
@@ -308,37 +245,28 @@ export function GachaPanel({ level = 1, onOpenDex }: { level?: number; onOpenDex
         )}
       </DQWindow>
 
-      {/* 図鑑（所持分のみ・レア度順・着替え可） */}
+      {/* 図鑑（タップで本めくりビューアを開く） */}
       <DQWindow title={t("gacha.collection")}>
-        <div className="mb-2 flex items-center justify-between">
-          <p className="font-pixel text-xs text-gold">{got} / {total}</p>
-          {onOpenDex && (
-            <button
-              type="button"
-              onClick={onOpenDex}
-              className="font-pixel rounded bg-white/15 px-2 py-1 text-[11px] text-white hover:bg-white/25"
-            >
-              📖 本で見る
-            </button>
-          )}
-        </div>
-        {DEX_ORDER.map((r) => {
-          const items = ownedCollection.filter((c) => rarityOf(c.src) === r);
-          if (items.length === 0) return null;
-          const rstyle = RARITY_STYLE[r];
-          return (
-            <div key={r} className="mb-3">
-              <div className="mb-1 flex items-center gap-2">
-                <span className="font-pixel rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ background: rstyle.color, color: "#1a1026" }}>
-                  {RARITY_CODE[r]}
-                </span>
-                <span className="font-pixel text-[11px] font-bold" style={{ color: rstyle.color }}>{rstyle.label}</span>
-                <span className="font-pixel text-[10px] text-white/40">×{items.length}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">{items.map(renderCell)}</div>
-            </div>
-          );
-        })}
+        <button
+          type="button"
+          onClick={() => onOpenDex?.()}
+          className="flex w-full items-center gap-3 rounded-md p-3 text-left transition-transform hover:-translate-y-0.5"
+          style={{ background: "linear-gradient(180deg,#6b4423,#4a2f17)" }}
+        >
+          {/* 本の見た目 */}
+          <div
+            className="relative grid h-16 w-12 shrink-0 place-items-center rounded-sm"
+            style={{ background: "linear-gradient(180deg,#c0392b,#8a1f1f)", boxShadow: "inset -3px 0 0 rgba(0,0,0,.35), 2px 2px 0 rgba(0,0,0,.4)" }}
+          >
+            <span className="text-2xl">📖</span>
+            <span className="absolute inset-y-1 left-0.5 w-1 rounded-l bg-[#f6c945]/70" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-pixel text-sm font-bold text-[#f6e6c0]">ずかん</p>
+            <p className="font-pixel mt-0.5 text-[11px] text-[#e8d9a0]">あつめたキャラ {got} / {total}</p>
+            <p className="font-pixel mt-1 text-[10px] text-[#f6c945]">タップして ひらく ▶</p>
+          </div>
+        </button>
       </DQWindow>
     </>
   );
