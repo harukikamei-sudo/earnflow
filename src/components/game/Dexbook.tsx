@@ -82,7 +82,7 @@ export function Dexbook({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-3 py-4" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex h-full max-h-[680px] w-full max-w-md flex-col rounded-lg p-3"
+        className="flex max-h-[90vh] w-full max-w-md flex-col rounded-lg p-3"
         style={{ background: "linear-gradient(180deg,#6b4423,#4a2f17)", boxShadow: "0 10px 40px rgba(0,0,0,.5)" }}
       >
         {/* 見出し */}
@@ -101,12 +101,12 @@ export function Dexbook({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* 本のページ（羊皮紙） */}
-        <div className="relative flex-1 overflow-hidden rounded" style={{ perspective: 1200 }}>
+        {/* 本のページ（羊皮紙）。中身ぴったりの高さ（余白なし） */}
+        <div className="overflow-hidden rounded" style={{ perspective: 1200 }}>
           <div
             key={cur}
             className={cn(
-              "absolute inset-0 overflow-y-auto rounded p-3",
+              "no-scrollbar max-h-[64vh] overflow-y-auto rounded p-3",
               flip === "r" && "anim-page-r",
               flip === "l" && "anim-page-l",
             )}
