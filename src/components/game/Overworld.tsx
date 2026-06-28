@@ -4,7 +4,7 @@ import { PixelImage } from "@/components/pixel/PixelImage";
 import { FLOWER, getBuiltinCharacter, HERO_TOPDOWN, ROCK, SIGN, TREE, type HeroDir } from "@/components/pixel/sprites";
 import { MAP_H, MAP_W, TILE, townLayout, townPathCells, type Rect, type TownLayout } from "@/game/map";
 import { TownLandmark } from "./TownLandmark";
-import { THEMES, themeForLevel, residentHouses, townExit, type StageTheme } from "@/game/themes";
+import { THEMES, themeForLevel, residentHouses, townBuildings, townExit, type StageTheme } from "@/game/themes";
 import { isWalkable, useCharacter, useMapRows, useProps } from "@/game/mapStore";
 import type { OverworldSnap } from "@/game/useOverworld";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ const TileLayer = memo(function TileLayer({ rows, theme }: { rows: string[]; the
         height: WORLD_H,
         gridTemplateColumns: `repeat(${MAP_W}, ${TILE}px)`,
         gridTemplateRows: `repeat(${MAP_H}, ${TILE}px)`,
+        filter: "saturate(1.18) contrast(1.05)",
       }}
     >
       {rows.flatMap((row, y) =>
@@ -390,6 +391,26 @@ function landmarkSpot(L: TownLayout): { x: number; y: number } {
 }
 
 /** にぎわいで建つ小さな家 */
+/** 装飾用の街の建物（非インタラクティブ・少し高めで窓つき）。空き区画を埋めて賑やかにする */
+function DecoHouse({ x, y, roof }: { x: number; y: number; roof: string }) {
+  const w = TILE * 1.5;
+  const h = TILE * 1.9;
+  return (
+    <div className="pointer-events-none absolute" style={{ left: x * TILE, top: y * TILE - TILE * 0.9, width: w, height: h }}>
+      {/* 屋根 */}
+      <div className="absolute left-0 top-0 w-full" style={{ height: "34%", background: roof, clipPath: "polygon(50% 0,100% 100%,0 100%)" }} />
+      {/* 壁＋窓 */}
+      <div className="absolute inset-x-1 bottom-0" style={{ top: "30%", background: "#e7d3a6", border: "2px solid #6b4423" }}>
+        <div
+          className="absolute inset-1"
+          style={{ backgroundImage: "linear-gradient(#9ad0ff 2px,transparent 2px),linear-gradient(90deg,#7a5a3a55 2px,transparent 2px)", backgroundSize: "8px 10px", opacity: 0.8 }}
+        />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-t" style={{ width: "30%", height: "40%", background: "#5a3a1e" }} />
+      </div>
+    </div>
+  );
+}
+
 function DevHouse({ x, y, roof }: { x: number; y: number; roof: string }) {
   const w = TILE * 1.4;
   return (
@@ -535,6 +556,12 @@ export function Overworld({
             </div>
           );
         })()}
+
+        {/* 装飾の街並み（非インタラクティブ。空き区画を建物で埋めて賑やかに） */}
+        {showLandmarks &&
+          townBuildings(themeIndex ?? 0)
+            .slice(residents.length)
+            .map((b, i) => <DecoHouse key={`deco-${i}`} x={b.x} y={b.y} roof={b.roof} />)}
 
         {/* 派遣住民の家（住民ごとに1軒・入ると報酬） */}
         {!editMode &&

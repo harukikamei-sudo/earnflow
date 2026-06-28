@@ -5,12 +5,20 @@ import { TILE } from "@/game/map";
  * themes の landmark 種別（pyramid/colosseum/eiffel など）で切り替える。
  */
 
-const W = TILE * 3.4;
-const H = TILE * 4.2;
+const W = TILE * 4.2;
+const H = TILE * 5.2;
 
 function Frame({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
   return (
-    <div className="pointer-events-none absolute" style={{ left: x * TILE, top: (y + 1) * TILE - H, width: W, height: H }}>
+    <div
+      className="pointer-events-none absolute"
+      style={{ left: x * TILE, top: (y + 1) * TILE - H, width: W, height: H, filter: "drop-shadow(0 4px 0 rgba(0,0,0,0.28))" }}
+    >
+      {/* 土台（モニュメントらしく見せる影＆石畳の基壇） */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 rounded-[50%]"
+        style={{ bottom: -6, width: "82%", height: TILE * 0.5, background: "radial-gradient(closest-side, rgba(0,0,0,0.30), transparent)" }}
+      />
       <div className="absolute inset-0">{children}</div>
     </div>
   );

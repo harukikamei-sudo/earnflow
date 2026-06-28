@@ -149,7 +149,7 @@ export function townBuildings(themeIndex: number): TownBuilding[] {
   const n = BUILD_SPOTS.length;
   const offset = (themeIndex * 5) % n;
   const step = 2 + (themeIndex % 3); // 2〜4
-  const count = 5 + (themeIndex % 4); // 5〜8
+  const count = Math.min(n, 9 + (themeIndex % 4)); // 9〜12（賑やかに）
   const used = new Set<number>();
   const out: TownBuilding[] = [];
   for (let k = 0; k < count; k++) {
