@@ -829,32 +829,17 @@ export default function Home() {
                 <ExpBar progress={level.progress} thin />
               </div>
             </div>
-            <div className="pointer-events-auto mr-14 flex items-center gap-1">
-              {/* 図鑑（本めくり） */}
-              <button
-                type="button"
-                onClick={() => {
-                  playSE("confirm");
-                  setShowDex(true);
-                }}
-                className="dq-window grid h-9 w-9 place-items-center text-sm"
-                aria-label="図鑑"
-                title="図鑑"
-              >
-                📖
-              </button>
-              {/* 町を出る → ワールドマップ */}
-              <button
-                type="button"
-                onClick={() => {
-                  playSE("confirm");
-                  setShowWorld(true);
-                }}
-                className="dq-window flex items-center gap-1 px-3 py-1.5 font-pixel text-xs text-white"
-              >
-                🗺 {t("world.exit")}
-              </button>
-            </div>
+            {/* 町を出る → ワールドマップ */}
+            <button
+              type="button"
+              onClick={() => {
+                playSE("confirm");
+                setShowWorld(true);
+              }}
+              className="dq-window pointer-events-auto mr-14 flex items-center gap-1 px-3 py-1.5 font-pixel text-xs text-white"
+            >
+              🗺 {t("world.exit")}
+            </button>
           </div>
 
           {/* バイト先に接近 → 選択肢（複数選択・追加・削除） */}
