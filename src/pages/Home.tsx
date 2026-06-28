@@ -43,7 +43,7 @@ import { useCurrentTown, setCurrentTown, useResidents, townDevLevel, canVisitRes
 import { WorldMap } from "@/components/game/WorldMap";
 import { cn, formatDuration, formatYen, formatYenPrecise, toDateKey, uid } from "@/lib/utils";
 
-type Scene = "title" | "roam" | "work" | "home" | "shop";
+type Scene = "title" | "roam" | "work" | "home" | "shop" | "visit";
 
 /** リセット後はタイトルを飛ばして本編へ。それ以外は初回タイトル */
 function initialScene(): Scene {
@@ -127,7 +127,7 @@ export default function Home() {
     if (scene === "title") return "title" as const;
     if (scene === "work") return "work" as const;
     if (scene === "shop") return "shop" as const;
-    if (scene === "home") return "home" as const;
+    if (scene === "home" || scene === "visit") return "home" as const;
     const hour = new Date(nowTs).getHours();
     const night = hour >= 18 || hour < 6;
     return night ? ("townNight" as const) : ("townDay" as const);
@@ -229,21 +229,27 @@ export default function Home() {
     isTown && !working && settled && !nearShop && !nearMarket && !nearHouse && !nearSign && !nearExit
       ? houses.find((h) => man(h.door.x, h.door.y) <= 1) ?? null
       : null;
-  const [houseDialog, setHouseDialog] = useState<{ name: string; lines: string[] } | null>(null);
-  function visitHouse(houseId: string) {
-    const name = getBuiltinCharacter(houseId)?.name ?? "じゅうみん";
+  // 住民宅に「入る」＝室内シーンへ。入った時に当日ぶんの訪問報酬を計算する。
+  const [visitData, setVisitData] = useState<{ id: string; lines: string[]; costumeId: string | null } | null>(null);
+  function enterVisit(houseId: string) {
+    let lines: string[];
+    let costumeId: string | null = null;
     if (!canVisitResident(houseId)) {
-      playSE("cancel");
-      setHouseDialog({ name, lines: ["また あした あそびに きてね！"] });
-      return;
+      lines = ["また あした あそびに きてね！"];
+      playSE("door");
+    } else {
+      const r = visitResident(houseId);
+      lines = ["ようこそ！ いつも おうえん してるよ！"];
+      if (r?.costumeId) {
+        lines.push(`✨ 「${getBuiltinCharacter(r.costumeId)?.name ?? "新衣装"}」を もらった！`);
+        costumeId = r.costumeId;
+      } else {
+        lines.push("ゆっくり していってね。");
+      }
+      playSE(r?.costumeId ? "levelup" : "door");
     }
-    const r = visitResident(houseId);
-    if (!r) return;
-    playSE(r.costumeId ? "levelup" : "confirm");
-    const lines = ["ようこそ！ いつも おうえん してるよ！"];
-    if (r.costumeId) lines.push(`✨ 「${getBuiltinCharacter(r.costumeId)?.name ?? "新衣装"}」を もらった！`);
-    else lines.push("また あそびに きてね！");
-    setHouseDialog({ name, lines });
+    setVisitData({ id: houseId, lines, costumeId });
+    setScene("visit");
   }
 
   // 抜け道に触れたらワールドマップを開く（退出直後の再オープンは離れるまで抑止）
@@ -809,6 +815,64 @@ export default function Home() {
 
           <GachaPanel level={level.level} onOpenDex={() => setShowDex(true)} />
         </div>
+      ) : scene === "visit" ? (
+        /* ============ 住民の家（室内・ガチャ屋と同じ内装／ガチャ無し） ============ */
+        <div className="no-scrollbar mx-auto flex h-full max-w-md flex-col gap-3 overflow-y-auto px-4 py-4">
+          {(() => {
+            const vc = visitData ? getBuiltinCharacter(visitData.id) : null;
+            const vname = vc?.name ?? "じゅうみん";
+            const gift = visitData?.costumeId ? getBuiltinCharacter(visitData.costumeId) : null;
+            return (
+              <>
+                {/* 室内シーン：住民とカウンター */}
+                <div className="pixel-frame relative flex h-36 items-end justify-center overflow-hidden rounded-md">
+                  <div className="absolute inset-0" style={{ background: "#5a4636" }} />
+                  <div className="absolute left-3 top-3 h-8 w-16 rounded-sm bg-[#7a5230] ring-2 ring-[#3a2f24]" />
+                  <div className="absolute right-3 top-3 h-8 w-16 rounded-sm bg-[#7a5230] ring-2 ring-[#3a2f24]" />
+                  <div className="anim-hero-bob relative z-10 mb-7">
+                    <PixelSprite sprite={vc ? vc.frames[0] : HERO_DOWN_A} scale={4} />
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 h-8" style={{ background: "repeating-linear-gradient(90deg,#8a5a2b 0 14px,#754c22 14px 28px)", borderTop: "3px solid #3a2f24" }} />
+                </div>
+
+                {/* 住民のセリフ */}
+                <DQWindow className="anim-dq-pop">
+                  <div className="flex items-center gap-3">
+                    <div className="shrink-0">
+                      <PixelSprite sprite={vc ? vc.frames[0] : HERO_DOWN_A} scale={2} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-pixel text-[11px] text-gold">{vname}</p>
+                      {visitData?.lines.map((l, i) => (
+                        <p key={i} className="font-pixel text-sm leading-relaxed text-white">{l}</p>
+                      ))}
+                    </div>
+                  </div>
+                  {gift && (
+                    <div className="mt-2 flex items-center gap-2 rounded bg-white/5 p-2">
+                      <PixelSprite sprite={gift.frames[0]} scale={2} />
+                      <span className="font-pixel text-[11px] text-gold">✨ 「{gift.name}」を てにいれた！</span>
+                    </div>
+                  )}
+                </DQWindow>
+
+                <div className="flex items-center justify-between pr-14">
+                  <h1 className="font-pixel text-lg font-bold text-gold-gradient">{vname}のいえ</h1>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSE("cancel");
+                      setScene("roam");
+                    }}
+                    className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white"
+                  >
+                    そとに出る
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </div>
       ) : (
         /* ============ 町（トップダウン） ============ */
         <>
@@ -866,14 +930,14 @@ export default function Home() {
             </div>
           )}
 
-          {/* 住民の家に接近 → 訪問 */}
-          {nearResidentHouse && !houseDialog && (
+          {/* 住民の家に接近 → 中に入る（室内シーンへ） */}
+          {nearResidentHouse && (
             <div className="absolute left-1/2 top-16 w-full max-w-xs -translate-x-1/2 px-4">
               <DQWindow title={`${getBuiltinCharacter(nearResidentHouse.id)?.name ?? "じゅうみん"}のいえ`} className="anim-dq-pop">
                 <p className="font-pixel mb-2 text-sm text-white">
                   {canVisitResident(nearResidentHouse.id) ? "あそびに いける！" : "きょうは もう おとずれた"}
                 </p>
-                <DQCommand label="おとずれる" active accent="gold" onClick={() => visitHouse(nearResidentHouse.id)} />
+                <DQCommand label="中に入る" active accent="gold" onClick={() => enterVisit(nearResidentHouse.id)} />
               </DQWindow>
             </div>
           )}
@@ -948,24 +1012,6 @@ export default function Home() {
               <p className="font-pixel mt-1 text-center text-sm font-bold text-gold">🎟 {t("login.ticket")}</p>
             )}
             <p className="font-pixel mt-1 text-right text-[11px] text-white/50">{t("daily.close")}</p>
-          </DQWindow>
-        </div>
-      )}
-
-      {/* 住民の家：訪問のあいさつ＆報酬 */}
-      {houseDialog && (
-        <div
-          onClick={() => {
-            playSE("confirm");
-            setHouseDialog(null);
-          }}
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 pb-8"
-        >
-          <DQWindow title={`${houseDialog.name}のいえ`} className="anim-dq-pop w-full max-w-sm">
-            {houseDialog.lines.map((l, i) => (
-              <p key={i} className="font-pixel text-sm leading-relaxed text-white">{l}</p>
-            ))}
-            <p className="font-pixel mt-2 text-right text-[11px] text-white/50">{t("daily.close")}</p>
           </DQWindow>
         </div>
       )}
