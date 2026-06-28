@@ -807,7 +807,7 @@ export default function Home() {
             </button>
           </div>
 
-          <GachaPanel level={level.level} />
+          <GachaPanel level={level.level} onOpenDex={() => setShowDex(true)} />
         </div>
       ) : (
         /* ============ 町（トップダウン） ============ */

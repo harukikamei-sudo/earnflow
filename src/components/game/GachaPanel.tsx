@@ -108,7 +108,7 @@ function GachaMachine({ shaking }: { shaking?: boolean }) {
  * どうぐ屋のガチャポン。レア度の重み付き抽選（激レア0.5%）でコスチュームが出る。
  * 同じキャラがかぶることもある（ダブりは一部返金）。新規はその場で着用、所持品は着替え可能。
  */
-export function GachaPanel({ level = 1 }: { level?: number }) {
+export function GachaPanel({ level = 1, onOpenDex }: { level?: number; onOpenDex?: () => void }) {
   const t = useT();
   const assets = useAssets();
   const wallet = useWallet();
@@ -310,7 +310,18 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
 
       {/* 図鑑（所持分のみ・レア度順・着替え可） */}
       <DQWindow title={t("gacha.collection")}>
-        <p className="font-pixel mb-2 text-xs text-gold">{got} / {total}</p>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="font-pixel text-xs text-gold">{got} / {total}</p>
+          {onOpenDex && (
+            <button
+              type="button"
+              onClick={onOpenDex}
+              className="font-pixel rounded bg-white/15 px-2 py-1 text-[11px] text-white hover:bg-white/25"
+            >
+              📖 本で見る
+            </button>
+          )}
+        </div>
         {DEX_ORDER.map((r) => {
           const items = ownedCollection.filter((c) => rarityOf(c.src) === r);
           if (items.length === 0) return null;
