@@ -291,6 +291,7 @@ export default function Home() {
 
   // わが家のページ切替（0:ノルマ / 1:カレンダー / 2:その他）。スワイプ＆タブ両対応
   const [homePage, setHomePage] = useState(0);
+  const [homeOpen, setHomeOpen] = useState(false); // 机の本を開いたら詳細(ノルマ等)を表示
   const homePagesRef = useRef<HTMLDivElement>(null);
   function goHomePage(i: number) {
     setHomePage(i);
@@ -498,16 +499,54 @@ export default function Home() {
       ) : scene === "home" ? (
         /* ============ わが家（室内・3ページ） ============ */
         <div className="mx-auto flex h-full max-w-md flex-col gap-3 px-4 py-4">
-          {/* 室内シーン */}
-          <div className="pixel-frame relative flex h-36 items-end justify-center overflow-hidden rounded-md">
+          {/* 室内シーン（2D空間・家具つき。机の本にさわると詳細が開く） */}
+          <div className="pixel-frame relative h-56 overflow-hidden rounded-md">
             {/* 壁と床 */}
-            <div className="absolute inset-0" style={{ background: "#6b4f3a" }} />
-            <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: "repeating-linear-gradient(90deg,#caa869 0 16px,#bd9a57 16px 32px)" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,#7a5c44,#6b4f3a)" }} />
+            <div className="absolute inset-x-0 bottom-0 h-[34%]" style={{ background: "repeating-linear-gradient(90deg,#caa869 0 18px,#bd9a57 18px 36px)", borderTop: "3px solid #4a3a28" }} />
             {/* 窓 */}
-            <div className="absolute left-4 top-4 h-10 w-12 rounded-sm bg-[#9ad0ff] ring-2 ring-[#3a2f24]" />
-            <div className="absolute right-4 top-4 h-10 w-12 rounded-sm bg-[#9ad0ff] ring-2 ring-[#3a2f24]" />
-            {/* キャラ */}
-            <div className="anim-hero-bob relative z-10 mb-2">
+            <div className="absolute left-5 top-5 h-12 w-16 rounded-sm ring-2 ring-[#3a2f24]" style={{ background: "linear-gradient(180deg,#9ad0ff,#cdeaff)" }}>
+              <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-[#3a2f24]/60" />
+              <div className="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 bg-[#3a2f24]/60" />
+            </div>
+            {/* ラグ */}
+            <div className="absolute bottom-3 left-1/2 h-5 w-28 -translate-x-1/2 rounded-[50%]" style={{ background: "#b5613a", boxShadow: "inset 0 0 0 3px #8a4426" }} />
+
+            {/* ベッド（左） */}
+            <div className="absolute bottom-[34%] left-3" style={{ width: 86, height: 40 }}>
+              <div className="absolute inset-0 rounded-sm" style={{ background: "#6b4423", boxShadow: "0 4px 0 #4a2f17" }} />
+              <div className="absolute left-1 right-1 top-1 bottom-2 rounded-sm" style={{ background: "#3a6ee0" }} />
+              <div className="absolute left-1.5 top-1.5 h-5 w-7 rounded-sm bg-white" />
+            </div>
+
+            {/* 机＋椅子（右） */}
+            <div className="absolute bottom-[34%] right-4" style={{ width: 76, height: 46 }}>
+              {/* 椅子 */}
+              <div className="absolute bottom-0 left-[-14px] h-7 w-5 rounded-sm bg-[#7a5230]" />
+              <div className="absolute bottom-5 left-[-14px] h-6 w-1.5 rounded bg-[#5a3a1e]" />
+              {/* 机 */}
+              <div className="absolute bottom-0 right-2 h-7 w-1.5 bg-[#5a3a1e]" />
+              <div className="absolute bottom-0 left-2 h-7 w-1.5 bg-[#5a3a1e]" />
+              <div className="absolute bottom-7 left-0 right-0 h-2 rounded-sm bg-[#8a5a2b]" />
+              {/* 机の上の本（タップで詳細） */}
+              <button
+                type="button"
+                onClick={() => {
+                  playSE("confirm");
+                  setHomeOpen(true);
+                }}
+                className="anim-hero-bob absolute bottom-[34px] right-3 grid h-7 w-6 place-items-center rounded-[2px] text-xs"
+                style={{ background: "linear-gradient(180deg,#c0392b,#8a1f1f)", boxShadow: "0 0 10px 2px rgba(246,201,69,.7), inset -2px 0 0 rgba(0,0,0,.35)" }}
+                aria-label="つくえの本"
+                title="ノルマ・詳細"
+              >
+                📖
+              </button>
+              <span className="font-pixel absolute -bottom-1 right-0 whitespace-nowrap text-[8px] text-gold">ノルマ</span>
+            </div>
+
+            {/* キャラ（床に立つ） */}
+            <div className="anim-hero-bob absolute bottom-[30%] left-1/2 z-10 -translate-x-1/2">
               {!character ? (
                 <PixelSprite sprite={HERO_DOWN_A} scale={4} />
               ) : getBuiltinCharacter(character) ? (
@@ -525,6 +564,7 @@ export default function Home() {
               onClick={() => {
                 playSE("cancel");
                 reenterGuard.current = true;
+                setHomeOpen(false);
                 setScene("roam");
               }}
               className="font-pixel rounded bg-white/15 px-3 py-1 text-xs text-white"
@@ -533,6 +573,18 @@ export default function Home() {
             </button>
           </div>
 
+          {homeOpen ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  playSE("cancel");
+                  setHomeOpen(false);
+                }}
+                className="font-pixel shrink-0 self-start rounded bg-white/15 px-3 py-1 text-xs text-white"
+              >
+                ← 部屋にもどる
+              </button>
           {/* ページ切替タブ */}
           <div className="flex shrink-0 gap-1">
             {[t("home.tabGoal"), t("home.tabCalendar"), t("home.tabOther")].map((label, i) => (
@@ -768,6 +820,10 @@ export default function Home() {
           </DQWindow>
             </section>
           </div>
+            </>
+          ) : (
+            <p className="font-pixel mt-2 text-center text-sm text-white/70">つくえの 本に さわると ノルマ・詳細が 見られるよ。</p>
+          )}
         </div>
       ) : scene === "shop" ? (
         /* ============ どうぐ屋（店内） ============ */
