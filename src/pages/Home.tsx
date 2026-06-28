@@ -38,7 +38,7 @@ import { deleteWorkplace, getWorkplaces, upsertWorkplace } from "@/lib/store";
 import type { Workplace } from "@/lib/types";
 import { levelInfo, rankForLevel } from "@/lib/rpg";
 import { THEMES, townExit, residentHouses } from "@/game/themes";
-import { useCurrentTown, setCurrentTown, useResidents, townDevLevel, collectIdleGold, canVisitResident, visitResident, useVisitVersion } from "@/game/townStore";
+import { useCurrentTown, setCurrentTown, useResidents, townDevLevel, canVisitResident, visitResident, useVisitVersion } from "@/game/townStore";
 import { WorldMap } from "@/components/game/WorldMap";
 import { cn, formatDuration, formatYen, formatYenPrecise, toDateKey, uid } from "@/lib/utils";
 
@@ -149,18 +149,6 @@ export default function Home() {
     return () => window.clearTimeout(id);
   }, [theme.id, theme.name, theme.emoji]);
 
-  // 町の住民が稼いだ「仕送り」を起動時に回収（idle収入）
-  const [idleGold, setIdleGold] = useState(0);
-  useEffect(() => {
-    const g = collectIdleGold();
-    if (g > 0) {
-      addGold(g);
-      setIdleGold(g);
-      const id = window.setTimeout(() => setIdleGold(0), 3500);
-      return () => window.clearTimeout(id);
-    }
-  }, []);
-
   // ワールドマップで別の町へ移動（暗転フェード → 切替）
   function travelTo(townIndex: number) {
     playSE("door");
@@ -250,8 +238,9 @@ export default function Home() {
     const r = visitResident(houseId);
     if (!r) return;
     playSE(r.costumeId ? "levelup" : "confirm");
-    const lines = ["ようこそ！ いつも おうえん してるよ！", `💰 ${r.gold}G を もらった！`];
+    const lines = ["ようこそ！ いつも おうえん してるよ！"];
     if (r.costumeId) lines.push(`✨ 「${getBuiltinCharacter(r.costumeId)?.name ?? "新衣装"}」を もらった！`);
+    else lines.push("また あそびに きてね！");
     setHouseDialog({ name, lines });
   }
 
@@ -976,15 +965,6 @@ export default function Home() {
             ))}
             <p className="font-pixel mt-2 text-right text-[11px] text-white/50">{t("daily.close")}</p>
           </DQWindow>
-        </div>
-      )}
-
-      {/* 町からの仕送り（idle収入）トースト */}
-      {idleGold > 0 && (
-        <div className="pointer-events-none fixed inset-x-0 top-16 z-50 grid place-items-center px-6">
-          <div className="dq-window anim-dq-pop font-pixel px-4 py-2 text-sm text-gold">
-            🏘 {t("town.idle", { n: idleGold })}
-          </div>
         </div>
       )}
 

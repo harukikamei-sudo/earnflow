@@ -37,6 +37,8 @@ function rarityOf(id: string): Rarity {
 }
 const RARITY_CODE: Record<Rarity, string> = { N: "N", R: "R", SR: "SR", SSR: "SSR", UR: "UR" };
 const HIGH_RARITY: Rarity[] = ["SR", "SSR", "UR"];
+/** 図鑑の並び順（レアが上） */
+const DEX_ORDER: Rarity[] = ["UR", "SSR", "SR", "R", "N"];
 
 /** 端末バイブ（対応端末＝主にAndroid。非対応は無視） */
 function vibrate(pattern: number[]): void {
@@ -164,6 +166,54 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
     ...pool.filter((id) => ownedIds.includes(id)).map((id) => ({ src: id, name: nameOf(id, t) })),
   ];
 
+  // 図鑑セル（1キャラ）。レア度で光る＆バッジ表示。
+  const renderCell = (c: { src: string; name: string }) => {
+    const equipped = character === c.src;
+    const r = rarityOf(c.src);
+    const rstyle = RARITY_STYLE[r];
+    const rare = r !== "N";
+    const high = HIGH_RARITY.includes(r);
+    return (
+      <button
+        key={c.src || "default"}
+        type="button"
+        onClick={() => setCharacter(c.src)}
+        className={cn(
+          "relative flex flex-col items-center gap-1 overflow-hidden rounded p-1.5 transition-colors",
+          equipped ? "bg-gold/20" : "bg-white/10 hover:bg-white/20",
+          high && "anim-rare-shine",
+        )}
+        style={{
+          boxShadow: rare ? `0 0 9px 1px ${rstyle.glow}` : undefined,
+          outline: `2px solid ${equipped ? "#f6c945" : rare ? rstyle.color : "transparent"}`,
+          outlineOffset: -2,
+        }}
+      >
+        {rare && (
+          <span
+            className={cn("pointer-events-none absolute inset-2 rounded", high && "anim-rare-glow")}
+            style={{ boxShadow: `0 0 14px 3px ${rstyle.glow}` }}
+          />
+        )}
+        {rare && (
+          <span
+            className="font-pixel absolute left-0.5 top-0.5 z-10 rounded px-1 text-[8px] font-bold"
+            style={{ background: rstyle.color, color: "#1a1026" }}
+          >
+            {RARITY_CODE[r]}
+          </span>
+        )}
+        <div className="relative z-10 grid h-12 w-12 place-items-center">
+          <Thumb id={c.src} />
+        </div>
+        <span className="font-pixel relative z-10 w-full truncate text-center text-[10px] text-white">{c.name}</span>
+        <span className="font-pixel relative z-10 text-[9px] font-bold" style={{ color: equipped ? "#f6c945" : rstyle.color }}>
+          {equipped ? t("costume.equipped") : rare ? rstyle.label : ""}
+        </span>
+      </button>
+    );
+  };
+
   const rs = result ? RARITY_STYLE[(result.rarity as Rarity) ?? "N"] : null;
   const isRare = !!result && (result.rarity === "SR" || result.rarity === "SSR" || result.rarity === "UR");
 
@@ -258,59 +308,26 @@ export function GachaPanel({ level = 1 }: { level?: number }) {
         )}
       </DQWindow>
 
-      {/* コレクション（所持分のみ・着替え可） */}
+      {/* 図鑑（所持分のみ・レア度順・着替え可） */}
       <DQWindow title={t("gacha.collection")}>
         <p className="font-pixel mb-2 text-xs text-gold">{got} / {total}</p>
-        <div className="grid grid-cols-3 gap-2">
-          {ownedCollection.map((c) => {
-            const equipped = character === c.src;
-            const r = rarityOf(c.src);
-            const rstyle = RARITY_STYLE[r];
-            const rare = r !== "N";
-            const high = HIGH_RARITY.includes(r);
-            return (
-              <button
-                key={c.src || "default"}
-                type="button"
-                onClick={() => setCharacter(c.src)}
-                className={cn(
-                  "relative flex flex-col items-center gap-1 overflow-hidden rounded p-1.5 transition-colors",
-                  equipped ? "bg-gold/20" : "bg-white/10 hover:bg-white/20",
-                  high && "anim-rare-shine",
-                )}
-                style={{
-                  boxShadow: rare ? `0 0 9px 1px ${rstyle.glow}` : undefined,
-                  outline: `2px solid ${equipped ? "#f6c945" : rare ? rstyle.color : "transparent"}`,
-                  outlineOffset: -2,
-                }}
-              >
-                {/* レア度の発光（裏面でやわらかく光る） */}
-                {rare && (
-                  <span
-                    className={cn("pointer-events-none absolute inset-2 rounded", high && "anim-rare-glow")}
-                    style={{ boxShadow: `0 0 14px 3px ${rstyle.glow}` }}
-                  />
-                )}
-                {/* レア度バッジ */}
-                {rare && (
-                  <span
-                    className="font-pixel absolute left-0.5 top-0.5 z-10 rounded px-1 text-[8px] font-bold"
-                    style={{ background: rstyle.color, color: "#1a1026" }}
-                  >
-                    {RARITY_CODE[r]}
-                  </span>
-                )}
-                <div className="relative z-10 grid h-12 w-12 place-items-center">
-                  <Thumb id={c.src} />
-                </div>
-                <span className="font-pixel relative z-10 w-full truncate text-center text-[10px] text-white">{c.name}</span>
-                <span className="font-pixel relative z-10 text-[9px] font-bold" style={{ color: equipped ? "#f6c945" : rstyle.color }}>
-                  {equipped ? t("costume.equipped") : rare ? rstyle.label : ""}
+        {DEX_ORDER.map((r) => {
+          const items = ownedCollection.filter((c) => rarityOf(c.src) === r);
+          if (items.length === 0) return null;
+          const rstyle = RARITY_STYLE[r];
+          return (
+            <div key={r} className="mb-3">
+              <div className="mb-1 flex items-center gap-2">
+                <span className="font-pixel rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ background: rstyle.color, color: "#1a1026" }}>
+                  {RARITY_CODE[r]}
                 </span>
-              </button>
-            );
-          })}
-        </div>
+                <span className="font-pixel text-[11px] font-bold" style={{ color: rstyle.color }}>{rstyle.label}</span>
+                <span className="font-pixel text-[10px] text-white/40">×{items.length}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">{items.map(renderCell)}</div>
+            </div>
+          );
+        })}
       </DQWindow>
     </>
   );

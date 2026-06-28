@@ -9,7 +9,7 @@
 import { useSyncExternalStore } from "react";
 import { THEMES } from "./themes";
 import { CHARACTERS, getBuiltinCharacter, type Rarity } from "@/components/pixel/sprites";
-import { addGold, getOwned, grantOwned } from "./playerStore";
+import { getOwned, grantOwned } from "./playerStore";
 import { toDateKey } from "@/lib/utils";
 
 const KEYS = {
@@ -121,17 +121,9 @@ export function useTownDevLevel(i: number): number {
 
 /* ---------------- 住民の特殊効果：ゴールド生産（idle収入） ---------------- */
 
-/** レア度ごとの生産量（ゴールド/時） */
-const RARITY_GOLD_PER_HR: Record<Rarity, number> = { N: 2, R: 5, SR: 12, SSR: 30, UR: 80 };
-const goldRateOf = (id: string) => RARITY_GOLD_PER_HR[getBuiltinCharacter(id)?.rarity ?? "N"];
-
-/** 全住民の合計ゴールド生産（/時） */
+/** 派遣した住民からの収入は廃止（常に0）。町は発展・図鑑・衣装プレゼント用 */
 export function goldPerHour(): number {
-  let total = 0;
-  for (const k of Object.keys(residents)) {
-    total += residents[Number(k)].reduce((s, id) => s + goldRateOf(id), 0);
-  }
-  return total;
+  return 0;
 }
 export function useGoldPerHour(): number {
   return useSyncExternalStore(subscribe, goldPerHour, goldPerHour);
@@ -158,9 +150,9 @@ export function collectIdleGold(): number {
 
 /** 目標：住民をこの人数そろえる */
 export const TOWN_GOAL_RESIDENTS = 5;
-/** 達成報酬（後の町ほど多い） */
-export function townGoalReward(i: number): number {
-  return 800 + i * 400;
+/** 達成報酬は廃止（ゴールドは出さない。達成は称号としてのみ残す） */
+export function townGoalReward(): number {
+  return 0;
 }
 
 const GOALS_KEY = "earnflow.townGoals";
@@ -178,14 +170,12 @@ export function claimTownGoal(i: number): number {
   claimedGoals = { ...claimedGoals, [i]: true };
   save(GOALS_KEY, claimedGoals);
   emit();
-  return townGoalReward(i);
+  return townGoalReward();
 }
 
 /* ---------------- 住民の家への訪問（1日1回・報酬） ---------------- */
 
-/** レア度ごとの訪問報酬ゴールド */
-const VISIT_GOLD: Record<Rarity, number> = { N: 50, R: 120, SR: 300, SSR: 700, UR: 1500 };
-/** レア度ごとの衣装プレゼント確率 */
+/** レア度ごとの衣装プレゼント確率（訪問のゴールド報酬は廃止） */
 const COSTUME_CHANCE: Record<Rarity, number> = { N: 0.1, R: 0.2, SR: 0.4, SSR: 0.7, UR: 1 };
 
 const VISIT_KEY = "earnflow.houseVisits";
@@ -211,8 +201,7 @@ export interface VisitReward {
 export function visitResident(id: string): VisitReward | null {
   if (!canVisitResident(id)) return null;
   const rarity: Rarity = getBuiltinCharacter(id)?.rarity ?? "N";
-  const gold = VISIT_GOLD[rarity];
-  addGold(gold);
+  const gold = 0; // 訪問のゴールド報酬は廃止（衣装プレゼントのみ）
 
   let costumeId: string | null = null;
   if (Math.random() < COSTUME_CHANCE[rarity]) {
