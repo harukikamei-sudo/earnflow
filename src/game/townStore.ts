@@ -9,7 +9,7 @@
 import { useSyncExternalStore } from "react";
 import { THEMES } from "./themes";
 import { CHARACTERS, getBuiltinCharacter, type Rarity } from "@/components/pixel/sprites";
-import { getOwned, grantOwned } from "./playerStore";
+import { addGold, getOwned, grantOwned } from "./playerStore";
 import { toDateKey } from "@/lib/utils";
 
 const KEYS = {
@@ -152,7 +152,9 @@ export function claimTownGoal(i: number): number {
 
 /* ---------------- 住民の家への訪問（1日1回・報酬） ---------------- */
 
-/** レア度ごとの衣装プレゼント確率（訪問のゴールド報酬は廃止） */
+/** レア度ごとの訪問ゴールド報酬（家に入ると1日1回もらえる） */
+const VISIT_GOLD: Record<Rarity, number> = { N: 50, R: 120, SR: 300, SSR: 700, UR: 1500 };
+/** レア度ごとの衣装プレゼント確率 */
 const COSTUME_CHANCE: Record<Rarity, number> = { N: 0.1, R: 0.2, SR: 0.4, SSR: 0.7, UR: 1 };
 
 const VISIT_KEY = "earnflow.houseVisits";
@@ -178,7 +180,8 @@ export interface VisitReward {
 export function visitResident(id: string): VisitReward | null {
   if (!canVisitResident(id)) return null;
   const rarity: Rarity = getBuiltinCharacter(id)?.rarity ?? "N";
-  const gold = 0; // 訪問のゴールド報酬は廃止（衣装プレゼントのみ）
+  const gold = VISIT_GOLD[rarity];
+  addGold(gold);
 
   let costumeId: string | null = null;
   if (Math.random() < COSTUME_CHANCE[rarity]) {

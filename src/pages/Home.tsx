@@ -240,13 +240,14 @@ export default function Home() {
     } else {
       const r = visitResident(houseId);
       lines = ["ようこそ！ いつも おうえん してるよ！"];
+      if (r && r.gold > 0) lines.push(`💰 ${r.gold}G を もらった！`);
       if (r?.costumeId) {
         lines.push(`✨ 「${getBuiltinCharacter(r.costumeId)?.name ?? "新衣装"}」を もらった！`);
         costumeId = r.costumeId;
       } else {
         lines.push("ゆっくり していってね。");
       }
-      playSE(r?.costumeId ? "levelup" : "door");
+      playSE(r?.costumeId ? "levelup" : "confirm");
     }
     setVisitData({ id: houseId, lines, costumeId });
     setScene("visit");
