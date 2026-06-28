@@ -5,6 +5,7 @@ import { Overworld } from "@/components/game/Overworld";
 import { FlickControls } from "@/components/game/FlickControls";
 import { WorkMenu } from "@/components/game/WorkMenu";
 import { GachaPanel } from "@/components/game/GachaPanel";
+import { Dexbook } from "@/components/game/Dexbook";
 import { CalendarBoard } from "@/components/game/CalendarBoard";
 import { EarningsChart } from "@/components/game/EarningsChart";
 import { GoalSettings } from "@/components/game/GoalSettings";
@@ -138,6 +139,7 @@ export default function Home() {
   const townResidents = useResidents();
   const theme = THEMES[currentTown];
   const [showWorld, setShowWorld] = useState(false);
+  const [showDex, setShowDex] = useState(false);
   const [traveling, setTraveling] = useState(false);
   const [themeBanner, setThemeBanner] = useState<{ name: string; emoji: string } | null>(null);
   const prevThemeRef = useRef(theme.id);
@@ -827,17 +829,32 @@ export default function Home() {
                 <ExpBar progress={level.progress} thin />
               </div>
             </div>
-            {/* 町を出る → ワールドマップ */}
-            <button
-              type="button"
-              onClick={() => {
-                playSE("confirm");
-                setShowWorld(true);
-              }}
-              className="dq-window pointer-events-auto mr-14 flex items-center gap-1 px-3 py-1.5 font-pixel text-xs text-white"
-            >
-              🗺 {t("world.exit")}
-            </button>
+            <div className="pointer-events-auto mr-14 flex items-center gap-1">
+              {/* 図鑑（本めくり） */}
+              <button
+                type="button"
+                onClick={() => {
+                  playSE("confirm");
+                  setShowDex(true);
+                }}
+                className="dq-window grid h-9 w-9 place-items-center text-sm"
+                aria-label="図鑑"
+                title="図鑑"
+              >
+                📖
+              </button>
+              {/* 町を出る → ワールドマップ */}
+              <button
+                type="button"
+                onClick={() => {
+                  playSE("confirm");
+                  setShowWorld(true);
+                }}
+                className="dq-window flex items-center gap-1 px-3 py-1.5 font-pixel text-xs text-white"
+              >
+                🗺 {t("world.exit")}
+              </button>
+            </div>
           </div>
 
           {/* バイト先に接近 → 選択肢（複数選択・追加・削除） */}
@@ -972,6 +989,9 @@ export default function Home() {
       {showWorld && (
         <WorldMap level={level.level} onTravel={travelTo} onClose={() => setShowWorld(false)} />
       )}
+
+      {/* 図鑑（本めくり） */}
+      {showDex && <Dexbook onClose={() => setShowDex(false)} />}
 
       {/* 移動中の暗転フェード */}
       <div

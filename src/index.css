@@ -325,6 +325,34 @@
     }
   }
 
+  /* 図鑑のページめくり */
+  .anim-page-r {
+    animation: page-r 0.36s ease;
+  }
+  @keyframes page-r {
+    from {
+      transform: rotateY(28deg);
+      opacity: 0.3;
+    }
+    to {
+      transform: rotateY(0);
+      opacity: 1;
+    }
+  }
+  .anim-page-l {
+    animation: page-l 0.36s ease;
+  }
+  @keyframes page-l {
+    from {
+      transform: rotateY(-28deg);
+      opacity: 0.3;
+    }
+    to {
+      transform: rotateY(0);
+      opacity: 1;
+    }
+  }
+
   /* 雨 */
   .anim-rain {
     background-image: repeating-linear-gradient(

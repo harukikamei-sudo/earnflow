@@ -178,6 +178,8 @@ export interface CharacterDef {
   rarity?: Rarity;
   /** そのキャラらしいセリフ（ログインボーナスで表示） */
   line?: string;
+  /** 図鑑用のプロフィール（性格・小ネタ） */
+  bio?: string;
 }
 
 /** 共通の顔（肌＋目） */
@@ -292,30 +294,35 @@ export const CHARACTERS: CharacterDef[] = [
     id: "char:warrior",
     name: "戦士",
     line: "今日も 全力で いくぞ！",
+    bio: "熱血で曲がったことが大嫌い。残業も「修行」と言い張る。重い荷物の品出しは誰よりも速いが、レジの暗算でいつも手が止まる。",
     ...dirSets(WARRIOR_TORSO, { o: "#1a1026", H: "#b9bec9", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#8a8f9e", B: "#5a5f6a", g: "#3a3f4a" }),
   },
   {
     id: "char:priest",
     name: "僧侶",
     line: "無理は しないでね。休むのも 大事だよ。",
+    bio: "穏やかで面倒見がよく、疲れた同僚をそっと気づかう。閉店後の掃除を黙々とこなすが、実は甘いまかないが何よりの楽しみ。",
     ...dirSets(PRIEST_TORSO, { o: "#1a1026", W: "#efe9d6", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#efe9d6", B: "#e0d8bf", g: "#6b4423" }),
   },
   {
     id: "char:hero",
     name: "勇者",
     line: "いっしょに 世界を 救おう！…まずは バイトから。",
+    bio: "いつか世界を救うと信じている。とりあえず軍資金を貯めるためバイト中。お客様を「仲間」と呼び、レジを「セーブポイント」と呼ぶ。",
     ...dirSets(HERO_TORSO, { o: "#1a1026", H: "#d3d7e2", Y: "#f6c945", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#3a6ee0", B: "#3a6ee0", g: "#6b4423" }),
   },
   {
     id: "char:salaryman",
     name: "社会人",
     line: "おつかれさまです。今日も 一日 がんばろう。",
+    bio: "定時で帰るのが目標だが、なぜか毎日終電。コーヒーは1日5杯。給与明細を見るたびに遠い目をするが、ボーナスの計算だけは異様に速い。",
     ...dirSets(SUIT_TORSO, { o: "#1a1026", H: "#2a2a2a", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#313a4a", W: "#ececec", R: "#c0392b", B: "#313a4a", g: "#1a1a1a" }),
   },
   {
     id: "char:student",
     name: "学生",
     line: "テスト前だけど、バイトも がんばる！",
+    bio: "授業中はいつも好きな人を目で追っていて、ぜんぜん集中できていない。テスト前夜に限ってバイトのシフトを入れてしまう常習犯。",
     ...dirSets(SUIT_TORSO, { o: "#1a1026", H: "#5a3a22", S: "#f3c98b", s: "#d99a5b", K: "#1a1026", C: "#2f3a6a", W: "#ffffff", R: "#c0392b", B: "#3a3f4a", g: "#2a2a2a" }),
   },
 ];
@@ -430,12 +437,14 @@ for (const role of ROLE_NAMES) {
     const head = rarity === "UR" ? HEAD_CROWN : HEADS_COMMON[i % HEADS_COMMON.length];
     const body = BODIES[Math.floor(i / HEADS_COMMON.length) % BODIES.length];
     const lines = ROLE_LINES[role] ?? ["今日も がんばろう！"];
+    const rarityWord: Record<Rarity, string> = { N: "どこにでもいる", R: "ちょっと頼れる", SR: "一目置かれる", SSR: "店の伝説", UR: "国宝級の" };
     CHARACTERS.push({
       id: `char:role${i}`,
       name: `${ROLE_TIERS[tIdx]}${role}`,
       ...dirSets(makeTorso(head, body), palette),
       rarity,
       line: lines[tIdx % lines.length],
+      bio: `${rarityWord[rarity]}「${role}」。${ROLE_TIERS[tIdx]}と呼ばれるだけの働きぶり。口ぐせは「${lines[tIdx % lines.length]}」`,
     });
   }
 }

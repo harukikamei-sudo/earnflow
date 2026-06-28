@@ -119,32 +119,9 @@ export function useTownDevLevel(i: number): number {
   return useSyncExternalStore(subscribe, () => townDevLevel(i), () => townDevLevel(i));
 }
 
-/* ---------------- 住民の特殊効果：ゴールド生産（idle収入） ---------------- */
-
-/** 派遣した住民からの収入は廃止（常に0）。町は発展・図鑑・衣装プレゼント用 */
-export function goldPerHour(): number {
-  return 0;
-}
-export function useGoldPerHour(): number {
-  return useSyncExternalStore(subscribe, goldPerHour, goldPerHour);
-}
-
-const COLLECT_KEY = "earnflow.townCollect";
-const MAX_IDLE_HOURS = 8; // ためられる上限
-let lastCollect: number = load<number>(COLLECT_KEY, Date.now());
-
-/**
- * 前回からの経過ぶんの「町からの仕送り」を計算して回収する（上限8時間）。
- * 返り値のゴールドは呼び出し側で wallet に加算する。
- */
-export function collectIdleGold(): number {
-  const now = Date.now();
-  const hours = Math.min(MAX_IDLE_HOURS, Math.max(0, (now - lastCollect) / 3_600_000));
-  const amount = Math.floor(goldPerHour() * hours);
-  lastCollect = now;
-  save(COLLECT_KEY, lastCollect);
-  return amount;
-}
+/* ---------------- 街からの仕送り（idle収入）は廃止 ----------------
+ * 派遣した住民からゴールドを得る仕組みは削除しました。
+ * 町は「発展（見た目の成長）・図鑑・衣装プレゼント」のために使います。 */
 
 /* ---------------- 町ごとの目標 ---------------- */
 
